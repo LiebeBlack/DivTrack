@@ -55,6 +55,13 @@ data class DashboardUiState(
      */
     val isConnectivityProblem: Boolean = false,
 
+    /**
+     * La base local se recreó vacía porque su archivo no era legible. Mientras sea `true`, el
+     * panel explica que las tasas guardadas se perdieron y que volverán al sincronizar
+     * (ADR 31). Se apaga solo cuando la sincronización vuelve a escribir en la caché.
+     */
+    val cacheRebuilt: Boolean = false,
+
     /** Causa real del último fallo, ya traducida a un recurso de texto. */
     val errorText: UiText? = null,
 ) {

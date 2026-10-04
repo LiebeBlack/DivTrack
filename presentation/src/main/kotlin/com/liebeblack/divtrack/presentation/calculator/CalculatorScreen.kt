@@ -64,6 +64,9 @@ import com.liebeblack.divtrack.presentation.theme.tabular
 /** Etiqueta del portapapeles que verán otras apps al pegar. */
 private const val CLIPBOARD_LABEL = "DivTrack"
 
+/** Plazos que ofrece la simulación de crédito; [DEFAULT_INSTALLMENTS] va marcado al abrir. */
+private val INSTALLMENT_OPTIONS = listOf(3, 6, 12, 24)
+
 @Composable
 fun CalculatorRoute(viewModel: CalculatorViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -257,6 +260,62 @@ fun CalculatorScreen(
                     igtfRateText = state.igtfRateText,
                 )
 
+                // Crédito en cuotas: el monto ya escrito, repartido entre el plazo elegido.
+                // Usa el mismo total del desglose (tasa aplicada e IGTF incluido), así que
+                // también funciona con la última tasa guardada cuando no hay red.
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.calculator_credit_title),
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                        SegmentedSelector(
+                            options = INSTALLMENT_OPTIONS,
+                            selected = state.installments,
+                            onSelect = { count ->
+                                onIntent(CalculatorIntent.SelectInstallments(count))
+                            },
+                            label = { count ->
+                                stringResource(R.string.calculator_credit_chip, count)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.calculator_credit_installment,
+                                state.installments,
+                                state.installmentBsText,
+                                state.installmentUsdText,
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.titleMedium.tabular(),
+                            color = resultValueColor,
+                            textAlign = TextAlign.Center,
+                        )
+                        Text(
+                            text = stringResource(R.string.calculator_credit_hint),
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+
                 Button(
                     onClick = { onIntent(CalculatorIntent.CopyBreakdown) },
                     enabled = state.canCopy,
@@ -349,7 +408,7 @@ private fun ResultRow(
                 style = valueStyle.copy(
                     fontSize = resultFontSize.sp,
                     lineHeight = (resultFontSize * 1.15f).sp,
-                    fontWeight = if (emphasize) FontWeight.Black else valueStyle.fontWeight,
+                    fontWeight = if (emphasize) FontWeight.ExtraBold else valueStyle.fontWeight,
                     letterSpacing = if (emphasize) (-0.8).sp else valueStyle.letterSpacing,
                 ),
                 color = valueColor,

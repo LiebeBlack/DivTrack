@@ -174,6 +174,33 @@ class CalculatorViewModelTest {
     }
 
     @Test
+    fun `la cuota del credito reparte el total en la moneda elegida`() = runTest {
+        val viewModel = createViewModel()
+        collectState(viewModel)
+
+        viewModel.onIntent(CalculatorIntent.AmountChanged("10"))
+        viewModel.onIntent(CalculatorIntent.SelectInstallments(12))
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertEquals(12, state.installments)
+        // Total sin IGTF: 365,00 Bs y 10,00 $ -> 12 cuotas = 30,42 Bs y 0,83 $.
+        assertEquals("30,42", state.installmentBsText)
+        assertEquals("0,83", state.installmentUsdText)
+    }
+
+    @Test
+    fun `el numero de cuotas nunca baja de una`() = runTest {
+        val viewModel = createViewModel()
+        collectState(viewModel)
+
+        viewModel.onIntent(CalculatorIntent.SelectInstallments(0))
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.state.value.installments)
+    }
+
+    @Test
     fun `sin tasas disponibles la calculadora lo avisa y no calcula`() = runTest {
         rateRepository.rates.value = emptyList()
         val viewModel = createViewModel()

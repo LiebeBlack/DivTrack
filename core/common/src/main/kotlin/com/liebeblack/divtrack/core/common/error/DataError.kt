@@ -42,6 +42,16 @@ sealed interface DataError {
         override val cause: Throwable? = null,
     ) : DataError
 
+    /**
+     * La base local rechazó una lectura o una escritura (disco lleno, archivo ilegible,
+     * conexión cerrada). No viene de la red: la app sigue en pie y la UI lo cuenta en vez de
+     * caerse; los datos anteriores se quedan en pantalla.
+     */
+    data class Storage(
+        override val message: String? = "La base de datos local no pudo guardar los datos",
+        override val cause: Throwable? = null,
+    ) : DataError
+
     /** Error no clasificado. */
     data class Unknown(
         override val message: String? = "Ocurrió un error inesperado",

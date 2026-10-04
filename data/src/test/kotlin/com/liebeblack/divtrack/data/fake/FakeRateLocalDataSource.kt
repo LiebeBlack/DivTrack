@@ -1,5 +1,6 @@
 package com.liebeblack.divtrack.data.fake
 
+import android.database.sqlite.SQLiteException
 import com.liebeblack.divtrack.core.database.datasource.RateLocalDataSource
 import com.liebeblack.divtrack.core.database.entity.CurrentRateEntity
 import com.liebeblack.divtrack.core.database.entity.RateHistoryEntity
@@ -9,48 +10,49 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * Room simulado en memoria.
  *
- * Reproduce lo que de verdad importa para el repositorio: las escrituras son idempotentes
- * por clave (como el `@Upsert` de Room) y la lectura es un `Flow` que re-emite al cambiar.
+ * Reproduce lo que de verdad importa para el repositorio: la escritura de una sincronización
+ * entra por la transacción [commitRateSync], las escrituras son idempotentes por clave (como
+ * el `@Upsert` de Room) y la lectura es un `Flow` que re-emite al cambiar.
+ *
+ * Los interruptores `failReads` / `failWrites` / `failPrune` imitan un almacenamiento que
+ * rechaza operaciones, para fijar el comportamiento del repositorio cuando Room dice que no.
+ * Lanzan `SQLiteException` real: es el mismo tipo que Room deja escapar en Android, y su
+ * constructor sobrevive intacto en el jar mockeable de los tests JVM (la llamada a `super`
+ * se conserva; solo se descarta el cuerpo).
  */
 class FakeRateLocalDataSource : RateLocalDataSource {
 
     val currentRates = MutableStateFlow<List<CurrentRateEntity>>(emptyList())
     val dailyCloses = MutableStateFlow<List<RateHistoryEntity>>(emptyList())
 
-    var upsertCurrentRatesCalls: Int = 0
-        private set
-    var upsertDailyClosesCalls: Int = 0
-        private set
     var commitRateSyncCalls: Int = 0
         private set
 
+    /** Cuando es `true`, leer una fila lanza como una base ilegible. */
+    var failReads: Boolean = false
+
+    /** Cuando es `true`, el commit lanza como una base que rechaza la escritura. */
+    var failWrites: Boolean = false
+
+    /** Cuando es `true`, la poda lanza como un borrado que no se pudo aplicar. */
+    var failPrune: Boolean = false
+
     override fun observeCurrentRates(): Flow<List<CurrentRateEntity>> = currentRates
 
-    override suspend fun upsertCurrentRates(rates: List<CurrentRateEntity>) {
-        if (rates.isEmpty()) return
-        upsertCurrentRatesCalls++
-        val bySource = currentRates.value.associateBy { it.source }.toMutableMap()
-        rates.forEach { rate -> bySource[rate.source] = rate }
-        currentRates.value = bySource.values.toList()
+    override suspend fun currentRate(source: String): CurrentRateEntity? {
+        failIfAsked(failReads)
+        return currentRates.value.firstOrNull { it.source == source }
     }
 
-    override suspend fun upsertDailyCloses(closes: List<RateHistoryEntity>) {
-        if (closes.isEmpty()) return
-        upsertDailyClosesCalls++
-        val byKey = dailyCloses.value.associateBy { it.source to it.epochDay }.toMutableMap()
-        closes.forEach { close -> byKey[close.source to close.epochDay] = close }
-        dailyCloses.value = byKey.values.toList()
-    }
-
-    override suspend fun currentRate(source: String): CurrentRateEntity? =
-        currentRates.value.firstOrNull { it.source == source }
-
-    override suspend fun previousClose(source: String, epochDay: Long): RateHistoryEntity? =
-        dailyCloses.value
+    override suspend fun previousClose(source: String, epochDay: Long): RateHistoryEntity? {
+        failIfAsked(failReads)
+        return dailyCloses.value
             .filter { it.source == source && it.epochDay < epochDay }
             .maxByOrNull { it.epochDay }
+    }
 
     override suspend fun pruneDailyCloses(beforeEpochDay: Long): Int {
+        failIfAsked(failPrune)
         val before = dailyCloses.value.size
         dailyCloses.value = dailyCloses.value.filter { it.epochDay >= beforeEpochDay }
         return before - dailyCloses.value.size
@@ -59,8 +61,21 @@ class FakeRateLocalDataSource : RateLocalDataSource {
     /** Espeja la semántica transaccional de `RateDao.commitRateSync`. */
     override suspend fun commitRateSync(rates: List<CurrentRateEntity>, closes: List<RateHistoryEntity>) {
         if (rates.isEmpty()) return
+        failIfAsked(failWrites)
         commitRateSyncCalls++
-        upsertCurrentRates(rates)
-        upsertDailyCloses(closes)
+
+        val bySource = currentRates.value.associateBy { it.source }.toMutableMap()
+        rates.forEach { rate -> bySource[rate.source] = rate }
+        currentRates.value = bySource.values.toList()
+
+        if (closes.isNotEmpty()) {
+            val byKey = dailyCloses.value.associateBy { it.source to it.epochDay }.toMutableMap()
+            closes.forEach { close -> byKey[close.source to close.epochDay] = close }
+            dailyCloses.value = byKey.values.toList()
+        }
+    }
+
+    private fun failIfAsked(shouldFail: Boolean) {
+        if (shouldFail) throw SQLiteException("fallo simulado del almacenamiento local")
     }
 }

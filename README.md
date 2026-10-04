@@ -67,7 +67,7 @@ Lo que sigue se comprobó **ejecutando** cosas, no asumiendo:
 :core:network     Retrofit triple (DolarAPI + Yadio + ER-API), 4 interceptores, RateProvider + registro con circuit breaker y frescura.
 :core:database    Room: tasa vigente + cierre diario (base de la flecha de tendencia).
 :core:datastore   DataStore: tema, IGTF, fuente por defecto, frecuencia de sync.
-:domain           Kotlin/JVM puro. Modelos, contratos de repositorio y 8 casos de uso.
+:domain           Kotlin/JVM puro. Modelos, contratos de repositorio y 9 casos de uso.
 :data             Implementaciones, orquestación multi-proveedor, WorkManager.
 :presentation     Compose + MVI por pantalla + tema M3 + Nav3.
 :app              Application (Hilt + WorkManager), MainActivity, recursos, R8.
@@ -192,9 +192,9 @@ versión instalada y atribución de proveedores.
 
 ## Tests
 
-82 casos JVM declarados en el repo (los 49 de la última corrida verificada, más los que
-llegaron después con el multi-proveedor y la frescura de datos), centrados en lo que puede
-romperse en silencio:
+93 casos JVM declarados en el repo (los 88 de la última corrida completa, más los 2 de la
+corrección tipográfica y los 3 de la última pasada, estos tres sin ejecutar), centrados en lo
+que puede romperse en silencio:
 
 | Módulo | Qué se prueba |
 |---|---|
@@ -223,6 +223,86 @@ Lo verificado en esta pasada, ejecutando:
 | `:app:assembleDebug` y `:app:assembleRelease` | **BUILD SUCCESSFUL** · 21,9 MB y 2,40 MB con R8 y `lintVitalRelease` |
 | APIs en vivo (2026-10-03) | DolarAPI responde 200 con el oficial del **2 oct** (más de 24 h) y el paralelo del día; ER-API trae el oficial vigente (**871,37**) y el registro **se lo queda por frescura**: la regla del ADR 26 vista funcionando con datos reales |
 | `:app:lintDebug` | no re-ejecutado en esta pasada (CI lo corre con `continue-on-error`) |
+
+---
+
+## Esta pasada (2026-10-03, segunda): la letra ya pesa lo que dice pesar
+
+**Hallazgo (comprobado contra el binario de la fuente y el bytecode de Compose, no supuesto).**
+`manrope_variable.ttf` es una fuente **variable** de un solo eje (`wght`), con mínimo en
+**200 = ExtraLight** y techo en 800. La familia declaraba cinco entradas del mismo archivo con
+solo el `FontWeight`; `AndroidFontLoader` carga el recurso sin estilo
+(`ResourcesCompat.getFont(context, resId)`) y solo mueve los ejes con `variationSettings`. Sin
+ejes, **todas** las entradas pintaban ExtraLight: la app entera se veía de letra fina y ni el
+compilador ni los tests lo veían.
+
+| Qué | Antes | Ahora |
+|---|---|---|
+| Pesos de Manrope | Cinco entradas que renderizaban ExtraLight | Cada entrada fija su eje (`FontVariation.Settings(FontVariation.weight(n))`): 400, 500, 600, 700 y 800 |
+| Peso máximo pedido | `FontWeight.Black` (900), que la fuente no tiene | `ExtraBold` (800), el techo real |
+| Cuerpo de texto | Normal (400) | **Medium (500)**, y `labelSmall` a SemiBold |
+| `LoadingState` y su `@Preview` | Código muerto: ninguna pantalla lo usaba | Eliminado (ADR 19) |
+
+Lo que esta pasada dejó **verificado** —ejecutando— y lo que no:
+
+| Comprobación | Resultado |
+|---|---|
+| `ManropeFontFamilyTest` (2 casos) | **2 casos, 0 fallos**; se comprobó además que **falla** al quitar los `variationSettings` (reproduce el defecto) |
+| `:presentation:compileDebugUnitTestKotlin` | **BUILD SUCCESSFUL** |
+| Resto de tests JVM y APK (`assembleDebug` / `assembleRelease`) | **no re-ejecutados**: la corrida se interrumpió a petición, así que esta pasada no reclama la tabla completa |
+| `:app:lintDebug` | no ejecutado |
+
+La decisión y su coste quedan en la ADR 30 ([docs/DECISIONS.md](docs/DECISIONS.md)).
+
+---
+
+## Revisión del almacenamiento incompleto (2026-10-03, tercera)
+
+Revisión pedida: qué pinta la app **cuando no hay de todo** en Room (y sin red). El repaso del
+camino completo —DAO, `RateLocalDataSource`, repositorio, los dos ViewModel y las pantallas—
+dejó una buena noticia y un hueco:
+
+| Caso | Antes | Ahora |
+|---|---|---|
+| Room vacío y sin conexión | Estado de error con la causa real, «Reintentar» y atajo a los ajustes de red; la tarjeta del oficial enseña «— / Sin datos». Correcto | Igual |
+| Solo el oficial guardado | Las tasas guardadas se pintan; la brecha no se muestra (necesita las dos) y la calculadora solo ofrece la que existe | Igual |
+| **Paralela encendida y nunca guardada** | La tarjeta no aparecía y **nada explicaba por qué**: el usuario la había activado y no veía ni dato ni motivo | Aviso persistente «La tasa paralela aún no tiene datos guardados…» (`msg_parallel_missing`, en es-VE y en inglés) |
+
+Nada de esto se compiló ni se pasó por tests en esta pasada (instrucción explícita). Lo que sí
+se comprobó leyendo: la clave nueva existe en los dos idiomas y se usa una sola vez, y el aviso
+reutiliza el mismo componente que el de «dato rancio» (renombrado `DashboardNotice`, porque ya
+no solo habla de conexión).
+
+---
+
+## Cuarta pasada (2026-10-03): base dañada, memoria y cuotas
+
+Tres frentes pedidos explícitamente: que una base dañada se reconstruya, que el cálculo siga
+funcionando con lo último guardado («calcular con caché») y que la calculadora reparta un monto
+en cuotas de crédito.
+
+| Qué | Antes | Ahora |
+|---|---|---|
+| **Base Room dañada** | La primera lectura lanzaba dentro del `Flow` y la app caía al abrir, sin forma de recuperarse | `RebuildingOpenHelperFactory`: verificación con `PRAGMA quick_check` antes de abrir, borrado de lo ilegible y aviso persistente en el panel (`msg_cache_rebuilt`); `allowDataLossOnRecovery` de AndroidX como segunda red para fallos de apertura |
+| **Cálculo sin Room** | Si la base fallaba en caliente, el colector de tasas moría y la calculadora se quedaba sin nada | `RateRepositoryImpl` reintenta la lectura dos veces y, si no hay arreglo, sirve la **última lectura de la sesión**; una emisión vacía tras la reconstrucción no borra esa memoria |
+| **Cuotas de crédito** | No existían | Tarjeta «Crédito en cuotas»: 3, 6, 12 o 24 cuotas, cuota mensual en bolívares y dólares sobre el total ya calculado (IGTF incluido), con la aclaratoria de que no modela intereses (ADR 32) |
+
+Nada de esta pasada se compiló ni se ejecutó (instrucción explícita). Se revisó leyendo el
+código, y las únicas APIs nuevas para el proyecto se verificaron contra el código fuente de
+AndroidX y no contra el recuerdo: `Configuration.builder(...)`, `noBackupDirectory(...)` y
+`allowDataLossOnRecovery(...)` existen en `androidx.sqlite`; `room-runtime` 2.8.5 publica
+`:sqlite:sqlite` y `:sqlite:sqlite-framework` como `api`, así que esos tipos están en el
+classpath de `:core:database`.
+
+| Comprobación | Resultado |
+|---|---|
+| Test nuevo del panel (la caché reconstruida se expone en el estado) | escrito, **no ejecutado** |
+| Tests nuevos de la calculadora (reparto en cuotas y mínimo de una cuota) | escritos, **no ejecutados** |
+| Reconstrucción probada en dispositivo (archivo dañado de verdad) | no ejecutada |
+| Compilación y resto de la suite | no ejecutados |
+
+Las decisiones y sus alternativas quedan en la ADR 31 (reconstrucción de la base) y la ADR 32
+(cuotas sin intereses).
 
 ---
 

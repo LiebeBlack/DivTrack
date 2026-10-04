@@ -627,3 +627,100 @@ escrita en la tarjeta («Actualizado …»), que es lo que el usuario necesita p
 refresca a mano. La misma regla explica por qué la fecha de comprobación (`fetchedAtMillis`) es
 un dato aparte de la fecha publicada por el proveedor: una fuente puede no publicar nada nuevo
 y aun así haber que comprobarlo.
+
+---
+
+## 30. La fuente variable lleva sus pesos en `variationSettings`
+
+**Contexto.** `presentation/res/font/manrope_variable.ttf` es una fuente **variable**: un solo
+eje `wght`, con mínimo 200 (ExtraLight) y techo 800. La familia se declaraba con cinco entradas
+del mismo archivo (`Font(R.font.manrope_variable, FontWeight.Normal)`, `…Medium`, `…SemiBold`,
+`…Bold`, `…Black`) creyendo que el `FontWeight` elegía el trazo. No lo hace: Compose carga el
+recurso sin estilo —`ResourcesCompat.getFont(context, resId)`, visto en el bytecode de
+`AndroidFontLoader` de la versión que usa el proyecto— y el único camino que mueve los ejes es
+`setFontVariationSettings`, alimentado por `Font.variationSettings`. Sin esos ejes, las cinco
+entradas renderizaban la instancia por defecto: **ExtraLight (200)**. La app entera salía con
+letra fina y ni el compilador ni ningún test lo notaban.
+
+**Decisión.** Cada entrada declara su eje: `FontVariation.Settings(FontVariation.weight(n))`
+para 400, 500, 600, 700 y 800. Se deja de pedir Black (900), que Manrope no tiene: el peso más
+grueso de la interfaz (cifra héroe del panel y resultado de la calculadora) es `ExtraBold`
+(800). El cuerpo sube de Normal a Medium y `labelSmall` a SemiBold: con el eje ya correcto, eso
+es lo que da la letra «definida y bien visible» sin cambiar de familia ni de tamaños.
+
+**Alternativa descartada: cinco TTF estáticos** (Regular, Medium, SemiBold, Bold, ExtraBold).
+Funcionaría sin depender del eje, pero son ~0,5 MB más de APK (la variable pesa 165 KB) y el
+proyecto cuida el tamaño en gama baja. El soporte de ejes arranca en API 26 —
+`Paint.setFontVariationSettings`, la técnica que usa `TypefaceCompatApi26` de Compose—, que es
+exactamente el `minSdk` del proyecto.
+
+**Coste y mitigación.** Si alguien vuelve a añadir un peso sin `variationSettings`, el síntoma
+es mudo (la app «se ve floja» y nada falla). Por eso `ManropeFontFamilyTest` fija las dos
+invariantes: toda entrada declara el eje de su peso y la escala no pide un peso que la fuente
+no tenga. Comprobado que el test **falla** al quitar los ejes (reproduce el defecto) y **pasa**
+con ellos.
+
+---
+
+## 31. La base dañada se recrea, pero nunca en silencio
+
+**Contexto.** La ADR 16 decidió no usar migración destructiva: perder datos guardados sin
+avisar no es una opción en una app financiera. El caso que faltaba no eran las migraciones,
+sino la **corrupción**: si el archivo SQLite no se puede abrir (apagón a mitad de escritura,
+disco lleno, una restauración mal hecha), la primera lectura lanzaba dentro del `Flow` que
+observan los ViewModel y la app caía al abrir. De un archivo ilegible no hay nada que
+«conservar».
+
+**Decisión.** La base entra siempre por `RebuildingOpenHelperFactory`, que hace dos cosas:
+
+1. **Verificación previa.** Si el archivo existe y `PRAGMA quick_check` no lo da por sano, se
+   borra antes de que Room lo abra y se enciende `DatabaseRebuildTracker`. El panel muestra un
+   aviso persistente («la base estaba dañada y se reconstruyó; las tasas volverán con la
+   próxima sincronización») que desaparece solo cuando una sincronización vuelve a escribir.
+2. **Red de seguridad.** La configuración que se entrega al helper lleva
+   `allowDataLossOnRecovery = true` de AndroidX: si la verificación previa pasó pero la
+   apertura falla, AndroidX borra el archivo y reintenta con una base nueva. Esa ruta no avisa
+   —no hay gancho público para saber que ocurrió— pero evita la caída.
+
+Un fallo que **no** sea corrupción (disco lleno, permisos) no borra nada: se propaga y la UI lo
+cuenta con sus mensajes de siempre.
+
+**Alternativas descartadas.**
+
+- **Mostrar solo el error y no tocar la base.** Es lo que pasaba hasta hoy: la lectura lanzaba
+  antes de que existiera una UI donde mostrarlo; con el archivo ilegible no hay pantalla que lo
+  cuente.
+- **`fallbackToDestructiveMigration`.** Solo cubre cambios de versión del esquema, no
+  corrupción.
+- **Envolver el `SupportSQLiteOpenHelper` a mano.** Detecta también la ruta de apertura y
+  podría avisar de ella, pero añade una delegación completa sobre APIs internas móviles.
+  `allowDataLossOnRecovery` es API pública de AndroidX y la ruta principal ya avisa.
+
+**Coste.** En una base corrupta se pierden las tasas guardadas: son datos que repuebla la
+próxima sincronización, no una decisión del usuario. Mientras vuelve la red, la app sigue
+calculando con la última lectura de la sesión, que `RateRepositoryImpl` conserva en memoria; el
+aviso explica la pérdida.
+
+---
+
+## 32. La calculadora reparte en cuotas sin modelar intereses (todavía)
+
+**Contexto.** Pedido explícito: calcular el crédito en cuotas. Un crédito real se anuncia con
+plazo (3, 6, 12, 24 cuotas) y a veces con interés; modelar el interés exige una tasa, su
+periodicidad y decidir si es fija o variable. Estimar esa aritmética sin que nadie la haya
+definido habría producido cifras con apariencia de exactitud.
+
+**Decisión.** La tarjeta «Crédito en cuotas» divide el total ya calculado —tasa aplicada e
+IGTF incluido, si está activo— entre el plazo elegido y muestra la cuota en bolívares y en
+dólares. Sin intereses, y la pantalla lo dice: «Sin intereses: el monto entre el número de
+cuotas, con la tasa aplicada».
+
+**Por qué es correcto hacerlo así.** El IGTF es proporcional a cada pago, así que dividir el
+total entre las cuotas da exactamente el impuesto de cada una. Y como la cuota parte del mismo
+total que el desglose de la pantalla, también funciona con la última tasa guardada: es el
+respaldo que la calculadora necesita cuando la base local se reconstruyó.
+
+**Coste y siguiente paso.** Si hace falta interés, hay que añadir un campo de tasa y la fórmula
+de amortización francesa; el estado admite ese cambio sin tocar el resto de la pantalla.
+Mientras tanto, el interés queda fuera del cálculo y se advierte en la propia tarjeta: no se
+aproxima en silencio.

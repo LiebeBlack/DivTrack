@@ -85,7 +85,11 @@ class RateSyncWorker @AssistedInject constructor(
         is DataError.Http -> code == HTTP_REQUEST_TIMEOUT ||
             code == HTTP_TOO_MANY_REQUESTS ||
             code in HTTP_SERVER_ERROR_RANGE
-        is DataError.Parse, is DataError.EmptyCache, is DataError.Unknown -> false
+        is DataError.Parse,
+        is DataError.EmptyCache,
+        is DataError.Storage,
+        is DataError.Unknown,
+        -> false
     }
 
     companion object {

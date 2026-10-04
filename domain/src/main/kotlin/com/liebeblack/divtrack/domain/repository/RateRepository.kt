@@ -22,6 +22,13 @@ interface RateRepository {
 
     fun observeRates(): Flow<List<ExchangeRate>>
 
+    /**
+     * `true` mientras la caché local venga de una reconstrucción: la base estaba dañada, se
+     * recreó vacía y el usuario merece saberlo (ADR 16 y ADR 31). Vuelve a `false` cuando una
+     * sincronización logra escribir tasas otra vez.
+     */
+    fun observeCacheRebuild(): Flow<Boolean>
+
     suspend fun refreshRates(): Result<SyncSummary>
 
     suspend fun testProviders(): ProviderDiagnostics

@@ -4,6 +4,7 @@ import com.liebeblack.divtrack.core.common.error.DataError
 import com.liebeblack.divtrack.core.common.logging.NoOpLogger
 import com.liebeblack.divtrack.core.common.result.Result
 import com.liebeblack.divtrack.core.common.utils.SourceKeys
+import com.liebeblack.divtrack.core.database.DatabaseRebuildTracker
 import com.liebeblack.divtrack.core.database.entity.RateHistoryEntity
 import com.liebeblack.divtrack.core.network.error.NetworkErrorMapper
 import com.liebeblack.divtrack.core.network.model.RemoteRate
@@ -21,6 +22,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -31,6 +34,8 @@ import org.junit.Test
  *  2. Un fallo de red no destruye los datos que el usuario ya tenía.
  *  3. La resolución es por tasa, no por proveedor: que una API caiga no deja la app vacía.
  *  4. Sin conectividad se falla al instante: ni timeout ni peticiones inútiles.
+ *  5. Un fallo de almacenamiento se cuenta, no se propaga: la sincronización termina como
+ *     `Result.Error` de tipo `Storage` y lo que ya estaba guardado queda intacto.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RateRepositoryImplTest {
@@ -39,6 +44,7 @@ class RateRepositoryImplTest {
     private val preferences = FakeUserPreferencesDataSource()
     private val clock = FakeTimeProvider(today = LocalDate.of(2026, 10, 1))
     private val connectivity = FakeConnectivityObserver()
+    private val rebuildTracker = DatabaseRebuildTracker()
 
     private fun repository(vararg providers: FakeRateProvider) = RateRepositoryImpl(
         providerRegistry = ProviderRegistry(
@@ -49,6 +55,7 @@ class RateRepositoryImplTest {
             timeProvider = clock,
         ),
         localDataSource = localDataSource,
+        databaseRebuildTracker = rebuildTracker,
         preferencesDataSource = preferences,
         timeProvider = clock,
         logger = NoOpLogger,
@@ -108,7 +115,7 @@ class RateRepositoryImplTest {
 
         assertTrue(result is Result.Error)
         assertEquals(before, localDataSource.currentRates.value)
-        assertEquals(1, localDataSource.upsertCurrentRatesCalls)
+        assertEquals(1, localDataSource.commitRateSyncCalls)
     }
 
     @Test
@@ -169,8 +176,8 @@ class RateRepositoryImplTest {
 
     @Test
     fun `la flecha de tendencia usa el cierre anterior guardado`() = runTest {
-        localDataSource.upsertDailyCloses(
-            listOf(dailyClose(SourceKeys.OFICIAL, epochDay = clock.today().toEpochDay() - 1, value = 850.0)),
+        localDataSource.dailyCloses.value = listOf(
+            dailyClose(SourceKeys.OFICIAL, epochDay = clock.today().toEpochDay() - 1, value = 850.0),
         )
         val repository = repository(
             FakeRateProvider(
@@ -185,6 +192,82 @@ class RateRepositoryImplTest {
         val current = localDataSource.currentRates.value.single()
         assertEquals(850.0, current.previousClose!!, DELTA)
         assertEquals(9.06, 859.06 - current.previousClose!!, DELTA)
+    }
+
+    @Test
+    fun `si la base rechaza la escritura devuelve un error de almacenamiento`() = runTest {
+        // La caché se reconstruyó y su aviso está encendido cuando el commit falla.
+        rebuildTracker.markRebuilt()
+        val repository = repository(
+            FakeRateProvider(
+                id = "DolarAPI",
+                priority = 0,
+                rates = listOf(rate(SourceKeys.OFICIAL, 859.06)),
+            ),
+        )
+        localDataSource.failWrites = true
+
+        val result = repository.refreshRates()
+
+        assertTrue(result is Result.Error)
+        assertTrue((result as Result.Error).error is DataError.Storage)
+        // Nada se escribió y el aviso sigue siendo cierto: la app no miente sobre su caché.
+        assertTrue(localDataSource.currentRates.value.isEmpty())
+        assertEquals(0, localDataSource.commitRateSyncCalls)
+        assertTrue(rebuildTracker.rebuilt.value)
+    }
+
+    @Test
+    fun `una sincronizacion que si escribe apaga el aviso de reconstruccion`() = runTest {
+        rebuildTracker.markRebuilt()
+        val repository = repository(
+            FakeRateProvider(
+                id = "DolarAPI",
+                priority = 0,
+                rates = listOf(rate(SourceKeys.OFICIAL, 859.06)),
+            ),
+        )
+
+        val result = repository.refreshRates()
+
+        assertTrue(result is Result.Success)
+        assertFalse(rebuildTracker.rebuilt.value)
+    }
+
+    @Test
+    fun `si el cierre anterior no se puede leer la sincronizacion sigue sin tendencia`() = runTest {
+        // Una lectura de adorno (la flecha) no puede impedir guardar la tasa del día.
+        localDataSource.failReads = true
+        val repository = repository(
+            FakeRateProvider(
+                id = "DolarAPI",
+                priority = 0,
+                rates = listOf(rate(SourceKeys.OFICIAL, 859.06)),
+            ),
+        )
+
+        val result = repository.refreshRates()
+
+        assertTrue(result is Result.Success)
+        assertEquals(1, localDataSource.currentRates.value.size)
+        assertNull(localDataSource.currentRates.value.single().previousClose)
+    }
+
+    @Test
+    fun `si la poda de cierres falla las tasas recien guardadas siguen intactas`() = runTest {
+        localDataSource.failPrune = true
+        val repository = repository(
+            FakeRateProvider(
+                id = "DolarAPI",
+                priority = 0,
+                rates = listOf(rate(SourceKeys.OFICIAL, 859.06)),
+            ),
+        )
+
+        val result = repository.refreshRates()
+
+        assertTrue(result is Result.Success)
+        assertEquals(859.06, localDataSource.currentRates.value.single().value, DELTA)
     }
 
     private fun rate(sourceKey: String, value: Double) = RemoteRate(

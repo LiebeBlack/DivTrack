@@ -10,6 +10,7 @@ import com.liebeblack.divtrack.domain.model.ExchangeRate
 import com.liebeblack.divtrack.domain.model.RateSource
 import com.liebeblack.divtrack.domain.model.Spread
 import com.liebeblack.divtrack.domain.usecase.CalculateSpreadUseCase
+import com.liebeblack.divtrack.domain.usecase.ObserveCacheRebuildUseCase
 import com.liebeblack.divtrack.domain.usecase.ObserveRatesUseCase
 import com.liebeblack.divtrack.domain.usecase.ObserveSettingsUseCase
 import com.liebeblack.divtrack.domain.usecase.SyncRatesUseCase
@@ -41,6 +42,7 @@ import kotlinx.coroutines.launch
 class DashboardViewModel @Inject constructor(
     private val observeRates: ObserveRatesUseCase,
     private val observeSettings: ObserveSettingsUseCase,
+    private val observeCacheRebuild: ObserveCacheRebuildUseCase,
     private val syncRates: SyncRatesUseCase,
     private val calculateSpread: CalculateSpreadUseCase,
     private val timeProvider: TimeProvider,
@@ -61,6 +63,7 @@ class DashboardViewModel @Inject constructor(
     init {
         observeRatesFromCache()
         observeParallelRatePreference()
+        observeCacheRebuildState()
         refresh(isUserInitiated = false)
     }
 
@@ -100,6 +103,19 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             observeSettings().collect { settings ->
                 _state.update { it.copy(showParallelRate = settings.showParallelRate) }
+            }
+        }
+    }
+
+    /**
+     * La base pudo recrearse tras detectar un archivo dañado. El aviso se queda en pantalla
+     * hasta que una sincronización vuelve a escribir tasas: es la única señal que explica por
+     * qué los datos guardados desaparecieron (ADR 31).
+     */
+    private fun observeCacheRebuildState() {
+        viewModelScope.launch {
+            observeCacheRebuild().collect { rebuilt ->
+                _state.update { it.copy(cacheRebuilt = rebuilt) }
             }
         }
     }

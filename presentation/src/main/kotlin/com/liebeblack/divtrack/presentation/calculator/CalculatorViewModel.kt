@@ -49,6 +49,11 @@ import kotlinx.coroutines.launch
  * aviso ni forma de refrescar. Por eso, al abrir y al pulsar "Reintentar/Actualizar" se
  * fuerza la pasada contra los proveedores: si falla, se usa la guardada y se avisa sin
  * tocar el cálculo que ya está en pantalla.
+ *
+ * **También divide en cuotas.** Con el monto ya escrito, el usuario elige 3, 6, 12 o 24
+ * cuotas y ve la cuota mensual en ambas monedas, calculada sobre el mismo total (con IGTF si
+ * está activo). No depende de la red: sigue funcionando con la última tasa guardada aunque
+ * la base local haya tenido que reconstruirse.
  */
 @HiltViewModel
 class CalculatorViewModel @Inject constructor(
@@ -63,6 +68,7 @@ class CalculatorViewModel @Inject constructor(
     private val direction = MutableStateFlow(ConversionDirection.USD_TO_BS)
     private val selectedSource = MutableStateFlow<RateSource?>(null)
     private val igtfEnabled = MutableStateFlow<Boolean?>(null)
+    private val installments = MutableStateFlow(DEFAULT_INSTALLMENTS)
     private val availableRates = MutableStateFlow(CalculatorRates())
     private val isSyncing = MutableStateFlow(false)
     private var syncJob: Job? = null
@@ -95,7 +101,8 @@ class CalculatorViewModel @Inject constructor(
     val state: StateFlow<CalculatorUiState> = combine(
         calculationInputs,
         isSyncing,
-    ) { inputs, syncing ->
+        installments,
+    ) { inputs, syncing, installmentCount ->
         buildState(
             input = inputs.input,
             direction = inputs.direction,
@@ -103,6 +110,7 @@ class CalculatorViewModel @Inject constructor(
             igtf = inputs.igtf,
             rates = inputs.rates,
             isSyncing = syncing,
+            installments = installmentCount,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -138,6 +146,11 @@ class CalculatorViewModel @Inject constructor(
             }
 
             is CalculatorIntent.SelectSource -> selectedSource.value = intent.source
+
+            // Nunca menos de una cuota: el selector de la UI no lo permite, pero el estado no
+            // depende de que la UI se porte bien.
+            is CalculatorIntent.SelectInstallments ->
+                installments.value = intent.count.coerceAtLeast(1)
 
             CalculatorIntent.Refresh -> refresh(isUserInitiated = true)
 
@@ -217,6 +230,7 @@ class CalculatorViewModel @Inject constructor(
         igtf: Boolean?,
         rates: CalculatorRates,
         isSyncing: Boolean,
+        installments: Int,
     ): CalculatorUiState {
         val options = rates.options
 
@@ -239,6 +253,14 @@ class CalculatorViewModel @Inject constructor(
             igtfEnabled = igtfEnabledValue,
         )
 
+        // La cuota sale del mismo total ya calculado (IGTF incluido, si está activo): dividir
+        // es exacto porque el impuesto es proporcional a cada pago. Sin monto o sin tasa, el
+        // guion de "sin dato" se mantiene.
+        val installmentBsText =
+            conversion?.let { CurrencyFormatters.amount(it.totalBs / installments) } ?: "—"
+        val installmentUsdText =
+            conversion?.let { CurrencyFormatters.amount(it.totalUsd / installments) } ?: "—"
+
         // La fila "Tasa: X" también cuenta la edad del dato: una tasa de ayer es el motivo
         // nº1 de que las cuentas "no salgan", y no hay que dejar que se lea como actual.
         return CalculatorUiState(
@@ -254,6 +276,9 @@ class CalculatorViewModel @Inject constructor(
             igtfBsText = conversion?.let { CurrencyFormatters.amount(it.igtfBs) } ?: "—",
             totalBsText = conversion?.let { CurrencyFormatters.amount(it.totalBs) } ?: "—",
             totalUsdText = conversion?.let { CurrencyFormatters.amount(it.totalUsd) } ?: "—",
+            installments = installments,
+            installmentBsText = installmentBsText,
+            installmentUsdText = installmentUsdText,
             canCopy = conversion?.hasAmount == true,
             hasRate = selectedRate != null,
         )

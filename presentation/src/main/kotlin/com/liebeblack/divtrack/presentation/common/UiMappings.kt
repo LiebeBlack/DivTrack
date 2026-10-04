@@ -56,6 +56,8 @@ fun DataError.toUiText(): UiText = when (this) {
 
     is DataError.EmptyCache -> UiText.Res(R.string.msg_offline_no_data)
 
+    is DataError.Storage -> UiText.Res(R.string.error_storage)
+
     is DataError.Unknown -> UiText.Res(R.string.error_unknown)
 }
 

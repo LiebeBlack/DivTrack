@@ -125,9 +125,9 @@ private fun SpreadAndTrendsPreview() {
     }
 }
 
-@Preview(name = "Estados de pantalla · oscuro", widthDp = 380, showBackground = true)
+@Preview(name = "Estado de error · oscuro", widthDp = 380, showBackground = true)
 @Composable
-private fun StatesPreview() {
+private fun ErrorStatePreview() {
     DivTrackTheme(themeMode = ThemeMode.DARK) {
         Surface {
             Column(
@@ -136,7 +136,6 @@ private fun StatesPreview() {
                     .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                LoadingState()
                 ErrorState(
                     message = "Sin conexión. Mostrando última actualización",
                     retryLabel = "Reintentar",

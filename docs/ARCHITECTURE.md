@@ -11,7 +11,7 @@ error de compilación.
 :core:network     (Android library)  Retrofit triple, interceptores, RateProvider + registro
 :core:database    (Android library)  Room: tasa vigente + cierre diario
 :core:datastore   (Android library)  DataStore: preferencias del usuario
-:domain           (Kotlin/JVM puro)  modelos, contratos, 8 casos de uso
+:domain           (Kotlin/JVM puro)  modelos, contratos, 9 casos de uso
 :data             (Android library)  repositorios, orquestación multi-proveedor, WorkManager
 :presentation     (Android library)  Compose + MVI + tema + Navigation 3
 :app              (Android app)      Application, MainActivity, recursos, R8

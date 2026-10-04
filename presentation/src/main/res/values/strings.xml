@@ -46,6 +46,10 @@
     <string name="calculator_rate_line">Tasa aplicada: %1$s Bs por USD</string>
     <string name="calculator_hint">Escribe un monto y el resultado se calcula al instante, sin botones.</string>
     <string name="calculator_no_rate">Sin tasas disponibles. Sincroniza desde el panel de tasas.</string>
+    <string name="calculator_credit_title">Crédito en cuotas</string>
+    <string name="calculator_credit_chip">%1$dx</string>
+    <string name="calculator_credit_installment">Cuota %1$d: %2$s Bs · $ %3$s</string>
+    <string name="calculator_credit_hint">Sin intereses: el monto entre el número de cuotas, con la tasa aplicada.</string>
     <string name="result_mirror_bs">Total en bolívares</string>
     <string name="result_mirror_usd">Total en USD</string>
     <string name="result_igtf">IGTF %1$s · estimado en Bs.</string>
@@ -127,6 +131,8 @@
     <string name="msg_offline_showing_cache">Sin conexión. Mostrando última actualización</string>
     <string name="msg_offline_no_data">Sin conexión y sin datos guardados</string>
     <string name="msg_stale_data">Una o más fuentes no publican datos nuevos: se muestra su última publicación</string>
+    <string name="msg_parallel_missing">La tasa paralela aún no tiene datos guardados: aparecerá aquí en cuanto alguna fuente la publique</string>
+    <string name="msg_cache_rebuilt">La base de datos local estaba dañada y se reconstruyó: las tasas guardadas volverán con la próxima sincronización</string>
     <string name="msg_providers_checked">Fuentes OK: %1$d de %2$d</string>
 
     <!-- ============================== Errores de red ============================== -->
@@ -142,6 +148,7 @@
     <string name="error_rate_limited">La fuente limitó las consultas. Espera un momento</string>
     <string name="error_http">Respuesta inesperada de la fuente (HTTP %1$d)</string>
     <string name="error_parse">La fuente devolvió datos que no se pudieron leer</string>
+    <string name="error_storage">La base de datos local no pudo guardar los datos. Intenta de nuevo</string>
     <string name="error_unknown">No se pudieron obtener las tasas</string>
     <string name="action_open_network_settings">Abrir ajustes de red</string>
 

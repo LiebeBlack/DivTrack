@@ -115,7 +115,7 @@ fun RateCard(
                         MaterialTheme.typography.titleMedium
                     },
                     color = emphasisColor,
-                    fontWeight = if (isHero) FontWeight.Black else FontWeight.SemiBold,
+                    fontWeight = if (isHero) FontWeight.ExtraBold else FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -154,7 +154,7 @@ fun RateCard(
                             style = MaterialTheme.typography.displayLarge.tabular().copy(
                                 fontSize = heroFontSize.sp,
                                 lineHeight = (heroFontSize * 1.1f).sp,
-                                fontWeight = FontWeight.Black,
+                                fontWeight = FontWeight.ExtraBold,
                                 letterSpacing = (-1.5).sp,
                             ),
                             color = emphasisColor,

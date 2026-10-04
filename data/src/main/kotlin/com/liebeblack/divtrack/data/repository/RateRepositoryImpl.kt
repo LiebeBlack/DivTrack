@@ -1,11 +1,13 @@
 package com.liebeblack.divtrack.data.repository
 
+import android.database.sqlite.SQLiteException
 import com.liebeblack.divtrack.core.common.error.DataError
 import com.liebeblack.divtrack.core.common.logging.Logger
 import com.liebeblack.divtrack.core.common.result.Result
 import com.liebeblack.divtrack.core.common.time.TimeProvider
 import com.liebeblack.divtrack.core.common.utils.AppConstants
 import com.liebeblack.divtrack.core.common.utils.ProviderIds
+import com.liebeblack.divtrack.core.database.DatabaseRebuildTracker
 import com.liebeblack.divtrack.core.database.datasource.RateLocalDataSource
 import com.liebeblack.divtrack.core.datastore.UserPreferencesDataSource
 import com.liebeblack.divtrack.core.network.monitor.ConnectivityObserver
@@ -23,10 +25,15 @@ import com.liebeblack.divtrack.domain.repository.RateRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -45,11 +52,19 @@ import kotlinx.coroutines.withContext
  * 4. **El cierre de cada día se persiste.** Cada sync escribe la fila de hoy en el cierre
  *    diario, de modo que mañana existe un "cierre anterior" real para la flecha de tendencia
  *    incluso si la app estuvo cerrada.
+ * 5. **La última lectura vive en memoria.** Si Room falla en caliente (archivo dañado, disco
+ *    lleno, base en reconstrucción), el flujo no mata al colector: reintenta un par de veces
+ *    y, si no hay arreglo, sirve la última lista leída en esta sesión. Es el respaldo que
+ *    mantiene a la calculadora calculando aunque la caché desaparezca (ADR 31).
+ * 6. **Un fallo de escritura no tumba la pantalla.** Si Room rechaza el commit, el error sube
+ *    clasificado como [DataError.Storage] y la UI lo cuenta; el usuario se queda con las
+ *    tasas viejas en pantalla en vez de perder la app por una excepción sin dueño.
  */
 @Singleton
 class RateRepositoryImpl @Inject constructor(
     private val providerRegistry: ProviderRegistry,
     private val localDataSource: RateLocalDataSource,
+    private val databaseRebuildTracker: DatabaseRebuildTracker,
     private val preferencesDataSource: UserPreferencesDataSource,
     private val timeProvider: TimeProvider,
     private val logger: Logger,
@@ -59,6 +74,14 @@ class RateRepositoryImpl @Inject constructor(
 
     private val syncMutex = Mutex()
 
+    /**
+     * Última lista de tasas servida a la UI en este proceso. Se actualiza con cada emisión
+     * de Room que traiga contenido, **no** se borra si la base se reconstruye vacía (la
+     * memoria es el único sitio donde quedan esas tasas) y se sirve cuando la lectura falla
+     * del todo.
+     */
+    private val lastKnownRates = MutableStateFlow<List<ExchangeRate>>(emptyList())
+
     override fun observeRates(): Flow<List<ExchangeRate>> =
         localDataSource.observeCurrentRates()
             .map { entities ->
@@ -66,7 +89,21 @@ class RateRepositoryImpl @Inject constructor(
                     .map { entity -> entity.toDomain() }
                     .sortedBy { rate -> rate.source.displayOrder }
             }
+            .onEach { rates ->
+                // Una emisión vacía no borra la memoria: si Room se reconstruyó, la última
+                // lectura real es lo único que queda para que el cálculo siga funcionando.
+                if (rates.isNotEmpty()) lastKnownRates.value = rates
+            }
+            .retryWhen { cause, attempt ->
+                val retriable = cause is SQLiteException && attempt < RATE_FLOW_RETRY_ATTEMPTS
+                if (retriable) delay(RATE_FLOW_RETRY_DELAY_MILLIS)
+                retriable
+            }
+            .catch { emit(lastKnownRates.value) }
+            .map { rates -> rates.ifEmpty { lastKnownRates.value } }
             .flowOn(ioDispatcher)
+
+    override fun observeCacheRebuild(): Flow<Boolean> = databaseRebuildTracker.rebuilt
 
     override suspend fun refreshRates(): Result<SyncSummary> = withContext(ioDispatcher) {
         syncMutex.withLock { performRatesRefresh() }
@@ -110,7 +147,7 @@ class RateRepositoryImpl @Inject constructor(
             val source = RateSource.fromKey(resolved.rate.sourceKey) ?: return@mapNotNull null
             resolved.rate.toEntity(
                 providerId = resolved.providerId,
-                previousClose = resolvePreviousClose(
+                previousClose = previousCloseOrNull(
                     source = source,
                     epochDay = epochDay,
                     currentValue = resolved.rate.value,
@@ -126,10 +163,22 @@ class RateRepositoryImpl @Inject constructor(
         // Commit atómico: tasas vigentes + cierres diarios en UNA transacción Room.
         // Antes eran dos upserts separados: un kill del proceso en el medio dejaba tasas
         // nuevas con cierres viejos y la tendencia corrupta hasta el día siguiente.
-        localDataSource.commitRateSync(
-            rates = entities,
-            closes = entities.map { entity -> entity.toDailyCloseEntity(epochDay) },
-        )
+        //
+        // La escritura va protegida a propósito: si Room la rechaza (archivo dañado, disco
+        // lleno, base cerrada a mitad), el error vuelve clasificado y la UI lo cuenta en vez
+        // de subir como excepción y matar al ViewModel que pidió el refresco.
+        try {
+            localDataSource.commitRateSync(
+                rates = entities,
+                closes = entities.map { entity -> entity.toDailyCloseEntity(epochDay) },
+            )
+        } catch (exception: SQLiteException) {
+            logger.error(TAG, "La base local rechazó la escritura de la sincronización", exception)
+            return Result.Error(DataError.Storage(cause = exception))
+        }
+
+        // La caché volvió a tener datos: el aviso de reconstrucción deja de ser cierto.
+        databaseRebuildTracker.markRecovered()
 
         // Retención del cierre diario: la tabla crece dos filas al día. La poda viaja con la
         // sincronización (y no en un trabajo aparte) para que no exista ninguna ruta que
@@ -164,11 +213,40 @@ class RateRepositoryImpl @Inject constructor(
         return localDataSource.currentRate(source.key)?.value?.takeIf { it != currentValue }
     }
 
+    /**
+     * [resolvePreviousClose] a prueba de fallos.
+     *
+     * Si el cierre anterior no se puede leer (fila ilegible, base en reconstrucción), la
+     * sincronización continúa y la flecha de tendencia se queda sin dato: que un adorno de la
+     * UI impida guardar el valor del día sería peor que el adorno. El commit, en cambio, sí
+     * aborta la operación: sin escritura no hay nada nuevo que contar.
+     */
+    private suspend fun previousCloseOrNull(
+        source: RateSource,
+        epochDay: Long,
+        currentValue: Double,
+    ): Double? =
+        try {
+            resolvePreviousClose(source, epochDay, currentValue)
+        } catch (exception: SQLiteException) {
+            logger.warn(
+                TAG,
+                "No se pudo leer el cierre anterior de ${source.key}: ${exception.message}",
+            )
+            null
+        }
+
     private suspend fun pruneOldDailyCloses() {
         val keepFromEpochDay = timeProvider.today()
             .minusYears(AppConstants.DAILY_CLOSE_KEEP_YEARS)
             .toEpochDay()
-        localDataSource.pruneDailyCloses(keepFromEpochDay)
+        try {
+            localDataSource.pruneDailyCloses(keepFromEpochDay)
+        } catch (exception: SQLiteException) {
+            // La poda es mantenimiento, no parte del commit: si falla, las tasas recién
+            // guardadas siguen intactas y la próxima sincronización vuelve a intentarla.
+            logger.warn(TAG, "No se pudo podar el cierre diario antiguo: ${exception.message}")
+        }
     }
 
     /**
@@ -185,5 +263,11 @@ class RateRepositoryImpl @Inject constructor(
 
     private companion object {
         const val TAG = "RateRepository"
+
+        /** Reintentos de la lectura de Room antes de tirar de la última lectura en memoria. */
+        const val RATE_FLOW_RETRY_ATTEMPTS = 2L
+
+        /** Un respiro entre reintentos: deja que Room termine de reconstruir la base. */
+        const val RATE_FLOW_RETRY_DELAY_MILLIS = 250L
     }
 }

@@ -7,6 +7,7 @@ import com.liebeblack.divtrack.domain.model.ProviderFailure
 import com.liebeblack.divtrack.domain.model.RateSource
 import com.liebeblack.divtrack.domain.model.SyncSummary
 import com.liebeblack.divtrack.domain.usecase.CalculateSpreadUseCase
+import com.liebeblack.divtrack.domain.usecase.ObserveCacheRebuildUseCase
 import com.liebeblack.divtrack.domain.usecase.ObserveRatesUseCase
 import com.liebeblack.divtrack.domain.usecase.ObserveSettingsUseCase
 import com.liebeblack.divtrack.domain.usecase.SyncRatesUseCase
@@ -129,6 +130,16 @@ class DashboardViewModelTest {
     }
 
     @Test
+    fun `si la cache se reconstruyo el panel lo explica`() = runTest {
+        rateRepository.cacheRebuild.value = true
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.cacheRebuilt)
+    }
+
+    @Test
     fun `volver a la pantalla no gasta red si la tasa es reciente`() = runTest {
         val timeProvider = FakeTimeProvider(nowMillis = NOW_MILLIS)
         rateRepository.rates.value = listOf(
@@ -181,6 +192,7 @@ class DashboardViewModelTest {
     ) = DashboardViewModel(
         observeRates = ObserveRatesUseCase(rateRepository),
         observeSettings = ObserveSettingsUseCase(settingsRepository),
+        observeCacheRebuild = ObserveCacheRebuildUseCase(rateRepository),
         syncRates = SyncRatesUseCase(rateRepository),
         calculateSpread = CalculateSpreadUseCase(),
         timeProvider = timeProvider,

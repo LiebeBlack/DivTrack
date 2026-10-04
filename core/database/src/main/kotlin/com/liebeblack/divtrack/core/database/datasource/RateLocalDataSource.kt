@@ -18,10 +18,6 @@ interface RateLocalDataSource {
 
     fun observeCurrentRates(): Flow<List<CurrentRateEntity>>
 
-    suspend fun upsertCurrentRates(rates: List<CurrentRateEntity>)
-
-    suspend fun upsertDailyCloses(closes: List<RateHistoryEntity>)
-
     suspend fun currentRate(source: String): CurrentRateEntity?
 
     suspend fun previousClose(source: String, epochDay: Long): RateHistoryEntity?
@@ -31,6 +27,10 @@ interface RateLocalDataSource {
     /**
      * Escritura atómica de la sincronización: tasas vigentes + cierres diarios en una sola
      * transacción. Ver `RateDao.commitRateSync` para el porqué.
+     *
+     * Es la **única** escritura del contrato a propósito: al no existir métodos sueltos para
+     * escribir tasas o cierres por separado, ninguna ruta futura puede reintroducir el estado
+     * intermedio (tasas nuevas con cierres viejos) que esta transacción elimina.
      */
     suspend fun commitRateSync(rates: List<CurrentRateEntity>, closes: List<RateHistoryEntity>)
 }
@@ -44,16 +44,6 @@ class RoomRateLocalDataSource @Inject constructor(
     private val dao = database.rateDao()
 
     override fun observeCurrentRates(): Flow<List<CurrentRateEntity>> = dao.observeCurrentRates()
-
-    override suspend fun upsertCurrentRates(rates: List<CurrentRateEntity>) {
-        if (rates.isEmpty()) return
-        dao.upsertCurrentRates(rates)
-    }
-
-    override suspend fun upsertDailyCloses(closes: List<RateHistoryEntity>) {
-        if (closes.isEmpty()) return
-        dao.upsertDailyCloses(closes)
-    }
 
     override suspend fun currentRate(source: String): CurrentRateEntity? = dao.currentRate(source)
 

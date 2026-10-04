@@ -167,11 +167,20 @@ fun DashboardScreen(
                         )
                     }
                 } else {
+                    // La caché se recreó: sin este aviso, que las tasas guardadas hayan
+                    // desaparecido parecería un fallo misterioso. Se apaga cuando una
+                    // sincronización vuelve a escribir datos.
+                    if (state.cacheRebuilt) {
+                        item(key = "cache-rebuilt") {
+                            DashboardNotice(message = stringResource(R.string.msg_cache_rebuilt))
+                        }
+                    }
+
                     // El snackbar se va solo; este aviso permanece mientras no haya conexión,
                     // que es lo que el usuario necesita saber mientras mira tasas guardadas.
                     if (state.isOffline && state.hasData) {
                         item(key = "offline") {
-                            OfflineBanner(
+                            DashboardNotice(
                                 message = errorMessage
                                     ?: stringResource(R.string.msg_offline_showing_cache),
                             )
@@ -180,7 +189,18 @@ fun DashboardScreen(
 
                     if (state.hasStaleData) {
                         item(key = "stale") {
-                            OfflineBanner(message = stringResource(R.string.msg_stale_data))
+                            DashboardNotice(message = stringResource(R.string.msg_stale_data))
+                        }
+                    }
+
+                    // Almacenamiento incompleto: la paralela está encendida y no hay ninguna
+                    // fila suya en Room (su proveedor no la publicó todavía). Antes, la tarjeta
+                    // simplemente no aparecía y el usuario que la había activado no sabía por
+                    // qué; ahora se dice qué falta y qué va a pasar. `hasData` evita el aviso
+                    // redundante cuando ya se muestra el estado de error sin datos.
+                    if (!state.isLoading && state.hasData && state.showParallelRate && parallelRate == null) {
+                        item(key = "parallel-missing") {
+                            DashboardNotice(message = stringResource(R.string.msg_parallel_missing))
                         }
                     }
 
@@ -286,8 +306,14 @@ fun DashboardScreen(
     }
 }
 
+/**
+ * Aviso persistente del panel. Antes se llamaba `OfflineBanner`, pero ya no cubre solo la
+ * falta de conexión: también explica el dato rancio y la tasa paralela que aún no tiene
+ * filas guardadas. Un aviso que se queda en pantalla hasta que la causa desaparece, a
+ * diferencia del snackbar, que se va solo.
+ */
 @Composable
-private fun OfflineBanner(message: String, modifier: Modifier = Modifier) {
+private fun DashboardNotice(message: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,

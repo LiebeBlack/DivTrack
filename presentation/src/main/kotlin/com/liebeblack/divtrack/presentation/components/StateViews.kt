@@ -24,39 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.liebeblack.divtrack.presentation.theme.Spacing
 
 /**
- * Estados de pantalla. Deliberadamente sobrios: un esqueleto de bloques en lugar de un
- * shimmer animado, porque en gama baja una animación infinita se come el presupuesto de
- * fotogramas y aporta poco.
- */
-@Composable
-fun LoadingState(message: String? = null, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth().padding(Spacing.lg)) {
-        if (message != null) {
-            Text(
-                text = message,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = Spacing.md),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
-        repeat(3) { index ->
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (index == 0) 180.dp else 72.dp)
-                    .padding(bottom = Spacing.md),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            ) {}
-        }
-    }
-}
-
-/**
  * Estado de error con una acción de reintento y, opcionalmente, una segunda acción.
  *
  * La segunda acción existe para no dejar el aviso en un callejón sin salida: si el problema

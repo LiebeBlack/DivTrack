@@ -35,7 +35,12 @@ class FakeRateRepository : RateRepository {
         private set
     var diagnostics: ProviderDiagnostics = ProviderDiagnostics(statuses = emptyList())
 
+    /** La caché de este fake no se daña nunca; los tests que la «reconstruyan» lo simulan. */
+    val cacheRebuild = MutableStateFlow(false)
+
     override fun observeRates(): Flow<List<ExchangeRate>> = rates
+
+    override fun observeCacheRebuild(): Flow<Boolean> = cacheRebuild
 
     override suspend fun refreshRates(): Result<SyncSummary> {
         refreshCalls++

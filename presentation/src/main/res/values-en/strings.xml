@@ -41,6 +41,10 @@
     <string name="calculator_rate_line">Applied rate: %1$s Bs per USD</string>
     <string name="calculator_hint">Type an amount and the result updates as you type.</string>
     <string name="calculator_no_rate">No rates available. Sync them from the rates tab.</string>
+    <string name="calculator_credit_title">Credit installments</string>
+    <string name="calculator_credit_chip">%1$dx</string>
+    <string name="calculator_credit_installment">Payment %1$d: %2$s Bs · $ %3$s</string>
+    <string name="calculator_credit_hint">Interest-free: the amount divided by the number of installments, at the applied rate.</string>
     <string name="result_mirror_bs">Total in bolivars</string>
     <string name="result_mirror_usd">Total in USD</string>
     <string name="result_igtf">IGTF %1$s · estimated in Bs.</string>
@@ -122,6 +126,8 @@
     <string name="msg_offline_showing_cache">Offline. Showing last update</string>
     <string name="msg_offline_no_data">Offline with no cached data</string>
     <string name="msg_stale_data">One or more sources are not publishing new data: the latest release is shown</string>
+    <string name="msg_parallel_missing">The parallel rate has no saved data yet: it will appear here as soon as a source publishes it</string>
+    <string name="msg_cache_rebuilt">The local database was damaged and has been rebuilt: saved rates will return with the next sync</string>
     <string name="msg_providers_checked">Sources OK: %1$d of %2$d</string>
 
     <!-- ============================== Network errors ============================== -->
@@ -132,6 +138,7 @@
     <string name="error_rate_limited">The source rate-limited the requests. Wait a moment</string>
     <string name="error_http">Unexpected response from the source (HTTP %1$d)</string>
     <string name="error_parse">The source returned data that could not be read</string>
+    <string name="error_storage">The local database could not save the data. Try again</string>
     <string name="error_unknown">Could not fetch the rates</string>
     <string name="action_open_network_settings">Open network settings</string>
 
