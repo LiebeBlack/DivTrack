@@ -47,6 +47,25 @@ class ProviderDtoParsingTest {
     }
 
     @Test
+    fun `dolarapi - un elemento sin fuente no rompe el parseo de la lista`() {
+        // Si `fuente` fuera obligatorio, un solo elemento raro tumbaría TODA la respuesta y la
+        // app se quedaría sin el oficial. Se modela anulable y el proveedor lo descarta.
+        val payload = """
+            [
+              { "moneda": "USD", "nombre": "Dólar", "promedio": 875.6505 },
+              { "moneda": "USD", "fuente": "Oficial", "promedio": 876.0 }
+            ]
+        """.trimIndent()
+
+        val dtos = json.decodeFromString<List<DolarApiRateDto>>(payload)
+
+        assertEquals(2, dtos.size)
+        assertNull(dtos[0].fuente)
+        // La clave viaja tal cual: el proveedor la normaliza a minúsculas al mapear.
+        assertEquals("Oficial", dtos[1].fuente)
+    }
+
+    @Test
     fun `dolarapi - degrada promedio luego venta luego compra`() {
         val soloVenta = json.decodeFromString<DolarApiRateDto>(
             """{ "fuente": "oficial", "compra": null, "venta": 100.5, "promedio": null }""",
@@ -60,15 +79,20 @@ class ProviderDtoParsingTest {
     }
 
     @Test
-    fun `yadio - mapa de divisas dentro de USD`() {
+    fun `yadio - mapa de divisas dentro de USD con su marca de tiempo`() {
         val payload = """
-            { "BTC": 83953.59,
-              "USD": { "BTC": 0.000011911343, "EUR": 0.885131, "VES": 954.55 } }
+            { "BTC": 83590.41,
+              "USD": { "BTC": 0.000011963095, "EUR": 0.885131, "USD": 1, "VES": 1009.79784 },
+              "base": "USD",
+              "timestamp": 1791750610972 }
         """.trimIndent()
 
         val dto = json.decodeFromString<YadioRatesDto>(payload)
 
-        assertEquals(954.55, dto.ves!!, 0.000001)
+        assertEquals(1009.79784, dto.ves!!, 0.000001)
+        // El `timestamp` de Yadio es la marca de tiempo del dato (ms Unix) y viaja al registro:
+        // sin ella, su lectura no competía por frescura con DolarAPI.
+        assertEquals(1_791_750_610_972L, dto.updatedAtMillis!!)
     }
 
     @Test
@@ -76,6 +100,16 @@ class ProviderDtoParsingTest {
         val dto = json.decodeFromString<YadioRatesDto>("""{ "USD": { "EUR": 0.885131 } }""")
 
         assertNull(dto.ves)
+        // Sin marca de tiempo la edad es desconocida, no "de 1970": el registro no lo marca
+        // rancio y la UI no inventa una fecha.
+        assertNull(dto.updatedAtMillis)
+    }
+
+    @Test
+    fun `yadio - un timestamp cero no se toma por una fecha valida`() {
+        val dto = json.decodeFromString<YadioRatesDto>("""{ "USD": { "VES": 954.55 }, "timestamp": 0 }""")
+
+        assertNull(dto.updatedAtMillis)
     }
 
     @Test

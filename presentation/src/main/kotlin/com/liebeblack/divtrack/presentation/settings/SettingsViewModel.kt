@@ -171,7 +171,13 @@ class SettingsViewModel @Inject constructor(
 
                     _effects.emit(SettingsEffect.ShowMessage(UiText.Res(R.string.settings_saved)))
                 }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (_: IOException) {
+                _effects.emit(SettingsEffect.ShowMessage(UiText.Res(R.string.settings_save_failed)))
+            } catch (_: Exception) {
+                // Misma promesa que arriba: un fallo inesperado del almacén se cuenta en
+                // pantalla en lugar de dejar la corrutina muerta y la app caída.
                 _effects.emit(SettingsEffect.ShowMessage(UiText.Res(R.string.settings_save_failed)))
             }
         }

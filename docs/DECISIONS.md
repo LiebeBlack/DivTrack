@@ -503,8 +503,9 @@ cada pasada esperando su timeout una y otra vez.
 
 **Decisión.**
 
-1. **Frescura por fuente.** El oficial (publicación diaria) se considera rancio pasadas
-   24 h; el paralelo (por horas), pasadas 12 h. Sin marca de tiempo no se supone rancio:
+1. **Frescura por fuente.** El oficial (publicación en días bancarios) se considera rancio
+   pasadas 96 h —revisado en el ADR 37: con 24 h saltaba la alarma todos los fines de
+   semana—; el paralelo (por horas), pasadas 12 h. Sin marca de tiempo no se supone rancio:
    el aviso falso destruye la confianza en el aviso verdadero.
 
 2. **Gana el dato más fresco.** En una pasada, una tasa resuelta puede ser reemplazada si
@@ -781,7 +782,8 @@ legible se cuenta como fallo, no se interpreta.
 ventana de 6 h y un trabajo diario, el consumo es de una petición al día como mucho; aun así,
 la ventana existe para que abrir y cerrar Ajustes no la gaste. El slug del repositorio es
 configurable (`github.repository` en `local.properties`) y su valor por defecto es
-`liebeblack/divtrack`: en una copia publicada en otro sitio hay que cambiarlo, o la
+`LiebeBlack/b`, que es el repositorio donde vive esta app, corregido en el ADR 37: en una copia
+publicada en otro sitio hay que cambiarlo, o la
 comprobación responderá 404 (la app lo dirá con su causa real, sin disfrazarlo de «sin
 conexión»).
 
@@ -868,7 +870,8 @@ nada lo explicara:
 1. **El corte de pasada y la regla de aceptación se contradecían.** Cuando una tasa resuelta ya
    estaba rancia, `needsMoreData` seguía consultando proveedores —justo para reemplazarla—,
    pero `isNewer` exigía que el candidato trajera marca de tiempo. Yadio, que es la fuente
-   upstream del paralelo y **no publica hora**, entregaba la cotización en vivo y su respuesta
+   upstream del paralelo, entregaba la cotización en vivo **sin que la app leyera el
+   `timestamp` que sí publica** y su respuesta
    se descartaba: el panel se quedaba con el cierre de ayer de DolarAPI teniendo una fuente sana
    respondiendo en el mismo instante.
 2. **El aviso de «sin conexión» se quedaba pegado.** El refresco automático al volver a la
@@ -923,3 +926,78 @@ nada lo explicara:
 conectividad ni siquiera se consulta a los proveedores). La lectura del reloj pasa a ser una por
 pasada. Y aceptar una cotización sin hora implica confiar en Yadio para el paralelo, que es
 exactamente el papel que ya le da el multi-proveedor.
+
+---
+
+## 37. Las APIs, revisadas contra la realidad de Venezuela (y el slug del release estaba mal)
+
+**Contexto.** Esta pasada llega con una instrucción explícita: las APIs deben ser las actuales,
+deben responder y todo es para Venezuela. Se verificaron los tres proveedores y el repositorio de
+publicación contra sus respuestas y su documentación reales, y aparecieron cuatro defectos que
+ninguna prueba unitaria podía ver, porque los fixtures de los tests los escribimos nosotros:
+
+1. **El slug del release no existía.** `github.repository` apuntaba por defecto a
+   `liebeblack/divtrack`, y ese repositorio devuelve 404: el repositorio real de la app —lo dice
+   el propio `origin` del clon— es `LiebeBlack/b`. La comprobación de versión fallaba siempre con
+   «el proveedor cambió su dirección (HTTP 404)» y el botón de descarga no tenía de dónde bajar
+   nada.
+2. **Yadio sí publica la hora de su cotización.** Su respuesta trae `timestamp` (ms Unix) en la
+   raíz y el DTO no lo modelaba: la app entraba la lectura del paralelo con
+   `updatedAtMillis = null`, así que no competía por frescura con DolarAPI y los comentarios
+   afirmaban lo contrario de lo que dice la API. Ahora el `timestamp` viaja al registro y
+   `acceptsUnstamped` (ADR 36) queda como red de seguridad para una fuente que no publique hora.
+3. **El umbral del oficial castigaba al BCV por trabajar de lunes a viernes.** El BCV publica en
+   días bancarios, así que el cierre del viernes cumple 24 h a los pocos minutos del sábado: con
+   el umbral en 24 h la app mostraba «la fuente no publica datos nuevos» todos los sábados y
+   domingos —una falsa alarma en casi un tercio de los días— y seguía consultando proveedores de
+   cola cuando no había nada mejor que traer. Ahora son 96 h: el aviso solo aparece cuando el
+   oficial lleva cuatro días sin moverse, que sí es un banco caído o una caché rancia.
+4. **El botón «Instalar» no podía funcionar.** Desde Android 8, una app que apunta a API > 25 y
+   entrega un APK al instalador —con `ACTION_VIEW` o con `ACTION_INSTALL_PACKAGE`, da igual—
+   debe declarar `REQUEST_INSTALL_PACKAGES`; sin él el sistema rechaza la instalación y el
+   usuario ve un error del instalador sin explicación. Y además el ajuste «instalar apps
+   desconocidas» de esta app es una decisión del usuario que puede estar apagada: eso no se
+   arregla con un permiso.
+
+**Decisión.** Los cuatro arreglos anteriores, más las decisiones de robustez que salieron de
+leer los DTO contra las respuestas reales:
+
+- `UpdateInstaller` comprueba `canRequestPackageInstalls()` **antes** de lanzar el intent. Si
+  está apagado, no dispara algo que el sistema va a rechazar: lleva al usuario al ajuste exacto
+  (`ACTION_MANAGE_UNKNOWN_APP_SOURCES` con `package:`) y se lo explica con un texto en pantalla.
+  Si la consulta falla, se intenta igual: bloquear por un fallo de diagnóstico sería peor.
+- El campo `fuente` de DolarAPI se modela **anulable**. Si faltara —o llegara `null`— y el DTO lo
+  exigiera, kotlinx.serialization tumbaría **toda** la respuesta y la app se quedaría sin la tasa
+  oficial por un elemento raro. Ahora ese elemento se descarta y los demás siguen.
+- Los umbrales de frescura viven en `AppConstants` y los tests los **leen** de ahí en lugar de
+  copiarlos: un cambio de número ya no puede dejar un test midiendo una regla que no existe.
+- `YadioRatesDto` deja de modelar `BTC`: no lo leía nadie (ADR 19) y se sustituye por el
+  `timestamp`, que sí se usa.
+
+**Lo que no cambió, porque la revisión lo confirmó.**
+
+- `ve.dolarapi.com/v1/dolares` (una sola llamada para oficial **y** paralelo) es el endpoint
+  correcto, y el dominio raíz **no** sirve: `dolarapi.com/v1/dolares/oficial` responde con el
+  esquema de Argentina (`casa`/`compra`/`venta`) y `/paralelo` da 404. Cambiar la base por el
+  dominio raíz habría metido pesos argentinos en la tarjeta del dólar oficial.
+- `promedio` sigue siendo el valor correcto del oficial (el BCV publica ahí; `compra` y `venta`
+  vienen nulos) y el orden de degradación `promedio → venta → compra` no se toca.
+- ExchangeRate-API (`open.er-api.com/v6/latest/USD`) no necesita clave, actualiza una vez al día
+  y bloquea 20 minutos a quien se pase de peticiones: el corte de pasada (solo se consulta si
+  falta el oficial) y el circuit breaker de 10 minutos ya lo respetan.
+- Las fechas llegan en dos dialectos —`2026-10-09T00:00:00-04:00` para el oficial y
+  `...T18:01:02.209Z` para el paralelo— y `IsoParsers` ya intenta las dos.
+
+**Alternativas descartadas.**
+
+- **Cambiar a `dolarapi.com` (dominio raíz).** Es lo que sugiere el nombre corto del servicio,
+  pero sus respuestas para Venezuela no son las venezolanas: habría mostrado pesos argentinos con
+  la etiqueta de dólar oficial.
+- **Leer el paralelo de DolarAPI ignorando Yadio.** Yadio es el upstream de ese dato y, con su
+  `timestamp` en mano, el registro ya elige el más fresco de los dos en lugar de elegir a ciegas.
+- **Subir el umbral del oficial a 72 h.** No alcanza: el cierre del viernes cumple 72 h justo el
+  lunes a medianoche, así que la falsa alarma volvería cada lunes por la mañana.
+
+**Coste.** `REQUEST_INSTALL_PACKAGES` es un permiso más en la ficha de la app: no da acceso a
+datos, no instala nada por su cuenta y sin él la función de actualizar era un botón que no podía
+funcionar. El resto son correcciones de datos y umbrales, sin coste en tiempo de ejecución.

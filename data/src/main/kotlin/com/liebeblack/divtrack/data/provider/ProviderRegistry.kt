@@ -221,13 +221,12 @@ class ProviderRegistry @Inject constructor(
     /**
      * `true` cuando el recién llegado sirve aunque no traiga hora.
      *
-     * Yadio —fuente upstream del paralelo— no publica la marca de tiempo de su cotización,
-     * y [isNewer] exige que el candidato tenga hora. Sin esta regla, la pasada consultaba a
-     * ese proveedor **justo porque** el dato resuelto estaba rancio y acto seguido descartaba
-     * su respuesta: la app se quedaba con el cierre viejo teniendo una fuente sana
-     * respondiendo en vivo, que es exactamente lo contrario de lo que busca el corte de
-     * pasada. Solo aplica sobre un titular rancio: una lectura sin hora no puede pisar a un
-     * dato que sí está fresco.
+     * [isNewer] exige que el candidato tenga hora, así que una fuente que responda en vivo sin
+     * publicar marca de tiempo (Yadio si algún día dejara de mandar su `timestamp`, o cualquier
+     * proveedor que solo publique el valor) quedaba fuera: la pasada la consultaba **justo
+     * porque** el dato resuelto estaba rancio y acto seguido descartaba su respuesta, dejando
+     * el cierre viejo en pantalla con una fuente sana respondiendo en vivo. Solo aplica sobre
+     * un titular rancio: una lectura sin hora no puede pisar a un dato que sí está fresco.
      */
     private fun acceptsUnstamped(
         candidate: RemoteRate,

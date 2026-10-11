@@ -872,7 +872,7 @@
       </li>
       <li>
         <strong>Gana el dato más fresco, no el de mejor prioridad</strong>
-        <span>Si el banco deja de publicar, DolarAPI responde 200 con el cierre de ayer. La marca de tiempo del propio dato es la única señal: una tasa resuelta se reemplaza si un proveedor de cola publica algo más reciente, y la pasada no se corta hasta que las dos tasas están <em>frescas</em> (oficial 24 h, paralelo 12 h).</span>
+        <span>Si el banco deja de publicar, DolarAPI responde 200 con el cierre de ayer. La marca de tiempo del propio dato es la única señal: una tasa resuelta se reemplaza si un proveedor de cola publica algo más reciente, y la pasada no se corta hasta que las dos tasas están <em>frescas</em> (oficial 96 h —tolera el fin de semana del BCV—, paralelo 12 h).</span>
       </li>
       <li>
         <strong>El proveedor que falla descansa 10 minutos</strong>

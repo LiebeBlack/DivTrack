@@ -2,10 +2,12 @@
 <!--
   Política de seguridad de red.
 
-  DivTrack habla con dos endpoints públicos y los dos son HTTPS:
+  DivTrack habla con cuatro endpoints públicos y todos son HTTPS:
 
-      · https://ve.dolarapi.com/   (oficial BCV + paralelo)
-      · https://api.yadio.io/      (respaldo del paralelo)
+      · https://ve.dolarapi.com/     (oficial BCV + paralelo)
+      · https://api.yadio.io/        (respaldo del paralelo)
+      · https://open.er-api.com/     (respaldo del oficial)
+      · https://api.github.com/      (release publicado, para el módulo de actualizaciones)
 
   `cleartextTrafficPermitted="false"` cierra la puerta a HTTP en claro para todas las
   direcciones, no solo para esas dos: si algún día se cambia un baseUrl a un host con

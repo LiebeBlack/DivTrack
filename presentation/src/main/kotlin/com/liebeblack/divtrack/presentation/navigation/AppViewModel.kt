@@ -10,6 +10,7 @@ import com.liebeblack.divtrack.domain.usecase.UpdateSettingsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,7 +72,13 @@ class AppViewModel @Inject constructor(
             try {
                 updateSettings.setWelcomeCompleted(true)
                 welcomeSaveCommitted = true
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (_: IOException) {
+                _welcomeSaveFailed.value = true
+            } catch (_: Exception) {
+                // Cualquier otro fallo del almacén de preferencias se cuenta igual: guardar la
+                // bienvenida no puede tumbar la app ni dejarla a medias.
                 _welcomeSaveFailed.value = true
             } finally {
                 _isCompletingWelcome.value = false

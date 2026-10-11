@@ -437,7 +437,8 @@ Dos detalles que valen más que el resumen:
   seis horas. Y el aviso dice la causa real (misma regla que las tasas), no «sin conexión»
   por defecto.
 - **El slug del repositorio no está en el código.** Entra por `local.properties`
-  (`github.repository`, por defecto `liebeblack/divtrack`) igual que las URLs de las APIs de
+  (`github.repository`, por defecto `LiebeBlack/b`, que es el repositorio real de la app)
+  igual que las URLs de las APIs de
   tasas: publicar la app en otro sitio no obliga a tocar una línea de Kotlin.
 
 Además, la auditoría de esta pasada dejó estas correcciones pequeñas:
@@ -473,10 +474,28 @@ leyendo el código y los tests están escritos, **no ejecutados**.
 
 | Hallazgo | Corrección |
 |---|---|
-| **La pasada preguntaba a un proveedor por un dato rancio y después tiraba su respuesta**: `needsMoreData` seguía consultando porque el titular estaba viejo, pero `isNewer` exigía marca de tiempo y Yadio (upstream del paralelo) no publica hora. El panel se quedaba con el cierre de ayer teniendo una fuente sana respondiendo en vivo. | `ProviderRegistry.acceptsUnstamped`: un candidato sin hora reemplaza **solo** a un titular rancio de su fuente, y sin hora nunca pisa un dato fresco. El reloj se lee una vez por pasada. Test propio con los dos lados. |
+| **La pasada preguntaba a un proveedor por un dato rancio y después tiraba su respuesta**: `needsMoreData` seguía consultando porque el titular estaba viejo, pero `isNewer` exigía marca de tiempo y el proveedor de respaldo entraba con `updatedAtMillis = null` porque la app no leía el `timestamp` que Yadio **sí** publica. El panel se quedaba con el cierre de ayer teniendo una fuente sana respondiendo en vivo. | `ProviderRegistry.acceptsUnstamped`: un candidato sin hora reemplaza **solo** a un titular rancio de su fuente, y sin hora nunca pisa un dato fresco. El reloj se lee una vez por pasada. Test propio con los dos lados. |
 | **El aviso de «sin conexión» se quedaba pegado**: al volver a la pantalla solo se miraba la edad del dato, así que con la tasa de hace dos minutos y la última pasada fallida la app no reintentaba hasta los 15 minutos, con la conexión ya recuperada. | `refreshIfNeeded` (antes `refreshIfStale`) reintenta también si la última pasada falló; un reintento silencioso que vuelve a fallar igual no repite el snackbar. |
 | **La calculadora no tenía refresco al volver**: su ViewModel vive en el back stack, así que su `init` no se repite y volver a su pestaña horas después convertía con la tasa de la mañana. | `CalculatorIntent.OnResumed` y los dos ganchos de ciclo de vida en la ruta, con la ventana de frescura compartida en `AppConstants` (`RATE_RESUME_REFRESH_AFTER_MILLIS`) para que panel y calculadora no puedan divergir. |
 | **Las caídas**: `refreshRates()` solo traducía `SQLiteException`; cualquier otra excepción (base cerrada a mitad, preferencias ilegibles) subía hasta el ViewModel y mataba su corrutina. El comprobador de fuentes tenía el mismo agujero y su botón podía quedarse girando. | `refreshRates()` y `testProviders()` atrapan todo y lo devuelven clasificado (`DataError.Unknown`) re-lanzando la cancelación; una preferencia ilegible degrada al orden automático; el diagnóstico marca las fuentes como caídas en vez de lanzar; el botón avisa con un texto nuevo (es/en). Cuatro tests nuevos, dos con interruptores nuevos en los fakes. |
+
+### Segunda parte: las APIs verificadas contra la realidad de Venezuela
+
+Los tres proveedores y el repositorio de publicación se revisaron contra sus respuestas y su
+documentación reales (2026-10-11). Salieron cuatro defectos que ningún test unitario podía ver,
+porque los fixtures de los tests los escribimos nosotros:
+
+| Hallazgo | Corrección |
+|---|---|
+| **El slug del release no existía**: el valor por defecto apuntaba a `liebeblack/divtrack`, que devuelve 404. El repositorio real —lo dice el `origin` del clon— es **`LiebeBlack/b`**. La comprobación de versión fallaba siempre con un 404 y no había nada que descargar. | Slug por defecto `LiebeBlack/b` en Gradle y en `local.properties.example`, con el KDoc del servicio y la documentación alineados. |
+| **Yadio sí publica la hora**: su respuesta trae `timestamp` (ms Unix) y la app entraba el paralelo con hora desconocida, así que no competía por frescura. | `YadioRatesDto` modela `timestamp` (y deja de modelar el `BTC` que nadie leía) y `YadioProvider` lo usa como marca de tiempo del dato; `acceptsUnstamped` queda como red de seguridad. |
+| **El umbral del oficial castigaba el fin de semana**: el BCV publica en días bancarios, así que con 24 h la app mostraba «la fuente no publica datos nuevos» todos los sábados y domingos (y seguía consultando proveedores de cola sin motivo). | `STALE_RATE_HOURS` pasa a 96 h y los tests leen el umbral de `AppConstants` en vez de copiarlo. |
+| **El botón «Instalar» no podía funcionar**: desde Android 8 hace falta declarar `REQUEST_INSTALL_PACKAGES`, y el ajuste de «apps desconocidas» puede estar apagado. | Permiso declarado en el manifiesto, `UpdateInstaller` comprueba `canRequestPackageInstalls()` y, si está apagado, lleva al ajuste exacto y lo explica en pantalla. |
+
+Lo que la revisión **confirmó** sin cambios: `ve.dolarapi.com/v1/dolares` es el endpoint correcto
+(el dominio raíz devuelve el esquema de Argentina y su `/paralelo` da 404), `promedio` sigue
+siendo el valor del oficial, ExchangeRate-API no necesita clave y respeta el corte de pasada, y
+`IsoParsers` ya cubre las dos formas de fecha que publican los proveedores.
 
 **Lo que sigue sin verificarse.** Todo lo de esta pasada: sin JDK ni Android SDK, `./gradlew` no
 arranca, así que no hay compilación, ni tests, ni lint. Lo que sí se comprobó: cada símbolo nuevo

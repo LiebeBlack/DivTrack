@@ -10,6 +10,11 @@ import javax.inject.Inject
 /**
  * Proveedor de respaldo: publica únicamente el paralelo (es la fuente upstream de esa tasa),
  * así que si DolarAPI cae, el paralelo sigue llegando y solo se degrada el oficial.
+ *
+ * Es también el único proveedor que sirve el paralelo cuando DolarAPI está bloqueado desde la
+ * red del usuario, que es el caso real más frecuente en Venezuela. Su `timestamp` viaja al
+ * registro como marca de tiempo del dato, de modo que la resolución por frescura y el aviso de
+ * "fuente que dejó de publicar" funcionan igual con Yadio que con DolarAPI.
  */
 class YadioProvider @Inject constructor(
     private val service: YadioService,
