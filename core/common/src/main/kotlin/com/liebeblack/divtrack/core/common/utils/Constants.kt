@@ -56,13 +56,18 @@ object AppConstants {
      * mostrarlo (es lo mejor disponible), pero señalando su edad y buscando quién sí
      * publicó algo más reciente.
      *
-     * - [STALE_RATE_HOURS]: el oficial (BCV) publica ~1 vez/día; más de un día entero sin
-     *   actualizar huele a banco caído. El paralelo se actualiza por horas; el umbral
-     *   compartido es deliberadamente conservador para no marcar ruido.
-     * - [STALE_PARALLEL_HOURS]: umbral más estricto solo para el paralelo, que publica
+     * - [STALE_RATE_HOURS]: el oficial lo publica el BCV **en días bancarios** (~1 vez/día de
+     *   lunes a viernes). Cuatro días de margen es lo que hace falta para no dar la alarma en
+     *   un fin de semana normal: el cierre del viernes cumple 72 h el lunes a medianoche, así
+     *   que un umbral de 24 h marcaba "la fuente dejó de publicar" todos los sábados y
+     *   domingos —una falsa alarma en casi un tercio de los días— y además obligaba al
+     *   registro a seguir consultando proveedores de cola cuando no había nada mejor que
+     *   traer. Con 96 h el aviso solo aparece cuando el oficial lleva cuatro días sin
+     *   moverse, que sí es un banco caído o una caché rancia, no un domingo.
+     * - [STALE_PARALLEL_HOURS]: umbral más estricto solo para el paralelo, que se mueve
      *   varias veces al día.
      */
-    const val STALE_RATE_HOURS: Long = 24
+    const val STALE_RATE_HOURS: Long = 96
     const val STALE_PARALLEL_HOURS: Long = 12
 
     /**

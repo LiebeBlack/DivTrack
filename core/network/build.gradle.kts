@@ -56,7 +56,7 @@ android {
         buildConfigField(
             "String",
             "GITHUB_REPOSITORY",
-            "\"${configuredValue("github.repository", "liebeblack/divtrack")}\"",
+            "\"${configuredValue("github.repository", "LiebeBlack/b")}\"",
         )
     }
 

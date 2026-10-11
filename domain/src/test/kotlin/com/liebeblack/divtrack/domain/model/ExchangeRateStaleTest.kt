@@ -1,5 +1,6 @@
 package com.liebeblack.divtrack.domain.model
 
+import com.liebeblack.divtrack.core.common.utils.AppConstants
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -10,26 +11,40 @@ import org.junit.Test
  */
 class ExchangeRateStaleTest {
 
-    private val now = STALE_HOURS * MILLIS_PER_HOUR + 10L
+    /** Umbrales reales del proyecto: el test mide la regla, no una copia de los números. */
+    private val officialThresholdMillis = MILLIS_PER_HOUR * AppConstants.STALE_RATE_HOURS
+
+    /** "Ahora" del test: justo por encima del umbral del oficial. */
+    private val now = officialThresholdMillis + 10L
 
     @Test
     fun `el oficial mas viejo que su umbral es rancio`() {
-        val rate = rate(RateSource.OFICIAL, ageMillis = now)
+        val rate = rate(RateSource.OFICIAL, ageMillis = officialThresholdMillis + 10L)
 
         assertTrue(rate.isStale(nowMillis = now))
     }
 
     @Test
     fun `el oficial dentro del umbral no es rancio`() {
-        val rate = rate(RateSource.OFICIAL, ageMillis = STALE_HOURS * MILLIS_PER_HOUR - 1)
+        val rate = rate(RateSource.OFICIAL, ageMillis = officialThresholdMillis - 1)
+
+        assertFalse(rate.isStale(nowMillis = now))
+    }
+
+    @Test
+    fun `el fin de semana del banco no dispara el aviso`() {
+        // El cierre del viernes, visto un domingo por la tarde: 48 h sin publicar y sigue
+        // siendo lo normal en el BCV. Con un umbral de 24 h esto mostraba una falsa alarma
+        // cada fin de semana.
+        val rate = rate(RateSource.OFICIAL, ageMillis = 48L * MILLIS_PER_HOUR)
 
         assertFalse(rate.isStale(nowMillis = now))
     }
 
     @Test
     fun `el paralelo tiene un umbral mas estricto`() {
-        // Viejo para el paralelo (12 h) pero fresco para el oficial (24 h).
-        val rate = rate(RateSource.PARALELO, ageMillis = STALE_HOURS * MILLIS_PER_HOUR - 1)
+        // Fresco para el oficial (días), ya rancio para el paralelo (12 h).
+        val rate = rate(RateSource.PARALELO, ageMillis = officialThresholdMillis - 1)
 
         assertTrue(rate.isStale(nowMillis = now))
     }
@@ -59,7 +74,6 @@ class ExchangeRateStaleTest {
     )
 
     private companion object {
-        const val STALE_HOURS = 24L
         const val MILLIS_PER_HOUR = 3_600_000L
     }
 }

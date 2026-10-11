@@ -18,7 +18,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class DolarApiRateDto(
     val moneda: String? = null,
-    val fuente: String,
+    /**
+     * Clave de la tasa (`oficial` / `paralelo`). Es anulable a propósito: si el proveedor
+     * omitiera el campo (o mandara `null`) y esto fuera no-anulable, kotlinx.serialization
+     * tumbaría **toda** la respuesta y la app se quedaría sin la tasa oficial por un detalle
+     * de un elemento. Con `null` el proveedor descarta ese elemento y sigue con el resto.
+     */
+    val fuente: String? = null,
     val nombre: String? = null,
     val compra: Double? = null,
     val venta: Double? = null,

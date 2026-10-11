@@ -26,5 +26,5 @@ exchangerateapi.baseUrl=https://open.er-api.com/
 github.apiBaseUrl=https://api.github.com/
 # Repositorio consultado, en formato `usuario/repositorio` (sin .git). Si publicas tu copia
 # en otro sitio, cambia SOLO esta línea: no hay ningún slug escrito en el código Kotlin.
-github.repository=liebeblack/divtrack
+github.repository=LiebeBlack/b
 

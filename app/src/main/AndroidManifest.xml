@@ -5,21 +5,31 @@
     <!--
       ============================ Permisos ============================
 
-      La app solo declara DOS permisos propios, y los dos son normales (no peligrosos):
-      no hay ningún diálogo de permiso que mostrar en tiempo de ejecución.
+      La app declara TRES permisos propios, y ninguno es peligroso: no hay ningún diálogo de
+      permiso en tiempo de ejecución.
 
-        · INTERNET             -> consultar las APIs de tasas.
-        · ACCESS_NETWORK_STATE -> ConnectivityObserver, para no intentar red cuando no hay.
+        · INTERNET                -> consultar las APIs de tasas.
+        · ACCESS_NETWORK_STATE    -> ConnectivityObserver, para no intentar red cuando no hay.
+        · REQUEST_INSTALL_PACKAGES -> abrir el instalador del sistema con el APK descargado.
+
+      Sobre REQUEST_INSTALL_PACKAGES, que antes faltaba y hacía imposible el botón «Instalar»:
+      desde Android 8 (API 26) una app que apunta a API > 25 y entrega un APK al instalador
+      —da igual si con ACTION_VIEW o con ACTION_INSTALL_PACKAGE— **debe** declarar este
+      permiso; sin él el sistema rechaza la instalación y el usuario ve un error del
+      instalador sin explicación. No da acceso a datos ni a ninguna capacidad del dispositivo:
+      solo permite pedir la instalación, y el usuario sigue decidiendo en la pantalla del
+      sistema **y** en el ajuste «instalar apps desconocidas» de esta app (que
+      `UpdateInstaller` comprueba antes de intentarlo, con `canRequestPackageInstalls()`).
 
       La app NO pide ubicación, contactos, almacenamiento, cámara ni notificaciones. Si algún
       día el APK muestra en "Permisos" algo que no sea de esta lista, viene de una librería y
       hay que decidir si se acepta o se elimina con tools:node="remove".
 
-      El módulo de actualizaciones NO añade ningún permiso nuevo, y no es un descuido: la
-      descarga la hace el gestor de descargas del sistema y el APK se guarda en la carpeta
-      privada de la app (`getExternalFilesDir`, sin permisos de almacenamiento), que es la
-      única ruta que expone el FileProvider de abajo. Publicar el aviso de actualización
-      tampoco necesita POST_NOTIFICATIONS: el resultado se guarda y se cuenta en Ajustes.
+      El resto del módulo de actualizaciones no añade nada: la descarga la hace el gestor de
+      descargas del sistema y el APK se guarda en la carpeta privada de la app
+      (`getExternalFilesDir`, sin permisos de almacenamiento), que es la única ruta que expone
+      el FileProvider de abajo. Publicar el aviso de actualización tampoco necesita
+      POST_NOTIFICATIONS: el resultado se guarda y se cuenta en Ajustes.
 
       ── Permisos que llegan del manifiesto fusionado ────────────────────────────────────
       WorkManager (sincronización en segundo plano) aporta:
@@ -36,6 +46,13 @@
     -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!--
+      Necesario para que el instalador del sistema acepte el APK que la app le entrega
+      (Android 8+). No es un permiso de acceso a datos: la confirmación sigue siendo del
+      usuario, primero con el ajuste de «apps desconocidas» y después en la pantalla del
+      instalador.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".DivTrackApplication"

@@ -20,9 +20,14 @@ class DolarApiProvider @Inject constructor(
         val rates = service.getDollars().mapNotNull { dto ->
             val value = dto.usableValue ?: return@mapNotNull null
             if (value <= 0.0) return@mapNotNull null
+            // Sin clave de fuente no se puede decir a qué tasa pertenece el valor: se descarta
+            // ese elemento, y no la respuesta completa (que es lo que pasaría si el DTO
+            // exigiera el campo: la app se quedaría sin ninguna tasa por un elemento raro).
+            val sourceKey = dto.fuente?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
+                ?: return@mapNotNull null
 
             RemoteRate(
-                sourceKey = dto.fuente.lowercase(),
+                sourceKey = sourceKey,
                 value = value,
                 updatedAtMillis = IsoParsers.instantMillisOrNull(dto.fechaActualizacion),
             )

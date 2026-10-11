@@ -21,7 +21,10 @@ import retrofit2.http.Path
  *    contar lo último que se supo del release.
  *
  * @param repository slug `owner/repo`. Viaja con `encoded = true` para que la barra del
- *   camino no se escape (`repos/liebeblack/divtrack/releases/latest`).
+ *   camino no se escape (`repos/LiebeBlack/b/releases/latest`). El slug por defecto apunta al
+ *   repositorio real de la app (`LiebeBlack/b`); cambiarlo es cosa de `local.properties`
+ *   (`github.repository`), y un slug que no exista se cuenta como fallo con su causa real
+ *   (HTTP 404), no como «sin conexión».
  */
 interface GithubReleasesService {
 

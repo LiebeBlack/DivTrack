@@ -20,7 +20,8 @@ class YadioProvider @Inject constructor(
     override val priority: Int = PRIORITY
 
     override suspend fun fetchLatest(): RemoteRateSet {
-        val vesValue = service.getRates().ves
+        val dto = service.getRates()
+        val vesValue = dto.ves
 
         val rates = buildList {
             if (vesValue != null && vesValue > 0.0) {
@@ -28,8 +29,11 @@ class YadioProvider @Inject constructor(
                     RemoteRate(
                         sourceKey = SourceKeys.PARALELO,
                         value = vesValue,
-                        // Yadio no publica la hora de su cotización.
-                        updatedAtMillis = null,
+                        // Yadio sí publica la hora de su cotización (`timestamp`, en ms): sin
+                        // ella, su lectura entraba en el registro como "sin marca de tiempo" y
+                        // no podía competir por frescura con DolarAPI. Si algún día dejara de
+                        // mandarla, vuelve a `null` y el registro lo trata como desconocida.
+                        updatedAtMillis = dto.updatedAtMillis,
                     ),
                 )
             }
