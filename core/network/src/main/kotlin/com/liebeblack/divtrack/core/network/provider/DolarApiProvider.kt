@@ -1,6 +1,7 @@
 package com.liebeblack.divtrack.core.network.provider
 
 import com.liebeblack.divtrack.core.common.time.TimeProvider
+import com.liebeblack.divtrack.core.common.utils.SourceKeys
 import com.liebeblack.divtrack.core.network.dto.DolarApiRateDto
 import com.liebeblack.divtrack.core.network.mapper.IsoParsers
 import com.liebeblack.divtrack.core.network.model.RemoteRate
@@ -27,6 +28,18 @@ class DolarApiProvider @Inject constructor(
 
     override val id: String = PROVIDER_ID
     override val priority: Int = PRIORITY
+
+    /**
+     * El oficial es suyo y no se delega (ADR 40): el endpoint dedicado
+     * (`v1/dolares/oficial`) es la referencia del producto, y su valor se conserva aunque
+     * otra fuente traiga una fecha más nueva — el BCV no publica en días no bancarios y
+     * un cierre válido sigue siendo el oficial. Solo si esta llamada **falla** el registro
+     * busca el oficial en ExchangeRate-API o DolarVZLA.
+     *
+     * El paralelo no es autoritativo: ese dato se mueve varias veces al día, su upstream es
+     * Yadio y ahí sí manda el más fresco.
+     */
+    override val authoritativeSources: Set<String> = setOf(SourceKeys.OFICIAL)
 
     override suspend fun fetchLatest(): RemoteRateSet = coroutineScope {
         // En paralelo, contra el mismo host: el techo de tiempo del proveedor sigue siendo el

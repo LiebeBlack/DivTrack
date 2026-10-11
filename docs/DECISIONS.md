@@ -1083,3 +1083,40 @@ entró primero, se marcó viejo y la pasada siguió hasta la fuente con el cierr
 **Coste.** Una petición HTTP más por pasada (dos contra el mismo host, en paralelo: el
 techo de tiempo del proveedor sigue siendo el de una sola) y unos 50 líneas de lógica con
 tests propios de los dos respaldos.
+
+---
+
+## 40. El oficial tiene una sola voz: si DolarAPI responde, su valor manda
+
+**Decisión.** El registro acepta fuentes **autoritativas**: cuando un proveedor publica un
+valor válido de una fuente que declara como suya, ese valor no se deja pisar por nadie —ni
+por uno más fresco—, la pasada deja de buscar respaldo para esa tasa y el respaldo solo
+entra cuando ese proveedor **falla**. `DolarApiProvider` se declara autoritativo del
+`oficial` (su endpoint dedicado `ve.dolarapi.com/v1/dolares/oficial`); el paralelo no lo
+es de nadie. Además, cualquier dato fechado en el **futuro** se degrada a «sin hora»: no
+compite por frescura ni pinta un día que aún no existe.
+
+**Por qué.** La regla de frescura (ADR 26) tenía un costo que el producto no acepta: una
+fuente de cola con una fecha más nueva —aunque su dato no sea el oficial del BCV— podía
+desplazar al valor de referencia y encarecer el dólar mostrado. En vivo, el 2026-10-11
+(lunes), el CDN de DolarVZLA servía un cierre fechado el **13 de octubre** (876,7976)
+mientras el BCV no había publicado más allá del **9** (875,6505, que es lo que servía el
+dedicado de DolarAPI): la regla anterior habría mostrado un precio mayor con la fecha de un
+día que aún no llegaba. El oficial no «vence»: el BCV publica en días bancarios y un cierre
+válido del viernes sigue siendo el oficial el lunes.
+
+**Cómo se aplica.** `RateProvider.authoritativeSources` (vacío por defecto) es la única
+declaración nueva; el registro la consulta por id. Un valor autoritativo se guarda sin
+importar su edad, la pasada se corta en cuanto las dos tasas están resueltas y la UI sigue
+enseñando de qué fuente vino cada valor. Los datos con fecha futura bajan a
+`updatedAtMillis = null`: el valor se conserva (es lo mejor que hay), pero sin ventaja de
+frescura; la tolerancia es de 2 h para relojes desfasados, no para fechas imposibles.
+
+**Qué no cambia.** El diagnóstico de Ajustes sigue sondeando a todas las fuentes; el aviso
+informativo de «la fuente dejó de publicar» sigue saliendo si el oficial lleva días quieto;
+y la regla de frescura sigue viva para el paralelo (que sí se mueve varias veces al día y
+tiene upstream en Yadio) y para cualquier fuente normal cuando la referencia no responde.
+
+**Coste.** ~40 líneas en el registro, una propiedad en el contrato del proveedor, un
+parámetro en el fake de tests y cinco tests nuevos (autoridad, respaldo por fallo, corte de
+pasada y fecha futura). Sin llamadas de red nuevas.

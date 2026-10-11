@@ -524,6 +524,11 @@ para el cierre del BCV.
   en vivo el 2026-10-11: el dedicado servía 875,6505 del 9 de octubre mientras el BCV ya llevaba
   publicado el 876,7976 del 13 — el caso exacto en que el titular viejo lo rescata la fuente más
   nueva de la cola.
+- El oficial tiene **una sola voz** (ADR 40): si `/v1/dolares/oficial` responde con un valor
+  válido, su cifra manda aunque otra fuente traiga una fecha más nueva — el BCV no publica en
+  días no bancarios y un cierre válido sigue siendo el oficial. Las alternativas (ER-API,
+  DolarVZLA) solo entran si esa llamada **falla**, y un dato fechado en el futuro se trata como
+  «sin hora» en lugar de ganar por frescura.
 
 ---
 

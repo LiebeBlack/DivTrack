@@ -27,6 +27,8 @@ class FakeTimeProvider(
  * Proveedor remoto simulado.
  *
  * @param rates tasas que devuelve en [fetchLatest]; si [failing] es true, lanza en su lugar.
+ * @param authoritativeSources fuentes para las que el fake se comporta como la referencia
+ *   (por ejemplo, el oficial de DolarAPI, que no se deja pisar por nadie: ADR 40).
  */
 class FakeRateProvider(
     override val id: String,
@@ -34,6 +36,7 @@ class FakeRateProvider(
     private val rates: List<RemoteRate> = emptyList(),
     private val failing: Boolean = false,
     private val fetchedAtMillis: Long = 1_800_000_000_000L,
+    override val authoritativeSources: Set<String> = emptySet(),
 ) : RateProvider {
 
     var fetchLatestCalls: Int = 0

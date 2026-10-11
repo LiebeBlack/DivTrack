@@ -37,13 +37,17 @@ data class ProviderFetchOutcome(
 /**
  * Orquesta el multi-proveedor con tres reglas:
  *
- * 1. **La resolución es por tasa, no por proveedor**, y gana el dato MÁS FRESCO: si un
- *    proveedor de cola publica una marca de tiempo posterior a la que ya se resolvió, la
- *    reemplaza. El caso real: DolarAPI sigue sirviendo el cierre de ayer porque el BCV dejó
- *    de publicar, mientras ExchangeRate-API trae el tipo de cambio del día — el registro
- *    acaba usando el del día. Y si el titular ya está rancio, también lo reemplaza una
+ * 1. **La resolución es por tasa, no por proveedor**. Entre proveedores normales gana el
+ *    dato MÁS FRESCO: si uno de cola publica una marca de tiempo posterior a la que ya se
+ *    resolvió, la reemplaza; y si el titular ya está rancio, también lo reemplaza una
  *    fuente que respondió **en vivo sin publicar hora** (Yadio, upstream del paralelo):
- *    ver [acceptsUnstamped].
+ *    ver [acceptsUnstamped]. Dos excepciones, ambas de producto:
+ *    - Una fuente **autoritativa** (ADR 40): el proveedor declara que es la referencia de
+ *      una tasa —DolarAPI lo es del oficial, vía su endpoint dedicado— y entonces su valor
+ *      no se deja pisar por nadie ni por ser más viejo; el respaldo solo se busca cuando
+ *      ese proveedor **falla**. Ver [isAuthoritativeSource].
+ *    - Un dato fechado en el **futuro** no compite por frescura: se degrada a lectura sin
+ *      hora. Ver [withTrustedTimestamp].
  * 2. **Circuit breaker con auto-recuperación.** Un proveedor que falla queda "abierto"
  *    durante [AppConstants.PROVIDER_COOLDOWN_MILLIS]: se salta en las pasadas siguientes y
  *    nadie espera su timeout. Cumplido el periodo se reintenta solo; si responde, vuelve al
@@ -148,15 +152,27 @@ class ProviderRegistry @Inject constructor(
 
                     var contributed = false
                     remoteSet.rates.forEach { rate ->
-                        val isKnownSource = rate.sourceKey in SourceKeys.all
-                        val current = resolved[rate.sourceKey]
-                        // Gana el dato más fresco: iguala a quien publica primero y
-                        // degrada al que responde con el cierre de un día pasado.
-                        val isFresher = current == null ||
-                            isNewer(rate.updatedAtMillis, current.rate.updatedAtMillis) ||
-                            acceptsUnstamped(rate, current, nowMillis)
-                        if (isKnownSource && isFresher) {
-                            resolved[rate.sourceKey] = ResolvedRate(rate = rate, providerId = provider.id)
+                        if (rate.sourceKey !in SourceKeys.all) return@forEach
+
+                        // Una fecha en el futuro no es "más reciente": es un dato roto (alguien
+                        // sirvió una tasa fechada para un día que aún no llegó — en vivo, el
+                        // 2026-10-11, el CDN de DolarVZLA servía el cierre del día 13). Se
+                        // degrada a lectura sin hora y compite sin ventaja de frescura.
+                        val candidate = rate.withTrustedTimestamp(nowMillis)
+                        val current = resolved[candidate.sourceKey]
+                        // Gana el dato más fresco (igualando a quien publica primero y degradando
+                        // al que responde con el cierre de un día pasado), salvo que la tasa sea
+                        // autoritativa: entonces su dueño manda mientras responda (ADR 40).
+                        val wins = when {
+                            current == null -> true
+                            isAuthoritativeSource(provider.id, candidate.sourceKey) &&
+                                !isAuthoritativeSource(current.providerId, candidate.sourceKey) -> true
+                            isAuthoritativeSource(current.providerId, candidate.sourceKey) -> false
+                            else -> isNewer(candidate.updatedAtMillis, current.rate.updatedAtMillis) ||
+                                acceptsUnstamped(candidate, current, nowMillis)
+                        }
+                        if (wins) {
+                            resolved[candidate.sourceKey] = ResolvedRate(rate = candidate, providerId = provider.id)
                             contributed = true
                         }
                     }
@@ -215,8 +231,20 @@ class ProviderRegistry @Inject constructor(
     private fun needsMoreData(resolved: Map<String, ResolvedRate>, nowMillis: Long): Boolean {
         val missing = SourceKeys.all.any { it !in resolved }
         if (missing) return true
-        return resolved.values.any { entry -> isStale(entry.rate, nowMillis) }
+        // Un titular autoritativo no se persigue por frescura (ADR 40): si su proveedor
+        // respondió, su valor es el oficial aunque tenga días — el BCV no publica en todos
+        // los días bancarios, y seguir buscando "algo más nuevo" es acabar mostrando un
+        // dato ajeno con la etiqueta del oficial.
+        return resolved.values.any { entry ->
+            !isAuthoritativeSource(entry.providerId, entry.rate.sourceKey) && isStale(entry.rate, nowMillis)
+        }
     }
+
+    /** `true` si [providerId] es la referencia declarada de [sourceKey] (ADR 40). */
+    private fun isAuthoritativeSource(providerId: String, sourceKey: String): Boolean =
+        orderedProviders.firstOrNull { it.id == providerId }
+            ?.authoritativeSources
+            ?.contains(sourceKey) == true
 
     /**
      * `true` cuando el recién llegado sirve aunque no traiga hora.
@@ -248,6 +276,21 @@ class ProviderRegistry @Inject constructor(
     private fun isNewer(candidateMillis: Long?, currentMillis: Long?): Boolean =
         candidateMillis != null && (currentMillis == null || candidateMillis > currentMillis)
 
+    /**
+     * Baja a `null` (edad desconocida) una marca de tiempo fechada en el futuro.
+     *
+     * "Más adelante que el reloj" no es más reciente: es un dato roto, y la regla de
+     * frescura lo habría impuesto como el más nuevo de todos (así intentó entrar el cierre
+     * del 13 de octubre publicado por un CDN un domingo 11). El valor se conserva —es lo
+     * mejor que hay— pero sin ventaja de su fecha y sin que la UI pinte un día inexistente.
+     * La tolerancia cubre un desfase de reloj de minutos, que sí es normal.
+     */
+    private fun RemoteRate.withTrustedTimestamp(nowMillis: Long): RemoteRate {
+        val updatedAt = updatedAtMillis ?: return this
+        if (updatedAt <= nowMillis + FUTURE_TIMESTAMP_TOLERANCE_MILLIS) return this
+        return copy(updatedAtMillis = null)
+    }
+
     private fun markFailure(providerId: String) {
         openUntilMillis[providerId] = timeProvider.nowMillis() + AppConstants.PROVIDER_COOLDOWN_MILLIS
     }
@@ -271,5 +314,8 @@ class ProviderRegistry @Inject constructor(
     private companion object {
         const val TAG = "ProviderRegistry"
         const val MILLIS_PER_HOUR = 3_600_000L
+
+        /** Un reloj desfasado minutos es normal; una tasa fechada días adelante, no. */
+        const val FUTURE_TIMESTAMP_TOLERANCE_MILLIS = 2L * MILLIS_PER_HOUR
     }
 }

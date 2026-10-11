@@ -22,6 +22,9 @@ import org.junit.Test
  *  3. Si TODOS están abiertos, la pasada reintenta el orden completo en vez de rendirse.
  *  4. Gana el dato MÁS FRESCO: el caso real del banco que deja de publicar y de la API
  *     que sigue sirviendo su cierre de ayer mientras otra fuente ya trajo el de hoy.
+ *  5. El oficial tiene una sola voz (ADR 40): la referencia no se deja pisar ni por un dato
+ *     más fresco, la pasada no la persigue por frescura y, si falla, la cola la respalda.
+ *     Además, un dato fechado en el futuro no compite por frescura.
  */
 class ProviderRegistryResilienceTest {
 
@@ -116,6 +119,9 @@ class ProviderRegistryResilienceTest {
     @Test
     fun `gana el dato mas fresco aunque llegue de un proveedor de cola`() = runTest {
         // DolarAPI responde "bien" pero con un cierre de hace días: el banco dejó de publicar.
+        // Este fake NO declara autoridad (el real sí, ADR 40): aquí se fija la regla de
+        // frescura para cualquier fuente normal; el contraste con la referencia está en el
+        // test "el oficial de la referencia no lo pisa nadie".
         val conDatoRancio = FakeRateProvider(
             id = "DolarAPI",
             priority = 0,
@@ -221,6 +227,101 @@ class ProviderRegistryResilienceTest {
         val yadioStatus = diagnostics.statuses.single { it.providerId == "Yadio" }
         assertTrue(yadioStatus.isOk)
         assertEquals(null, yadioStatus.lastUpdatedAtMillis)
+    }
+
+    @Test
+    fun `el oficial de la referencia no lo pisa nadie, ni con un dato mas fresco`() = runTest {
+        // DolarAPI con su regla real: es la referencia del oficial (ADR 40) y sirve el
+        // cierre del viernes. Un proveedor de cola trae un valor fechado hoy —más fresco—
+        // pero no es la fuente autorizada y su cifra no debe encarecer el dólar mostrado.
+        val referencia = FakeRateProvider(
+            id = "DolarAPI",
+            priority = 0,
+            rates = listOf(rate(SourceKeys.OFICIAL, 875.6505, updatedAtMillis = AYER_MILLIS)),
+            authoritativeSources = setOf(SourceKeys.OFICIAL),
+        )
+        val deCola = FakeRateProvider(
+            id = "DolarVZLA",
+            priority = 30,
+            rates = listOf(rate(SourceKeys.OFICIAL, 876.7976, updatedAtMillis = HOY_MILLIS)),
+        )
+
+        val outcome = registry(referencia, deCola).fetchLatest()
+
+        val oficial = outcome.rates.single { it.rate.sourceKey == SourceKeys.OFICIAL }
+        assertEquals(875.6505, oficial.rate.value, DELTA)
+        assertEquals("DolarAPI", oficial.providerId)
+    }
+
+    @Test
+    fun `si la referencia del oficial falla, la cola lo respalda`() = runTest {
+        val caida = FakeRateProvider(
+            id = "DolarAPI",
+            priority = 0,
+            failing = true,
+            authoritativeSources = setOf(SourceKeys.OFICIAL),
+        )
+        val relevo = FakeRateProvider(
+            id = "ExchangeRateAPI",
+            priority = 20,
+            rates = listOf(rate(SourceKeys.OFICIAL, 861.02, updatedAtMillis = HOY_MILLIS)),
+        )
+
+        val outcome = registry(caida, relevo).fetchLatest()
+
+        // La autoridad se gana respondiendo: sin respuesta de la referencia, manda el fresco.
+        val oficial = outcome.rates.single { it.rate.sourceKey == SourceKeys.OFICIAL }
+        assertEquals(861.02, oficial.rate.value, DELTA)
+        assertEquals("ExchangeRateAPI", oficial.providerId)
+    }
+
+    @Test
+    fun `la pasada se corta con el oficial de la referencia y no gasta la cola`() = runTest {
+        // Mismo escenario que "una pasada no se corta si la tasa resuelta esta rancia", pero
+        // con la referencia declarada: el cierre rancio de DolarAPI ya no obliga a preguntar
+        // a nadie (es el oficial aunque esté viejo) y la cola no se gasta.
+        val referencia = FakeRateProvider(
+            id = "DolarAPI",
+            priority = 0,
+            rates = listOf(
+                rate(SourceKeys.OFICIAL, 875.6505, updatedAtMillis = RANCIO_MILLIS),
+                rate(SourceKeys.PARALELO, 955.71, updatedAtMillis = HOY_MILLIS),
+            ),
+            authoritativeSources = setOf(SourceKeys.OFICIAL),
+        )
+        val nuncaConsultado = FakeRateProvider(
+            id = "ExchangeRateAPI",
+            priority = 20,
+            rates = listOf(rate(SourceKeys.OFICIAL, 861.02, updatedAtMillis = HOY_MILLIS)),
+        )
+
+        registry(referencia, nuncaConsultado).fetchLatest()
+
+        assertEquals(0, nuncaConsultado.fetchLatestCalls)
+    }
+
+    @Test
+    fun `un dato fechado en el futuro no compite por frescura`() = runTest {
+        // Paralelo de DolarAPI (de hoy) contra el de un proveedor de cola fechado para
+        // mañana: la regla de frescura lo habría impuesto a pesar de la fecha imposible.
+        val delDia = FakeRateProvider(
+            id = "DolarAPI",
+            priority = 0,
+            rates = listOf(rate(SourceKeys.PARALELO, 940.0, updatedAtMillis = HOY_MILLIS)),
+        )
+        val delFuturo = FakeRateProvider(
+            id = "DolarVZLA",
+            priority = 30,
+            rates = listOf(
+                rate(SourceKeys.PARALELO, 990.0, updatedAtMillis = HOY_MILLIS + 25L * MILLIS_PER_HOUR),
+            ),
+        )
+
+        val outcome = registry(delDia, delFuturo).fetchLatest()
+
+        val paralelo = outcome.rates.single { it.rate.sourceKey == SourceKeys.PARALELO }
+        assertEquals(940.0, paralelo.rate.value, DELTA)
+        assertEquals("DolarAPI", paralelo.providerId)
     }
 
     private fun rate(
