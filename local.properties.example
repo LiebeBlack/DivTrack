@@ -20,3 +20,11 @@ yadio.baseUrl=https://api.yadio.io/
 # ExchangeRate-API: respaldo independiente del dólar oficial
 exchangerateapi.baseUrl=https://open.er-api.com/
 
+# --- Módulo de actualizaciones (GitHub Releases) ---
+# API pública de GitHub, donde el flujo de publicación deja el APK vigente en un release
+# rolling con etiqueta `latest`.
+github.apiBaseUrl=https://api.github.com/
+# Repositorio consultado, en formato `usuario/repositorio` (sin .git). Si publicas tu copia
+# en otro sitio, cambia SOLO esta línea: no hay ningún slug escrito en el código Kotlin.
+github.repository=liebeblack/divtrack
+

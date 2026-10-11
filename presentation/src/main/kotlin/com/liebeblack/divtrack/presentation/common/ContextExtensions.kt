@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 
 /** Copia texto al portapapeles del sistema (API de Android, sin deprecaciones de Compose). */
@@ -30,3 +31,25 @@ fun Context.openNetworkSettings() {
         if (runCatching { startActivity(intent) }.isSuccess) return
     }
 }
+
+/**
+ * Abre una dirección **http/https** en el navegador del sistema.
+ *
+ * El filtro de esquema no es decorativo: la URL viene del release publicado por la API de
+ * GitHub, y una dirección remota no es una fuente de confianza para decidir qué `Intent`
+ * lanza la app. Con `http`/`https` como únicos esquemas aceptados, lo peor que puede pasar
+ * es que el usuario acabe en una página web; sin ese filtro, un `intent://` o un
+ * `file://` abrirían componentes arbitrarios del dispositivo.
+ *
+ * Nunca lanza: si no hay navegador o la dirección no es válida, no se hace nada. El usuario
+ * sigue teniendo el botón de descarga, que es el camino que importa.
+ */
+fun Context.openUrl(url: String) {
+    val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return
+    if (uri.scheme?.lowercase() !in ALLOWED_URL_SCHEMES) return
+
+    val intent = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { startActivity(intent) }
+}
+
+private val ALLOWED_URL_SCHEMES = setOf("http", "https")

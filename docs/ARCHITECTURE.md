@@ -75,6 +75,9 @@ Esto significa que:
 - DolarAPI caído → el paralelo sigue llegando por Yadio y solo se degrada el oficial.
 - DolarAPI "sano" pero sirviendo el cierre de ayer → ExchangeRate-API trae el del día y gana
   el más fresco, no el de mejor prioridad (ADR 26).
+- Yadio responde en vivo pero **sin marca de tiempo** (no publica hora) → si el dato resuelto
+  ya está rancio, su lectura reemplaza al cierre viejo en lugar de descartarse. Sin hora, en
+  cambio, nunca pisa a un dato fresco (ADR 36).
 - Los fallos no se propagan: se acumulan en `ProviderFailure` y la sincronización se marca
   como *parcial*, que es un aviso suave y no un error.
 

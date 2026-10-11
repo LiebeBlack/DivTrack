@@ -143,9 +143,10 @@ paralelo/oficial en porcentaje y valor absoluto. Pull-to-refresh y botón de ref
 
 La **tasa paralela (y con ella la brecha) es opcional**: se enciende en Ajustes y, mientras
 esté apagada, el panel se concentra en el oficial sin mostrar un dato que el usuario no pidió.
-Al volver a la app, si la última comprobación tiene más de 15 minutos, el panel **se refresca
-solo y en silencio** (sin snackbar), y no toca la red si lo que hay en pantalla es reciente
-(ADR 29).
+Al volver a la app el panel **se refresca solo y en silencio** (sin snackbar) si la última
+comprobación tiene más de 15 minutos **o** si la pasada anterior falló, y no toca la red si lo
+que hay en pantalla es reciente y la última comprobación salió bien (ADR 29 y ADR 36). La
+calculadora aplica la misma regla al volver a su pestaña.
 
 ### Calculadora bidireccional
 Se escribe el monto y el resultado aparece **en cada tecla**: no hay botón "Calcular".
@@ -405,6 +406,82 @@ Lo que esta pasada dejó **verificado leyendo**, sin ejecutar nada:
 Nada de esto se compiló ni se pasó por tests: fue a petición explícita. El siguiente
 `./gradlew :app:assembleDebug` y `./gradlew testDebugUnitTest :domain:test :core:common:test`
 es lo que convierte estas tablas en verificadas.
+
+---
+
+## Esta pasada: sistema de actualizaciones y auditoría del camino del dólar oficial
+
+La app es **la del dólar oficial y su calculadora** (confirmado por escrito en esta pasada),
+así que el catálogo genérico de módulos que llegó con la petición —gestor de ROMs con
+indexación, conversión de bases, cálculo de particiones— **no se implementa**: no tiene sitio
+en una app de tasas. El porqué, traducido requisito por requisito a lo que la app ya tiene,
+queda en la ADR 35.
+
+Lo que sí se construyó es lo que esa app necesitaba de verdad: **comprobar la versión
+publicada y traer el APK nuevo sin salir de la app**.
+
+| Pieza | Dónde | Qué hace |
+|---|---|---|
+| Release rolling de GitHub | `:core:network` | `GET /repos/{owner}/{repo}/releases/latest` con revalidación `ETag` (304 gratis entre versiones) y el JSON en caché como respaldo |
+| Versión instalada vs publicada | `:domain` + `VersionNames` | Comparación **por componentes** (`4.10` > `4.7`); la versión se extrae del título del release, que es lo que CI escribe |
+| Estado persistido | `:core:datastore` | Última comprobación **exitosa**, release vigente, id de descarga y si el APK está listo; compartiendo la instancia única de DataStore |
+| Descarga en segundo plano | `:data` + `DownloadManager` | Sigue con la app cerrada, reanuda si se corta la red y publica progreso sin permisos nuevos |
+| Instalación | `:app` | `FileProvider` + `ACTION_VIEW` con el MIME de APK: Android confirma, la app no se salta nada |
+| Trabajo diario | `:data` | `UpdateCheckWorker` (24 h, restricción de red) sin notificaciones: el aviso se lee en Ajustes |
+| Pantalla | `:presentation` | Sección «Actualizaciones» en Ajustes: versión instalada y publicada, fecha de publicación, tamaño, progreso y botones de descarga e instalación |
+
+Dos detalles que valen más que el resumen:
+
+- **Una comprobación fallida no escribe nada.** Si no hay red, el estado guardado no se toca:
+  lo contrario convertiría un momento sin cobertura en un «no hay actualizaciones» durante
+  seis horas. Y el aviso dice la causa real (misma regla que las tasas), no «sin conexión»
+  por defecto.
+- **El slug del repositorio no está en el código.** Entra por `local.properties`
+  (`github.repository`, por defecto `liebeblack/divtrack`) igual que las URLs de las APIs de
+  tasas: publicar la app en otro sitio no obliga a tocar una línea de Kotlin.
+
+Además, la auditoría de esta pasada dejó estas correcciones pequeñas:
+
+| Hallazgo | Corrección |
+|---|---|
+| `RateRepositoryImpl` atrapaba el fallo de lectura de Room y emitía la última lectura en memoria **sin dejarlo escrito en ningún sitio**: una base que falla en bucle no dejaba rastro para diagnosticarla, y el respaldo (que salva la pantalla) escondía el problema | Se registra con nivel *warning* antes de servir el respaldo |
+| La regla «solo se reintenta lo que puede cambiar por esperar» estaba escrita dentro de `RateSyncWorker` | Extraída a `isWorthRetrying()`; el worker de versión la comparte en lugar de duplicarla |
+| `ExchangeRateApiService` documentaba «los han tumcado» | Corregido a «los han tumbado» |
+
+### Lo que esta pasada NO está verificada
+
+Ejecución cero, a petición explícita: **no se compiló y no se corrió ningún test**. Los tres
+archivos de test nuevos —el comparador de versiones en `:core:common`, el flujo de
+actualizaciones en `SettingsViewModelTest` y el arranque de los dos trabajos en
+`AppViewModelTest`— están escritos y **no ejecutados**, y el APK no se generó. Lo que sí se
+hizo, y se puede comprobar leyendo: cada archivo nuevo sigue el contrato de su capa
+(`:domain` sin Android, `:app` como único dueño del manifiesto), cada texto visible existe en
+es-VE y en inglés, y ningún símbolo quedó sin uso. `docs/index.html` **no** se actualizó en
+esta pasada: sigue describiendo el producto anterior.
+
+El siguiente `./gradlew :app:assembleDebug` y `./gradlew testDebugUnitTest :domain:test :core:common:test`
+es lo que convierte esa tabla en verificada.
+
+---
+
+## Esta pasada: el proveedor sin hora, el reintento al volver y la frontera de excepciones
+
+Pasada de corrección centrada en el camino **refresco → guardado → visualización** y en el
+comprobador de fuentes de Ajustes. Sin ejecución: este entorno no tiene JDK ni Android SDK (no
+hay `java` en el PATH y no existe `local.properties`), así que las correcciones están revisadas
+leyendo el código y los tests están escritos, **no ejecutados**.
+
+| Hallazgo | Corrección |
+|---|---|
+| **La pasada preguntaba a un proveedor por un dato rancio y después tiraba su respuesta**: `needsMoreData` seguía consultando porque el titular estaba viejo, pero `isNewer` exigía marca de tiempo y Yadio (upstream del paralelo) no publica hora. El panel se quedaba con el cierre de ayer teniendo una fuente sana respondiendo en vivo. | `ProviderRegistry.acceptsUnstamped`: un candidato sin hora reemplaza **solo** a un titular rancio de su fuente, y sin hora nunca pisa un dato fresco. El reloj se lee una vez por pasada. Test propio con los dos lados. |
+| **El aviso de «sin conexión» se quedaba pegado**: al volver a la pantalla solo se miraba la edad del dato, así que con la tasa de hace dos minutos y la última pasada fallida la app no reintentaba hasta los 15 minutos, con la conexión ya recuperada. | `refreshIfNeeded` (antes `refreshIfStale`) reintenta también si la última pasada falló; un reintento silencioso que vuelve a fallar igual no repite el snackbar. |
+| **La calculadora no tenía refresco al volver**: su ViewModel vive en el back stack, así que su `init` no se repite y volver a su pestaña horas después convertía con la tasa de la mañana. | `CalculatorIntent.OnResumed` y los dos ganchos de ciclo de vida en la ruta, con la ventana de frescura compartida en `AppConstants` (`RATE_RESUME_REFRESH_AFTER_MILLIS`) para que panel y calculadora no puedan divergir. |
+| **Las caídas**: `refreshRates()` solo traducía `SQLiteException`; cualquier otra excepción (base cerrada a mitad, preferencias ilegibles) subía hasta el ViewModel y mataba su corrutina. El comprobador de fuentes tenía el mismo agujero y su botón podía quedarse girando. | `refreshRates()` y `testProviders()` atrapan todo y lo devuelven clasificado (`DataError.Unknown`) re-lanzando la cancelación; una preferencia ilegible degrada al orden automático; el diagnóstico marca las fuentes como caídas en vez de lanzar; el botón avisa con un texto nuevo (es/en). Cuatro tests nuevos, dos con interruptores nuevos en los fakes. |
+
+**Lo que sigue sin verificarse.** Todo lo de esta pasada: sin JDK ni Android SDK, `./gradlew` no
+arranca, así que no hay compilación, ni tests, ni lint. Lo que sí se comprobó: cada símbolo nuevo
+tiene consumidor, cada texto existe en es-VE y en inglés, los `when` de los contratos siguen
+siendo exhaustivos y lo renombrado no dejó referencias sueltas.
 
 ---
 

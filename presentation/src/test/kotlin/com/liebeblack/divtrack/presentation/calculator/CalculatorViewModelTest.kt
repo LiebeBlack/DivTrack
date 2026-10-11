@@ -1,5 +1,7 @@
 package com.liebeblack.divtrack.presentation.calculator
 
+import com.liebeblack.divtrack.core.common.error.DataError
+import com.liebeblack.divtrack.core.common.result.Result
 import com.liebeblack.divtrack.core.common.utils.CurrencyFormatters
 import com.liebeblack.divtrack.domain.model.ExchangeRate
 import com.liebeblack.divtrack.domain.model.RateSource
@@ -10,6 +12,7 @@ import com.liebeblack.divtrack.domain.usecase.SyncRatesUseCase
 import com.liebeblack.divtrack.domain.usecase.UpdateSettingsUseCase
 import com.liebeblack.divtrack.presentation.fake.FakeRateRepository
 import com.liebeblack.divtrack.presentation.fake.FakeSettingsRepository
+import com.liebeblack.divtrack.presentation.fake.FakeTimeProvider
 import com.liebeblack.divtrack.presentation.rule.MainDispatcherRule
 import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -230,12 +233,42 @@ class CalculatorViewModelTest {
         assertTrue(state.hasRate)
     }
 
-    private fun TestScope.createViewModel() = CalculatorViewModel(
+    @Test
+    fun `volver a la pantalla no gasta red si acaba de comprobar la tasa`() = runTest {
+        val viewModel = createViewModel(FakeTimeProvider())
+        collectState(viewModel)
+        val callsAfterOpen = rateRepository.refreshCalls
+
+        viewModel.onIntent(CalculatorIntent.OnResumed)
+        advanceUntilIdle()
+
+        assertEquals(callsAfterOpen, rateRepository.refreshCalls)
+    }
+
+    @Test
+    fun `volver a la pantalla reintenta la tasa si el ultimo intento fallo`() = runTest {
+        rateRepository.refreshResult = Result.Error(DataError.Network())
+        val viewModel = createViewModel(FakeTimeProvider())
+        collectState(viewModel)
+        val callsAfterOpen = rateRepository.refreshCalls
+
+        viewModel.onIntent(CalculatorIntent.OnResumed)
+        advanceUntilIdle()
+
+        // La red pudo volver con la calculadora abierta: el regreso a la pestaña reintenta sin
+        // esperar a que venza la ventana de frescura, y con el mismo criterio que el panel.
+        assertEquals(callsAfterOpen + 1, rateRepository.refreshCalls)
+    }
+
+    private fun TestScope.createViewModel(
+        timeProvider: FakeTimeProvider = FakeTimeProvider(),
+    ) = CalculatorViewModel(
         observeRates = ObserveRatesUseCase(rateRepository),
         observeSettings = ObserveSettingsUseCase(settingsRepository),
         updateSettings = UpdateSettingsUseCase(settingsRepository),
         calculateConversion = CalculateConversionUseCase(),
         syncRates = SyncRatesUseCase(rateRepository),
+        timeProvider = timeProvider,
     )
 
     /**

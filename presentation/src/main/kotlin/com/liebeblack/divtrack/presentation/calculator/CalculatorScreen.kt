@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -46,6 +47,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.liebeblack.divtrack.domain.model.RateSource
 import com.liebeblack.divtrack.presentation.R
@@ -73,6 +76,14 @@ fun CalculatorRoute(viewModel: CalculatorViewModel = hiltViewModel()) {
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val onIntent = remember(viewModel) { viewModel::onIntent }
+
+    // Volver a la app (o a esta pestaña) no deja la calculadora convirtiendo con la tasa de la
+    // mañana: el ViewModel mira cuándo fue el último intento y no toca la red si acaba de
+    // comprobarlo. Hacen falta las dos señales por el mismo motivo que en el panel: `ON_START`
+    // cubre el regreso con la pantalla delante y `LaunchedEffect` el caso de volver a la
+    // pestaña (esta composición se recrea al entrar en ella).
+    LaunchedEffect(Unit) { onIntent(CalculatorIntent.OnResumed) }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { onIntent(CalculatorIntent.OnResumed) }
 
     CollectEffects(viewModel.effects) { effect ->
         when (effect) {

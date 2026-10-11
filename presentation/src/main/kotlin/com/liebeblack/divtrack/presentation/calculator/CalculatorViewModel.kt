@@ -3,6 +3,7 @@ package com.liebeblack.divtrack.presentation.calculator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liebeblack.divtrack.core.common.result.Result
+import com.liebeblack.divtrack.core.common.time.TimeProvider
 import com.liebeblack.divtrack.core.common.utils.AppConstants
 import com.liebeblack.divtrack.core.common.utils.CurrencyFormatters
 import com.liebeblack.divtrack.core.common.utils.NumberParsing
@@ -48,7 +49,9 @@ import kotlinx.coroutines.launch
  * (o volver horas después) calcularía con la tasa guardada aunque llevara horas vieja, sin
  * aviso ni forma de refrescar. Por eso, al abrir y al pulsar "Reintentar/Actualizar" se
  * fuerza la pasada contra los proveedores: si falla, se usa la guardada y se avisa sin
- * tocar el cálculo que ya está en pantalla.
+ * tocar el cálculo que ya está en pantalla. Y al volver a la pestaña ([onResumed]) se repite
+ * con el mismo criterio que el panel: la tasa que se ve puede ser de hace horas aunque nadie
+ * haya tocado el importe.
  *
  * **También divide en cuotas.** Con el monto ya escrito, el usuario elige 3, 6, 12 o 24
  * cuotas y ve la cuota mensual en ambas monedas, calculada sobre el mismo total (con IGTF si
@@ -62,6 +65,7 @@ class CalculatorViewModel @Inject constructor(
     private val updateSettings: UpdateSettingsUseCase,
     private val calculateConversion: CalculateConversionUseCase,
     private val syncRates: SyncRatesUseCase,
+    private val timeProvider: TimeProvider,
 ) : ViewModel() {
 
     private val inputText = MutableStateFlow("")
@@ -73,6 +77,12 @@ class CalculatorViewModel @Inject constructor(
     private val isSyncing = MutableStateFlow(false)
     private var syncJob: Job? = null
     private var syncRequestedByUser = false
+
+    /** Cuándo salió la última pasada a la red, en ms del [timeProvider]. */
+    private var lastAttemptMillis: Long = 0L
+
+    /** Si esa última pasada falló: el próximo regreso a la pantalla reintenta sin esperar. */
+    private var lastAttemptFailed: Boolean = false
 
     private val _effects = MutableSharedFlow<CalculatorEffect>(
         extraBufferCapacity = 1,
@@ -154,6 +164,8 @@ class CalculatorViewModel @Inject constructor(
 
             CalculatorIntent.Refresh -> refresh(isUserInitiated = true)
 
+            CalculatorIntent.OnResumed -> onResumed()
+
             CalculatorIntent.SwapDirection -> {
                 direction.value = when (direction.value) {
                     ConversionDirection.USD_TO_BS -> ConversionDirection.BS_TO_USD
@@ -173,6 +185,21 @@ class CalculatorViewModel @Inject constructor(
     }
 
     /**
+     * La pantalla volvió al primer plano (o a su pestaña).
+     *
+     * El ViewModel vive mientras la pestaña siga en el back stack, así que su `init` no se
+     * repite: sin esto, volver a la calculadora después de horas mostraba y usaba la tasa
+     * guardada como si fuera de ahora. Se consulta la red solo si el último intento falló o si
+     * ya venció la ventana de frescura —el mismo criterio que el panel—, así que volver a los
+     * dos minutos no gasta radio.
+     */
+    private fun onResumed() {
+        val needsCheck = lastAttemptFailed ||
+            timeProvider.nowMillis() - lastAttemptMillis >= AppConstants.RATE_RESUME_REFRESH_AFTER_MILLIS
+        if (needsCheck) refresh()
+    }
+
+    /**
      * Comparte la sincronización en curso de esta pantalla. El mutex del repositorio
      * serializa además los refrescos que lleguen desde otras pantallas o WorkManager.
      */
@@ -183,10 +210,15 @@ class CalculatorViewModel @Inject constructor(
         }
 
         syncRequestedByUser = isUserInitiated
+        lastAttemptMillis = timeProvider.nowMillis()
         isSyncing.value = true
         syncJob = viewModelScope.launch {
             try {
                 val result = syncRates()
+
+                // El resultado se recuerda para el próximo regreso a la pantalla: un fallo
+                // reciente obliga a reintentar aunque la ventana de frescura no haya vencido.
+                lastAttemptFailed = result is Result.Error
 
                 if (result is Result.Error && syncRequestedByUser) {
                     _effects.emit(

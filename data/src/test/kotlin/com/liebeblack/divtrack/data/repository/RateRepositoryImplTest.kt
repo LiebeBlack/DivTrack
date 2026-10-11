@@ -3,9 +3,11 @@ package com.liebeblack.divtrack.data.repository
 import com.liebeblack.divtrack.core.common.error.DataError
 import com.liebeblack.divtrack.core.common.logging.NoOpLogger
 import com.liebeblack.divtrack.core.common.result.Result
+import com.liebeblack.divtrack.core.common.utils.ProviderIds
 import com.liebeblack.divtrack.core.common.utils.SourceKeys
 import com.liebeblack.divtrack.core.database.DatabaseRebuildTracker
 import com.liebeblack.divtrack.core.database.entity.RateHistoryEntity
+import com.liebeblack.divtrack.core.datastore.model.UserPreferences
 import com.liebeblack.divtrack.core.network.error.NetworkErrorMapper
 import com.liebeblack.divtrack.core.network.model.RemoteRate
 import com.liebeblack.divtrack.data.fake.FakeConnectivityObserver
@@ -268,6 +270,53 @@ class RateRepositoryImplTest {
 
         assertTrue(result is Result.Success)
         assertEquals(859.06, localDataSource.currentRates.value.single().value, DELTA)
+    }
+
+    @Test
+    fun `un fallo no clasificado del almacenamiento sale como error y no como excepcion`() = runTest {
+        val repository = repository(
+            FakeRateProvider(
+                id = "DolarAPI",
+                priority = 0,
+                rates = listOf(rate(SourceKeys.OFICIAL, 859.06)),
+            ),
+        )
+        // Ni SQLiteException ni nada que el repositorio ya sepa traducir: es el fallo que
+        // antes subía hasta el ViewModel y se llevaba la app por delante.
+        localDataSource.unexpectedFailure = IllegalStateException("la base se cerró a mitad")
+
+        val result = repository.refreshRates()
+
+        assertTrue(result is Result.Error)
+        assertTrue((result as Result.Error).error is DataError.Unknown)
+        // Y sin escribir nada: un fallo no deja datos a medias.
+        assertTrue(localDataSource.currentRates.value.isEmpty())
+    }
+
+    @Test
+    fun `una preferencia de proveedor ilegible no impide sincronizar`() = runTest {
+        // Con el archivo legible, la preferencia mandaría y la tasa la traería el proveedor
+        // elegido; si el archivo falla, la app vuelve al orden automático y sigue trabajando.
+        preferences.state.value = UserPreferences(preferredProviderId = ProviderIds.EXCHANGERATEAPI)
+        preferences.failReads = true
+
+        val result = repository(
+            FakeRateProvider(
+                id = ProviderIds.DOLARAPI,
+                priority = 0,
+                rates = listOf(rate(SourceKeys.OFICIAL, 859.06)),
+            ),
+            FakeRateProvider(
+                id = ProviderIds.EXCHANGERATEAPI,
+                priority = 20,
+                rates = listOf(rate(SourceKeys.OFICIAL, 900.0)),
+            ),
+        ).refreshRates()
+
+        assertTrue(result is Result.Success)
+        val current = localDataSource.currentRates.value.single()
+        assertEquals(859.06, current.value, DELTA)
+        assertEquals(ProviderIds.DOLARAPI, current.providerId)
     }
 
     private fun rate(sourceKey: String, value: Double) = RemoteRate(

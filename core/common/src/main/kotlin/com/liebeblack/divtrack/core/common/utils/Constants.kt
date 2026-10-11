@@ -66,6 +66,40 @@ object AppConstants {
     const val STALE_PARALLEL_HOURS: Long = 12
 
     /**
+     * Tiempo desde el último intento a partir del cual volver a una pantalla dispara una
+     * pasada sola.
+     *
+     * Quince minutos es el intervalo mínimo que admite WorkManager y, a la vez, la frecuencia
+     * con la que la gente vuelve a la app: dentro de esa ventana, lo que se ve ya es una
+     * comprobación de hace un momento. Vive aquí, y no en cada ViewModel, para que el panel y
+     * la calculadora no puedan divergir aplicando la misma regla con números distintos.
+     */
+    const val RATE_RESUME_REFRESH_AFTER_MILLIS: Long = 15L * 60L * 1000L
+
+    // --- Módulo de actualizaciones (Sistema de Actualización Inteligente) ---
+
+    /**
+     * Ventana mínima entre comprobaciones de versión **automáticas**.
+     *
+     * La comprobación consulta la API pública de GitHub, que limita a 60 peticiones por
+     * hora y por IP sin autenticar. Con esta ventana, entrar y salir de Ajustes (o el
+     * arranque repetido de la app) no gasta cuota; el botón «Buscar actualización» del
+     * usuario sí la ignora a propósito, porque ahí la respuesta es lo que se pidió.
+     */
+    const val UPDATE_CHECK_MIN_INTERVAL_MILLIS: Long = 6L * 60L * 60L * 1000L
+
+    /**
+     * Periodicidad del trabajo de comprobación en segundo plano.
+     *
+     * Un día es el ritmo real de publicación de este proyecto, y es también lo que hace
+     * que la comprobación de fondo no sea un latido de red.
+     */
+    const val UPDATE_CHECK_INTERVAL_HOURS: Long = 24L
+
+    /** Tipo MIME de un APK; lo usan el descargador (`:data`) y el instalador (`:app`). */
+    const val APK_MIME_TYPE: String = "application/vnd.android.package-archive"
+
+    /**
      * Circuit breaker de proveedores.
      *
      * Si una fuente falla, no se vuelve a molestar durante este periodo: su siguiente turno

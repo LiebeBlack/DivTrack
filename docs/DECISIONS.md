@@ -626,7 +626,9 @@ volver al primer plano. A cambio no hay latido de red en cada regreso, y la edad
 escrita en la tarjeta («Actualizado …»), que es lo que el usuario necesita para decidir si
 refresca a mano. La misma regla explica por qué la fecha de comprobación (`fetchedAtMillis`) es
 un dato aparte de la fecha publicada por el proveedor: una fuente puede no publicar nada nuevo
-y aun así haber que comprobarlo.
+y aun así haber que comprobarlo. El ADR 36 añadió después un segundo motivo para salir a la red
+(un último intento fallido reintenta aunque la ventana siga vigente), movió la ventana a
+`AppConstants` y aplicó el mismo criterio a la calculadora, que no tenía ninguno.
 
 ---
 
@@ -724,3 +726,200 @@ respaldo que la calculadora necesita cuando la base local se reconstruyó.
 de amortización francesa; el estado admite ese cambio sin tocar el resto de la pantalla.
 Mientras tanto, el interés queda fuera del cálculo y se advierte en la propia tarjeta: no se
 aproxima en silencio.
+
+---
+
+## 33. El módulo de actualizaciones lee el release rolling de GitHub
+
+**Contexto.** Pedido explícito: «verificación automática de versiones mediante consultas
+eficientes a APIs externas» y «descarga en segundo plano». La app ya publica su APK en
+Releases (el workflow crea un release rolling con etiqueta `latest` en cada push a `main` que
+compila y pasa los tests), pero la app no sabía nada de eso: el usuario tenía que mirar el
+repositorio a mano.
+
+**Decisión.** Un módulo propio (`:domain` con modelos y puertos, `:data` con la
+implementación, `:core:datastore` con el estado, `:core:network` con el servicio) que consulta
+`GET /repos/{owner}/{repo}/releases/latest` y ofrece descargar el APK nuevo desde Ajustes.
+
+Lo que hace que la consulta sea *eficiente* y no un latido de red:
+
+- **Una sola petición y un solo JSON.** El endpoint devuelve el release vigente con sus
+  adjuntos; no hay listado ni paginación.
+- **Revalidación por `ETag`.** `HeadersInterceptor` manda `Cache-Control: no-cache` en todas
+  las peticiones, así que OkHttp revalida y GitHub responde `304 Not Modified` (sin cuerpo)
+  cuando nada cambió. La respuesta guardada se reutiliza; el coste entre versiones es de
+  bytes, no de KB.
+- **Ventana de frescura de 6 h** (`AppConstants.UPDATE_CHECK_MIN_INTERVAL_MILLIS`) para las
+  comprobaciones automáticas, y **sin ventana** para el botón manual: el usuario que pulsa
+  «Buscar actualización» pidió la respuesta, no una lectura de caché.
+- **Fallo rápido sin red** (`ConnectivityObserver`), la misma regla que las tasas: no se
+  espera un timeout y, sobre todo, **una comprobación sin red no escribe nada**. Si
+  escribiera, un momento sin conexión se convertiría en un «no hay actualizaciones» durante
+  seis horas.
+- **Trabajo periódico propio** (`UpdateCheckWorker`, 24 h, restricción `CONNECTED`), separado
+  del de tasas: apagar la sincronización de tasas no apaga la comprobación de versión, y una
+  caída de los proveedores venezolanos no impide saber si hay APK nuevo (host distinto).
+
+**De dónde sale la versión.** El release rolling se titula `DivTrack 4.7 (latest)` y su
+etiqueta es `latest`, sin números. La versión se extrae del título —y, si faltara, del cuerpo
+de las notas— con `VersionNames`, que compara **por componentes** y no como texto: `4.10` es
+posterior a `4.7`, cosa que una comparación de cadenas niega. Un release sin ningún número
+legible se cuenta como fallo, no se interpreta.
+
+**Alternativas descartadas.**
+
+- **Un endpoint propio de versiones** (un JSON en el repositorio o en un servicio). Habría
+  que mantenerlo sincronizado con lo que publica CI, que es exactamente el trabajo que el
+  release ya hace.
+- **Preguntar por lista de releases y elegir la más nueva.** Más bytes y más lógica para el
+  mismo dato.
+- **Notificar con una notificación del sistema.** Habría exigido `POST_NOTIFICATIONS` (y
+  pedirlo en tiempo de ejecución), y este proyecto declara dos permisos y ninguno peligroso.
+  El resultado se guarda y se cuenta en Ajustes cuando el usuario entra.
+
+**Coste.** La API pública de GitHub limita a 60 peticiones por hora sin autenticar. Con la
+ventana de 6 h y un trabajo diario, el consumo es de una petición al día como mucho; aun así,
+la ventana existe para que abrir y cerrar Ajustes no la gaste. El slug del repositorio es
+configurable (`github.repository` en `local.properties`) y su valor por defecto es
+`liebeblack/divtrack`: en una copia publicada en otro sitio hay que cambiarlo, o la
+comprobación responderá 404 (la app lo dirá con su causa real, sin disfrazarlo de «sin
+conexión»).
+
+---
+
+## 34. La descarga la hace el sistema; la instalación la confirma Android
+
+**Contexto.** «Lógica de descarga en segundo plano con actualización automática». En Android,
+una app no puede sustituirse a sí misma en silencio: instalar un APK requiere la confirmación
+del usuario (o ser *device owner* con `PackageInstaller`, que es un escenario empresarial), y
+declarar `REQUEST_INSTALL_PACKAGES` no cambia eso. Cualquier promesa de «actualización
+automática» que ignore esto es falsa.
+
+**Decisión.** Tres piezas, cada una en la capa que le corresponde:
+
+1. **Descarga:** `DownloadManager` (gestor del sistema), a través del puerto
+   `AppDownloader` de `:domain`, que `:data` implementa. Es el único mecanismo que sigue
+   descargando con la app cerrada o matada por el fabricante, que reanuda si se corta la
+   conexión y que publica progreso sin que la app tenga que estar viva. Un `CoroutineWorker`
+   con OkHttp habría obligado a reimplementar reanudación, progreso y reintentos.
+2. **Destino:** la carpeta privada de la app (`getExternalFilesDir(DIRECTORY_DOWNLOADS)`), no
+   la carpeta pública de descargas. Sin permisos de almacenamiento y sin dejar APKs tirados
+   en un directorio compartido. El nombre del archivo se sanea (se descartan separadores de
+   ruta) porque viene de una URL remota.
+3. **Instalación:** `FileProvider` (`:app`) + `Intent.ACTION_VIEW` con el MIME de APK. Android
+   muestra su pantalla de confirmación y, si el usuario nunca autorizó la instalación desde
+   esta app, la suya de «orígenes desconocidos». La app no se salta nada.
+
+**Estado y reanudación.** El id de la descarga y el nombre del archivo se guardan en
+DataStore. Al volver a Ajustes, el ViewModel sondea el gestor del sistema (cada 800 ms,
+**solo mientras hay descarga viva**) y reengancha el progreso donde estaba; el sondeo se
+detiene en la primera fase terminal. Nada de flujos infinitos observando el
+`ContentResolver`.
+
+**Permisos.** Ninguno nuevo: el APK sigue declarando `INTERNET` y `ACCESS_NETWORK_STATE`, y
+la notificación de progreso la publica el gestor de descargas (no la app), así que tampoco
+hace falta `POST_NOTIFICATIONS`.
+
+**Coste y limitación honesta.** El usuario tiene que tocar «Instalar» (y confirmar en la
+pantalla del sistema). Además, el APK que se ofrece es el del canal publicado, así que una
+compilación de depuración **no** puede instalarse encima de la versión release ni al revés:
+son aplicaciones distintas (`com.liebeblack.divtrack` y `…​.debug`) con firmas distintas. La
+tarjeta muestra el nombre del archivo descargado para que eso se lea antes de intentarlo.
+
+---
+
+## 35. El dólar oficial es el producto: no se añade un cajón de herramientas ajeno
+
+**Contexto.** La petición de esta pasada llegó con un catálogo de módulos genérico (gestor de
+ROMs con indexación, conversiones de bases, cálculo de particiones y parámetros técnicos).
+Este proyecto es **una app del dólar oficial en Venezuela y su calculadora**, y el propio
+usuario lo confirmó por escrito.
+
+**Decisión.** No se implementa nada de ese catálogo. En su lugar, cada requisito se traduce a
+lo que la app realmente necesita, y donde ya estaba resuelto se documenta en vez de
+duplicarse:
+
+| Petición genérica | Lo que la app ya tenía | Lo que se añade en esta pasada |
+|---|---|---|
+| Indexación y gestión offline | Room como única fuente de verdad de la UI, caché HTTP de 10 MB, cierre diario podado, reconstrucción avisada de una base dañada | El módulo de actualizaciones funciona sin red (estado guardado) y no invade la caché |
+| Estados de «sin conexión» | Aviso persistente con la causa real, atajo a los ajustes de red, fallo rápido sin conectividad, resolución multi-proveedor | El mismo criterio, aplicado a la comprobación de versión |
+| Calculadora de alta precisión | Calculadora bidireccional en cada tecla, IGTF documentado y probado, cuotas sin interés | Nada en la aritmética: los importes son dinero y ya están redondeados a dos decimales en una sola capa |
+| Módulo de utilidades extensible | `RateProvider` en `Set` de Hilt, sección modular en Ajustes | Ajustes gana una sección independiente sin tocar las existentes |
+| API reales y validadas | DolarAPI (oficial y paralelo), Yadio, ExchangeRate-API | API pública de GitHub, la única que publica el APK de esta app |
+
+**Por qué se documenta y no se ignora.** Una pasada anterior de este proyecto dejó el registro
+de decisiones con lo que se descartó y por qué. Dejar escrito que un gestor de ROMs o un
+conversor de bases binarias no tienen sitio en una app de tasas evita que la próxima petición
+genérica los vuelva a introducir como «código muerto pendiente de conectar» (ADR 19).
+
+**Lo que sí se conserva del espíritu de la petición.** Todo lo nuevo es modular y aditivo:
+modelo y puertos en `:domain`, implementación en `:data`, estado en `:core:datastore`, red en
+`:core:network`, UI en `:presentation` y las dos únicas cosas que dependen del manifiesto en
+`:app`. Ninguna pantalla, preferencia ni caso de uso existente cambió de sitio, y las tres
+pantallas (Tasas, Calculadora, Ajustes) siguen siendo las mismas.
+
+---
+
+## 36. La pasada acepta la lectura en vivo de quien no publica hora, y las pantallas reintentan al volver
+
+**Contexto.** Tres huecos dejaban la tasa mostrada desactualizada (o apagaban la app) sin que
+nada lo explicara:
+
+1. **El corte de pasada y la regla de aceptación se contradecían.** Cuando una tasa resuelta ya
+   estaba rancia, `needsMoreData` seguía consultando proveedores —justo para reemplazarla—,
+   pero `isNewer` exigía que el candidato trajera marca de tiempo. Yadio, que es la fuente
+   upstream del paralelo y **no publica hora**, entregaba la cotización en vivo y su respuesta
+   se descartaba: el panel se quedaba con el cierre de ayer de DolarAPI teniendo una fuente sana
+   respondiendo en el mismo instante.
+2. **El aviso de «sin conexión» se quedaba pegado.** El refresco automático al volver a la
+   pantalla solo miraba la edad del dato: con la tasa de hace dos minutos y la última pasada
+   fallida, la app no reintentaba hasta que el dato cumplía quince minutos, así que seguía
+   anunciando que no había conexión con la conexión ya recuperada. La calculadora ni siquiera
+   tenía ese refresco: sincronizaba en su `init` y nunca más, y su ViewModel vive mientras la
+   pestaña siga en el back stack, así que volver a ella horas después calculaba con la tasa de
+   la mañana.
+3. **Ninguna frontera era total.** `RateRepositoryImpl` traducía los fallos de Room
+   (`SQLiteException`) a `Result.Error`, pero cualquier otra excepción —base cerrada a mitad,
+   `IllegalStateException` del motor, un archivo de preferencias ilegible— subía hasta el
+   ViewModel, donde ya solo hay UI: la corrutina moría y con ella la app. El panel, la
+   calculadora y Ajustes dependen de la promesa escrita en ese contrato («nunca lanza»), y la
+   promesa no estaba garantizada.
+
+**Decisión.**
+
+- **Gana el dato más fresco, también sin hora.** `acceptsUnstamped` acepta un candidato sin
+  marca de tiempo **solo cuando el titular está rancio** para su fuente: la lectura en vivo de la
+  fuente upstream vale más que un cierre viejo, y sin hora no puede pisar nunca un dato que sí
+  está fresco. El reloj se lee una vez por pasada, para que todas las comparaciones de frescura
+  de esa pasada usen el mismo instante.
+- **Al volver a una pantalla se reintenta por dos motivos:** el dato superó la ventana de
+  frescura (15 min) **o** la última pasada falló. La ventana vive en `AppConstants`
+  (`RATE_RESUME_REFRESH_AFTER_MILLIS`) para que el panel y la calculadora no puedan divergir
+  aplicando la misma regla con números distintos, y dentro de una ventana aún vigente no se
+  gasta radio. Un reintento silencioso que vuelve a fallar igual no repite el snackbar (el aviso
+  permanente ya cuenta la causa): volver a la pestaña sin red no puede convertirse en una
+  ristra de avisos.
+- **La calculadora entra en la misma regla.** Gana un `OnResumed` que mira cuándo salió la
+  última pasada y si esa pasada falló antes de consultar la red, porque la tasa que usa también
+  puede ser de hace horas sin que nadie toque el importe.
+- **La frontera del repositorio es total.** `refreshRates()` y `testProviders()` atrapan
+  cualquier excepción y la devuelven clasificada como `DataError.Unknown`, y la cancelación
+  estructurada se re-lanza. El diagnóstico de Ajustes, además, marca todas las fuentes como
+  caídas en vez de lanzar, porque alimenta una pantalla. Una preferencia de proveedor ilegible
+  degrada al orden automático: es una comodidad del usuario, no un requisito para traer el dólar
+  del día.
+
+**Alternativas descartadas.**
+
+- **Que el candidato sin hora gane siempre.** Un proveedor que responde tarde y sin marca
+  pisaría constantemente al que sí publica hora; la regla se limita al caso en que ya sabemos que
+  el titular no sirve.
+- **Confiar solo en WorkManager para el reintento.** El ciclo mínimo es de quince minutos y no
+  reacciona a que el usuario vuelva: el aviso de «sin conexión» se quedaría en pantalla.
+- **Atrapar la excepción en cada ViewModel.** Repetiría la red de seguridad en tres pantallas (y
+  en la cuarta que llegue) en lugar de en la única capa cuyo contrato dice que no lanza.
+
+**Coste.** El reintento al volver a la pantalla añade una pasada que falla rápido (sin
+conectividad ni siquiera se consulta a los proveedores). La lectura del reloj pasa a ser una por
+pasada. Y aceptar una cotización sin hora implica confiar en Yadio para el paralelo, que es
+exactamente el papel que ya le da el multi-proveedor.

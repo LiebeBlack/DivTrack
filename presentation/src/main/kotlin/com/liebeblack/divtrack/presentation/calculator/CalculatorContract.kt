@@ -75,6 +75,16 @@ sealed interface CalculatorIntent {
     /** Fuerza la pasada contra los proveedores y recalcula con lo que llegue. */
     data object Refresh : CalculatorIntent
 
+    /**
+     * La pantalla volvió al primer plano o a su pestaña.
+     *
+     * No es un refresco a ciegas: el ViewModel mira cuándo fue el último intento y si ese
+     * intento falló, y solo sale a la red si merece la pena. Volver después de horas no puede
+     * dejar la calculadora convirtiendo con la tasa de la mañana, y volver a los dos minutos no
+     * debe gastar radio para nada.
+     */
+    data object OnResumed : CalculatorIntent
+
     data object SwapDirection : CalculatorIntent
 
     data class ToggleIgtf(val enabled: Boolean) : CalculatorIntent

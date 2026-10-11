@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.liebeblack.divtrack.core.common.utils.AppConstants
 import com.liebeblack.divtrack.core.common.utils.ProviderIds
+import com.liebeblack.divtrack.domain.model.DownloadPhase
 import com.liebeblack.divtrack.domain.model.ProviderDiagnostics
 import com.liebeblack.divtrack.domain.model.RateSource
 import com.liebeblack.divtrack.domain.model.ThemeMode
@@ -33,6 +34,40 @@ internal fun providerLabelRes(providerId: String): Int = when (providerId) {
     else -> R.string.provider_automatic
 }
 
+/**
+ * Estado del módulo de actualizaciones tal como se pinta.
+ *
+ * Todos los textos llegan ya formateados (fechas en es-VE y tamaño en MB) por el mismo
+ * motivo que en el resto de la app: el ViewModel no toca `Context` y la pantalla no calcula.
+ *
+ * `checkedAtText` es la fecha **real** de la última comprobación que respondió, y es lo que
+ * hace honesto el estado guardado: la pantalla nunca finge que acaba de preguntar (cuando lo
+ * está haciendo, lo dice `isChecking`).
+ *
+ * @param isVersionUnknown `true` cuando el sistema no pudo leer la versión instalada. La
+ *   pantalla lo dice en lugar de afirmar «estás al día», que sería una respuesta inventada.
+ * @param canDownload `true` solo si hay versión nueva **y** el release adjuntó APK.
+ * @param canInstall `true` cuando el APK ya está en el dispositivo.
+ */
+@Immutable
+data class UpdateUiState(
+    val installedVersion: String = "",
+    val latestVersion: String? = null,
+    val isUpdateAvailable: Boolean = false,
+    val isVersionUnknown: Boolean = false,
+    val checkedAtText: String? = null,
+    val publishedAtText: String? = null,
+    val downloadSizeText: String? = null,
+    val releasePageUrl: String? = null,
+    val isChecking: Boolean = false,
+    val downloadPhase: DownloadPhase = DownloadPhase.NONE,
+    /** 0..1 o `null` cuando el gestor todavía no sabe el tamaño total. */
+    val downloadProgress: Float? = null,
+    val downloadFileName: String? = null,
+    val canDownload: Boolean = false,
+    val canInstall: Boolean = false,
+)
+
 @Immutable
 data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -47,6 +82,8 @@ data class SettingsUiState(
     /** Diagnóstico de fuentes ya ejecutado en esta sesión; `null` = todavía no se comprobó. */
     val providerDiagnostics: ProviderDiagnostics? = null,
     val isCheckingProviders: Boolean = false,
+    /** Sistema de Actualización Inteligente: versión publicada, descarga y progreso. */
+    val update: UpdateUiState = UpdateUiState(),
 )
 
 /** Dominio -> UI. El estado de la pantalla solo expone lo que se pinta. */
@@ -84,4 +121,14 @@ sealed interface SettingsIntent {
 sealed interface SettingsEffect {
 
     data class ShowMessage(val text: UiText) : SettingsEffect
+
+    /**
+     * El APK descargado está listo: la capa de UI lanza el instalador del sistema con la
+     * ruta del archivo. La instalación **no** la hace la app (ni puede): Android muestra su
+     * propia pantalla de confirmación y el usuario decide.
+     */
+    data class LaunchInstaller(val fileName: String) : SettingsEffect
+
+    /** Abre la página del release en el navegador (novedades, canal, fecha). */
+    data class OpenReleasePage(val url: String) : SettingsEffect
 }

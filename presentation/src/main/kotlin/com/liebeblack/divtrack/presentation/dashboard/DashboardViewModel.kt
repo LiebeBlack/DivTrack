@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.liebeblack.divtrack.core.common.error.DataError
 import com.liebeblack.divtrack.core.common.result.Result
 import com.liebeblack.divtrack.core.common.time.TimeProvider
+import com.liebeblack.divtrack.core.common.utils.AppConstants
 import com.liebeblack.divtrack.core.common.utils.CurrencyFormatters
 import com.liebeblack.divtrack.domain.model.ExchangeRate
 import com.liebeblack.divtrack.domain.model.RateSource
@@ -71,7 +72,7 @@ class DashboardViewModel @Inject constructor(
         when (intent) {
             DashboardIntent.Refresh -> refresh(isUserInitiated = true)
             DashboardIntent.Retry -> refresh(isUserInitiated = true)
-            DashboardIntent.OnResumed -> refreshIfStale()
+            DashboardIntent.OnResumed -> refreshIfNeeded()
         }
     }
 
@@ -81,14 +82,22 @@ class DashboardViewModel @Inject constructor(
      * El ViewModel del panel vive mientras la pestaña siga en el back stack, así que su
      * `init` no se repite: sin esto, volver a la app después de horas mostraba la tasa de la
      * última pasada hasta que el usuario tirara de pull-to-refresh (o hasta que WorkManager
-     * despertara). Solo se consulta si el dato en pantalla superó la ventana de frescura: es
-     * un refresco con criterio, no un latido de red en cada regreso.
+     * despertara). Solo se consulta si el dato en pantalla superó la ventana de frescura o si
+     * la última pasada falló: es un refresco con criterio, no un latido de red en cada
+     * regreso.
      */
-    private fun refreshIfStale() {
-        val now = timeProvider.nowMillis()
-        val official = _state.value.rates.firstOrNull { rate -> rate.source == RateSource.OFICIAL }
-        val isOld = official == null || now - official.fetchedAtMillis >= RESUME_REFRESH_AFTER_MILLIS
-        if (isOld) refresh(isUserInitiated = false)
+    private fun refreshIfNeeded() {
+        val current = _state.value
+        val official = current.rates.firstOrNull { rate -> rate.source == RateSource.OFICIAL }
+        val isOld = official == null ||
+            timeProvider.nowMillis() - official.fetchedAtMillis >=
+            AppConstants.RATE_RESUME_REFRESH_AFTER_MILLIS
+
+        // Dos motivos para salir a la red: el dato en pantalla ya no es fresco, o la última
+        // pasada falló. El segundo pesa tanto como el primero: sin él, el aviso de "sin
+        // conexión" se quedaba encendido hasta quince minutos después de que el usuario
+        // recuperara la red, con la tasa guardada leyéndose como si fuera de ahora.
+        if (isOld || current.isOffline) refresh(isUserInitiated = false)
     }
 
     private fun observeRatesFromCache() {
@@ -166,6 +175,9 @@ class DashboardViewModel @Inject constructor(
                         val error = result.error
                         val hasCachedData = _state.value.hasData
                         val isConnectivity = error is DataError.Network
+                        // Se lee ANTES de actualizar el estado: distingue el primer fallo de
+                        // un reintento silencioso que vuelve a fallar igual.
+                        val wasOffline = _state.value.isOffline
 
                         _state.update {
                             it.copy(
@@ -180,18 +192,26 @@ class DashboardViewModel @Inject constructor(
                         // la petición caduca, el usuario tiene que leer eso y no un diagnóstico
                         // equivocado de su propia red. Cuando sí es conectividad, el mensaje
                         // recuerda que los datos en pantalla siguen siendo válidos.
-                        _effects.emit(
-                            DashboardEffect.ShowMessage(
-                                when {
-                                    isConnectivity && hasCachedData ->
-                                        UiText.Res(R.string.msg_offline_showing_cache)
+                        //
+                        // Un reintento silencioso que vuelve a fallar igual no repite el
+                        // aviso: el panel ya tiene su aviso permanente con la causa, y volver
+                        // a la pestaña mientras no hay red no puede convertirse en una ristra
+                        // de snackbars. Solo se avisa cuando hay algo nuevo que contar (el
+                        // primer fallo, o una pasada que pidió el usuario).
+                        if (isUserInitiated || !wasOffline) {
+                            _effects.emit(
+                                DashboardEffect.ShowMessage(
+                                    when {
+                                        isConnectivity && hasCachedData ->
+                                            UiText.Res(R.string.msg_offline_showing_cache)
 
-                                    isConnectivity -> UiText.Res(R.string.msg_offline_no_data)
+                                        isConnectivity -> UiText.Res(R.string.msg_offline_no_data)
 
-                                    else -> error.toUiText()
-                                },
+                                        else -> error.toUiText()
+                                    },
+                                )
                             )
-                        )
+                        }
                     }
 
                     Result.Loading -> Unit
@@ -211,16 +231,5 @@ class DashboardViewModel @Inject constructor(
             spreadPercentText = spread.percent?.let { percent -> CurrencyFormatters.percent(percent) },
             spreadAbsoluteText = spread.absolute?.let { absolute -> CurrencyFormatters.bolivars(absolute) },
         )
-    }
-
-    private companion object {
-        /**
-         * Antigüedad a partir de la cual volver a la pantalla dispara una pasada sola.
-         *
-         * Quince minutos alinea el panel con el intervalo mínimo que admite WorkManager y
-         * con la frecuencia con la que la gente abre la app: dentro de esa ventana, lo que
-         * se ve ya es una comprobación de hace un momento.
-         */
-        const val RESUME_REFRESH_AFTER_MILLIS = 15L * 60L * 1000L
     }
 }

@@ -4,6 +4,7 @@ import com.liebeblack.divtrack.core.datastore.UserPreferencesDataSource
 import com.liebeblack.divtrack.core.datastore.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 
 /** DataStore simulado: un `MutableStateFlow` con los mismos setters del contrato. */
 class FakeUserPreferencesDataSource(
@@ -12,7 +13,19 @@ class FakeUserPreferencesDataSource(
 
     val state = MutableStateFlow(initial)
 
-    override val preferences: Flow<UserPreferences> = state
+    /**
+     * Cuando es `true`, leer las preferencias lanza. Simula el fallo que no pasa por el
+     * `catch` de `IOException` del datasource real: el repositorio tiene que degradar al
+     * orden automático, no quedarse sin pasada.
+     */
+    var failReads: Boolean = false
+
+    override val preferences: Flow<UserPreferences>
+        get() = if (failReads) {
+            flow { throw IllegalStateException("preferencias ilegibles") }
+        } else {
+            state
+        }
 
     override suspend fun setThemeMode(themeMode: String) {
         state.value = state.value.copy(themeMode = themeMode)

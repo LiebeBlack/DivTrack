@@ -42,6 +42,22 @@ android {
             "EXCHANGERATEAPI_BASE_URL",
             "\"${configuredValue("exchangerateapi.baseUrl", "https://open.er-api.com/")}\"",
         )
+
+        // API pública de GitHub (v3), usada por el módulo de actualizaciones para leer el
+        // release rolling que publica CI en cada push a main. Se configura con
+        // `github.apiBaseUrl` y `github.repository` en local.properties: el slug del
+        // repositorio no está en el código Kotlin y se puede apuntar a un fork sin tocar
+        // una línea de fuente.
+        buildConfigField(
+            "String",
+            "GITHUB_API_BASE_URL",
+            "\"${configuredValue("github.apiBaseUrl", "https://api.github.com/")}\"",
+        )
+        buildConfigField(
+            "String",
+            "GITHUB_REPOSITORY",
+            "\"${configuredValue("github.repository", "liebeblack/divtrack")}\"",
+        )
     }
 
     buildFeatures {

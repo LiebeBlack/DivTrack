@@ -112,6 +112,38 @@
     <string name="settings_saved">Preferencia guardada</string>
     <string name="settings_save_failed">No se pudo guardar la preferencia. Intenta de nuevo</string>
 
+    <!-- ============================== Actualizaciones ============================== -->
+    <!--
+      Sistema de Actualización Inteligente. La app comprueba el último release publicado y
+      descarga el APK con el gestor del sistema; la instalación la confirma Android.
+    -->
+    <string name="settings_update_title">Actualizaciones</string>
+    <string name="settings_update_helper">Comprueba el último APK publicado en GitHub Releases. La instalación la confirma Android y la app no pide permisos nuevos.</string>
+    <string name="settings_update_installed">Versión instalada: %1$s</string>
+    <string name="settings_update_latest">Última publicada: %1$s</string>
+    <string name="settings_update_unreadable_version">No se pudo leer la versión instalada</string>
+    <string name="settings_update_available">Hay una versión nueva publicada</string>
+    <string name="settings_update_current">Estás en la última versión publicada</string>
+    <string name="settings_update_unknown">Todavía no se ha comprobado la versión</string>
+    <string name="settings_update_checked_at">Última comprobación: %1$s</string>
+    <string name="settings_update_published_at">Publicada el %1$s</string>
+    <string name="settings_update_size">APK de %1$s MB</string>
+    <string name="settings_update_check_now">Buscar actualización</string>
+    <string name="settings_update_checking">Comprobando…</string>
+    <string name="settings_update_download">Descargar actualización</string>
+    <string name="settings_update_downloading">Descargando…</string>
+    <string name="settings_update_downloading_percent">Descargando… %1$d %%</string>
+    <string name="settings_update_ready">Descarga lista para instalar</string>
+    <string name="settings_update_install">Instalar actualización</string>
+    <string name="settings_update_download_failed_state">La descarga falló. Puedes intentarlo otra vez</string>
+    <string name="settings_update_view_release">Ver el release publicado</string>
+    <string name="settings_update_check_failed">No se pudo comprobar si hay actualizaciones</string>
+    <string name="settings_update_download_failed">No se pudo iniciar la descarga</string>
+    <string name="settings_update_apk_missing">El archivo descargado ya no está en el dispositivo</string>
+    <string name="settings_update_no_installer">No hay un instalador disponible en este dispositivo</string>
+    <string name="msg_update_available">Hay una versión nueva: %1$s</string>
+    <string name="msg_update_current">Ya tienes la última versión publicada</string>
+
     <!-- ============================== Estados y mensajes ============================== -->
     <string name="action_refresh">Actualizar tasas</string>
     <string name="action_retry">Reintentar</string>
@@ -134,6 +166,7 @@
     <string name="msg_parallel_missing">La tasa paralela aún no tiene datos guardados: aparecerá aquí en cuanto alguna fuente la publique</string>
     <string name="msg_cache_rebuilt">La base de datos local estaba dañada y se reconstruyó: las tasas guardadas volverán con la próxima sincronización</string>
     <string name="msg_providers_checked">Fuentes OK: %1$d de %2$d</string>
+    <string name="settings_providers_check_failed">No se pudieron comprobar las fuentes. Intenta de nuevo</string>
 
     <!-- ============================== Errores de red ============================== -->
     <!--

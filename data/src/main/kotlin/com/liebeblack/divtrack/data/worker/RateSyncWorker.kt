@@ -5,7 +5,6 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
-import com.liebeblack.divtrack.core.common.error.DataError
 import com.liebeblack.divtrack.core.common.logging.Logger
 import com.liebeblack.divtrack.core.common.result.Result as AppResult
 import com.liebeblack.divtrack.domain.usecase.SyncRatesUseCase
@@ -50,7 +49,7 @@ class RateSyncWorker @AssistedInject constructor(
                         TAG,
                         "Sincronización falló (intento ${runAttemptCount + 1}): ${ratesResult.error.message}",
                     )
-                    if (ratesResult.error.isTransient()) {
+                    if (ratesResult.error.isWorthRetrying()) {
                         ListenableWorker.Result.retry()
                     } else {
                         ListenableWorker.Result.failure()
@@ -75,27 +74,7 @@ class RateSyncWorker @AssistedInject constructor(
         }
     }
 
-    /**
-     * `true` cuando reintentar tiene sentido: es la misma frontera que usa la capa de red.
-     * Los fallos deterministas (respuesta ilegible, endpoint cambiado, datos vacíos) no
-     * mejoran por esperar, y reintentarlos solo gasta radio y batería.
-     */
-    private fun DataError.isTransient(): Boolean = when (this) {
-        is DataError.Network, is DataError.Timeout -> true
-        is DataError.Http -> code == HTTP_REQUEST_TIMEOUT ||
-            code == HTTP_TOO_MANY_REQUESTS ||
-            code in HTTP_SERVER_ERROR_RANGE
-        is DataError.Parse,
-        is DataError.EmptyCache,
-        is DataError.Storage,
-        is DataError.Unknown,
-        -> false
-    }
-
-    companion object {
-        private const val TAG = "RateSyncWorker"
-        private const val HTTP_REQUEST_TIMEOUT = 408
-        private const val HTTP_TOO_MANY_REQUESTS = 429
-        private val HTTP_SERVER_ERROR_RANGE = 500..599
+    private companion object {
+        const val TAG = "RateSyncWorker"
     }
 }

@@ -19,11 +19,13 @@ import com.liebeblack.divtrack.data.provider.ProviderRegistry
 import com.liebeblack.divtrack.domain.model.ExchangeRate
 import com.liebeblack.divtrack.domain.model.ProviderDiagnostics
 import com.liebeblack.divtrack.domain.model.ProviderFailure
+import com.liebeblack.divtrack.domain.model.ProviderStatus
 import com.liebeblack.divtrack.domain.model.RateSource
 import com.liebeblack.divtrack.domain.model.SyncSummary
 import com.liebeblack.divtrack.domain.repository.RateRepository
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
@@ -59,6 +61,10 @@ import kotlinx.coroutines.withContext
  * 6. **Un fallo de escritura no tumba la pantalla.** Si Room rechaza el commit, el error sube
  *    clasificado como [DataError.Storage] y la UI lo cuenta; el usuario se queda con las
  *    tasas viejas en pantalla en vez de perder la app por una excepción sin dueño.
+ * 7. **Ninguna excepción cruza esta frontera.** Lo que no esté clasificado (una base cerrada a
+ *    mitad, un `IllegalStateException` de Room, un archivo de preferencias ilegible) también
+ *    sale como [Result.Error] tipado: arriba solo hay ViewModels, y una excepción sin dueño
+ *    ahí sí se convierte en una caída de la app.
  */
 @Singleton
 class RateRepositoryImpl @Inject constructor(
@@ -99,14 +105,34 @@ class RateRepositoryImpl @Inject constructor(
                 if (retriable) delay(RATE_FLOW_RETRY_DELAY_MILLIS)
                 retriable
             }
-            .catch { emit(lastKnownRates.value) }
+            // Si la lectura se cae del todo, se sirve la última lectura real de la sesión y se
+            // deja rastro: este respaldo salva la pantalla, y precisamente por eso escondía el
+            // diagnóstico —sin este registro, una base que falla en bucle no aparecía en
+            // ningún log.
+            .catch { throwable ->
+                logger.warn(
+                    TAG,
+                    "La lectura de tasas falló: se sirve la última lectura en memoria",
+                    throwable,
+                )
+                emit(lastKnownRates.value)
+            }
             .map { rates -> rates.ifEmpty { lastKnownRates.value } }
             .flowOn(ioDispatcher)
 
     override fun observeCacheRebuild(): Flow<Boolean> = databaseRebuildTracker.rebuilt
 
     override suspend fun refreshRates(): Result<SyncSummary> = withContext(ioDispatcher) {
-        syncMutex.withLock { performRatesRefresh() }
+        try {
+            syncMutex.withLock { performRatesRefresh() }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (exception: Exception) {
+            // La cancelación estructurada se propaga; cualquier otro fallo se clasifica aquí
+            // porque el contrato de la capa de datos es devolver `Result`, nunca lanzar.
+            logger.error(TAG, "La sincronización falló de forma no clasificada", exception)
+            Result.Error(DataError.Unknown(cause = exception))
+        }
     }
 
     /**
@@ -114,14 +140,49 @@ class RateRepositoryImpl @Inject constructor(
      * datos guardados. Respeta el proveedor preferido del usuario.
      */
     override suspend fun testProviders(): ProviderDiagnostics = withContext(ioDispatcher) {
-        providerRegistry.testAll(preferredProviderId())
+        try {
+            providerRegistry.testAll(preferredProviderId())
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (exception: Exception) {
+            // El diagnóstico alimenta una pantalla, así que no puede lanzar: se devuelve el
+            // estado más honesto posible (ninguna fuente comprobada, todas marcadas como
+            // caídas con la causa real) en lugar de dejar la corrutina de Ajustes muerta.
+            logger.error(TAG, "El diagnóstico de fuentes falló de forma no clasificada", exception)
+            ProviderDiagnostics(
+                statuses = ProviderIds.ordered.map { providerId ->
+                    ProviderStatus(
+                        providerId = providerId,
+                        isOk = false,
+                        sources = emptyList(),
+                        error = ProviderFailure(
+                            providerId = providerId,
+                            error = DataError.Unknown(cause = exception),
+                        ),
+                    )
+                },
+            )
+        }
     }
 
-    /** Preferencia persistida, normalizada: `null` = orden automático. */
-    private suspend fun preferredProviderId(): String? =
+    /**
+     * Preferencia persistida, normalizada: `null` = orden automático.
+     *
+     * Una preferencia ilegible degrada al orden automático en lugar de tumbar la pasada: es
+     * una comodidad del usuario, no un requisito para traer el dólar del día. Sin esto, un
+     * archivo de preferencias dañado dejaba al panel sin sincronizar y al comprobador de
+     * fuentes sin poder ni responder.
+     */
+    private suspend fun preferredProviderId(): String? = try {
         preferencesDataSource.preferences.first().preferredProviderId
             .takeIf { it.isNotBlank() }
             ?.takeIf { it in ProviderIds.ordered }
+    } catch (cancellation: CancellationException) {
+        throw cancellation
+    } catch (exception: Exception) {
+        logger.warn(TAG, "Preferencia de proveedor ilegible: se usa el orden automático", exception)
+        null
+    }
 
     private suspend fun performRatesRefresh(): Result<SyncSummary> {
         // Fallo rápido: sin conectividad no se espera al timeout para decir "sin conexión".

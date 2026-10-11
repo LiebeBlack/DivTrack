@@ -107,6 +107,34 @@
     <string name="settings_saved">Preference saved</string>
     <string name="settings_save_failed">Couldn\'t save the preference. Try again</string>
 
+    <!-- ============================== Updates ============================== -->
+    <string name="settings_update_title">Updates</string>
+    <string name="settings_update_helper">Checks the latest APK published on GitHub Releases. Android confirms the installation and the app asks for no new permissions.</string>
+    <string name="settings_update_installed">Installed version: %1$s</string>
+    <string name="settings_update_latest">Latest published: %1$s</string>
+    <string name="settings_update_unreadable_version">The installed version could not be read</string>
+    <string name="settings_update_available">A new version has been published</string>
+    <string name="settings_update_current">You are on the latest published version</string>
+    <string name="settings_update_unknown">The version has not been checked yet</string>
+    <string name="settings_update_checked_at">Last check: %1$s</string>
+    <string name="settings_update_published_at">Published on %1$s</string>
+    <string name="settings_update_size">APK size: %1$s MB</string>
+    <string name="settings_update_check_now">Check for updates</string>
+    <string name="settings_update_checking">Checking…</string>
+    <string name="settings_update_download">Download update</string>
+    <string name="settings_update_downloading">Downloading…</string>
+    <string name="settings_update_downloading_percent">Downloading… %1$d %%</string>
+    <string name="settings_update_ready">Download ready to install</string>
+    <string name="settings_update_install">Install update</string>
+    <string name="settings_update_download_failed_state">The download failed. You can try again</string>
+    <string name="settings_update_view_release">View the published release</string>
+    <string name="settings_update_check_failed">Couldn\'t check for updates</string>
+    <string name="settings_update_download_failed">Couldn\'t start the download</string>
+    <string name="settings_update_apk_missing">The downloaded file is no longer on the device</string>
+    <string name="settings_update_no_installer">No installer is available on this device</string>
+    <string name="msg_update_available">A new version is available: %1$s</string>
+    <string name="msg_update_current">You already have the latest published version</string>
+
     <!-- ============================== States and messages ============================== -->
     <string name="action_refresh">Refresh rates</string>
     <string name="action_retry">Retry</string>
@@ -129,6 +157,7 @@
     <string name="msg_parallel_missing">The parallel rate has no saved data yet: it will appear here as soon as a source publishes it</string>
     <string name="msg_cache_rebuilt">The local database was damaged and has been rebuilt: saved rates will return with the next sync</string>
     <string name="msg_providers_checked">Sources OK: %1$d of %2$d</string>
+    <string name="settings_providers_check_failed">The sources could not be checked. Try again</string>
 
     <!-- ============================== Network errors ============================== -->
     <string name="error_timeout">The provider took too long to respond. Try again</string>

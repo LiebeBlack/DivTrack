@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rutas que el FileProvider de DivTrack expone a otros procesos.
+
+  Solo hay una, y es la carpeta privada de la app donde el gestor de descargas guarda el APK
+  de actualización:
+
+      Android/data/<paquete>/files/Download/
+
+  Se declara con `external-files-path` (no con `external-path`) a propósito: esa ruta es la
+  que corresponde a `Context.getExternalFilesDir(...)`, que es un directorio propio de la app
+  —sin permisos de almacenamiento y sin exponer ficheros de nadie— y no la carpeta pública de
+  descargas. El resultado es que el instalador puede leer exactamente un archivo: el APK que
+  la propia app acaba de descargar.
+-->
+<paths>
+    <external-files-path
+        name="downloads"
+        path="Download/" />
+</paths>

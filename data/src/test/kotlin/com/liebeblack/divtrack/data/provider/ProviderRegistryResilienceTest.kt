@@ -140,6 +140,43 @@ class ProviderRegistryResilienceTest {
     }
 
     @Test
+    fun `una lectura en vivo sin hora reemplaza al dato rancio pero no al fresco`() = runTest {
+        // DolarAPI responde: su oficial es de hoy, pero su paralelo es de ayer (el banco
+        // dejó de publicar). La pasada sigue adelante justo por ese paralelo rancio.
+        val conParaleloRancio = FakeRateProvider(
+            id = "DolarAPI",
+            priority = 0,
+            rates = listOf(
+                rate(SourceKeys.OFICIAL, 860.18, updatedAtMillis = HOY_MILLIS),
+                rate(SourceKeys.PARALELO, 940.0, updatedAtMillis = AYER_MILLIS),
+            ),
+        )
+        // Yadio es el upstream del paralelo y no publica marca de tiempo: lo que entrega es
+        // una lectura en vivo.
+        val enVivo = FakeRateProvider(
+            id = "Yadio",
+            priority = 10,
+            rates = listOf(
+                rate(SourceKeys.PARALELO, 954.55),
+                rate(SourceKeys.OFICIAL, 500.0),
+            ),
+        )
+
+        val outcome = registry(conParaleloRancio, enVivo).fetchLatest()
+
+        // El cierre rancio se descarta: sin esta regla, la pasada preguntaba a Yadio porque el
+        // dato estaba viejo y después tiraba su respuesta, dejando el valor de ayer en pantalla.
+        val paralelo = outcome.rates.single { it.rate.sourceKey == SourceKeys.PARALELO }
+        assertEquals(954.55, paralelo.rate.value, DELTA)
+        assertEquals("Yadio", paralelo.providerId)
+
+        // Sin hora no se puede pisar un dato que sí está fresco.
+        val oficial = outcome.rates.single { it.rate.sourceKey == SourceKeys.OFICIAL }
+        assertEquals(860.18, oficial.rate.value, DELTA)
+        assertEquals("DolarAPI", oficial.providerId)
+    }
+
+    @Test
     fun `una pasada no se corta si la tasa resuelta esta rancia`() = runTest {
         val conDatoRancio = FakeRateProvider(
             id = "DolarAPI",

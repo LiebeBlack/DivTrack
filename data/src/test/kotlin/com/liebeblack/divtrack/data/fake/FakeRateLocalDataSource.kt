@@ -34,6 +34,13 @@ class FakeRateLocalDataSource : RateLocalDataSource {
     /** Cuando es `true`, el commit lanza como una base que rechaza la escritura. */
     var failWrites: Boolean = false
 
+    /**
+     * Fallo **no clasificado** del almacenamiento: cualquier cosa que no sea la
+     * `SQLiteException` que el repositorio ya sabe traducir (base cerrada a mitad, error del
+     * motor). Sirve para fijar que la frontera del repositorio no deja escapar excepciones.
+     */
+    var unexpectedFailure: Throwable? = null
+
     /** Cuando es `true`, la poda lanza como un borrado que no se pudo aplicar. */
     var failPrune: Boolean = false
 
@@ -61,6 +68,7 @@ class FakeRateLocalDataSource : RateLocalDataSource {
     /** Espeja la semántica transaccional de `RateDao.commitRateSync`. */
     override suspend fun commitRateSync(rates: List<CurrentRateEntity>, closes: List<RateHistoryEntity>) {
         if (rates.isEmpty()) return
+        unexpectedFailure?.let { failure -> throw failure }
         failIfAsked(failWrites)
         commitRateSyncCalls++
 

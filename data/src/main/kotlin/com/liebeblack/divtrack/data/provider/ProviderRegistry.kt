@@ -41,7 +41,9 @@ data class ProviderFetchOutcome(
  *    proveedor de cola publica una marca de tiempo posterior a la que ya se resolvió, la
  *    reemplaza. El caso real: DolarAPI sigue sirviendo el cierre de ayer porque el BCV dejó
  *    de publicar, mientras ExchangeRate-API trae el tipo de cambio del día — el registro
- *    acaba usando el del día.
+ *    acaba usando el del día. Y si el titular ya está rancio, también lo reemplaza una
+ *    fuente que respondió **en vivo sin publicar hora** (Yadio, upstream del paralelo):
+ *    ver [acceptsUnstamped].
  * 2. **Circuit breaker con auto-recuperación.** Un proveedor que falla queda "abierto"
  *    durante [AppConstants.PROVIDER_COOLDOWN_MILLIS]: se salta en las pasadas siguientes y
  *    nadie espera su timeout. Cumplido el periodo se reintenta solo; si responde, vuelve al
@@ -129,12 +131,15 @@ class ProviderRegistry @Inject constructor(
         val providerIds = mutableListOf<String>()
         val failures = mutableListOf<ProviderFailure>()
         val fetchedAtMillis = mutableListOf<Long>()
+        // Una sola lectura del reloj por pasada: todas las comparaciones de frescura de
+        // esta pasada usan el mismo instante.
+        val nowMillis = timeProvider.nowMillis()
 
         for (provider in order) {
             // Corte de pasada: solo se detiene cuando están las dos tasas resueltas Y
             // frescas. Si una resuelta está rancia (banco sin publicar), se sigue
             // consultando proveedores por si alguien trae algo más reciente.
-            if (!needsMoreData(resolved)) break
+            if (!needsMoreData(resolved, nowMillis)) break
 
             fetchSafely { provider.fetchLatest() }
                 .onSuccess { remoteSet ->
@@ -148,7 +153,8 @@ class ProviderRegistry @Inject constructor(
                         // Gana el dato más fresco: iguala a quien publica primero y
                         // degrada al que responde con el cierre de un día pasado.
                         val isFresher = current == null ||
-                            isNewer(rate.updatedAtMillis, current.rate.updatedAtMillis)
+                            isNewer(rate.updatedAtMillis, current.rate.updatedAtMillis) ||
+                            acceptsUnstamped(rate, current, nowMillis)
                         if (isKnownSource && isFresher) {
                             resolved[rate.sourceKey] = ResolvedRate(rate = rate, providerId = provider.id)
                             contributed = true
@@ -206,12 +212,28 @@ class ProviderRegistry @Inject constructor(
      * resueltas está más vieja que el umbral de frescura de su fuente. Con la marca de
      * tiempo desconocida (Yadio no publica) no se supone rancio: no se fuerza consulta.
      */
-    private fun needsMoreData(resolved: Map<String, ResolvedRate>): Boolean {
+    private fun needsMoreData(resolved: Map<String, ResolvedRate>, nowMillis: Long): Boolean {
         val missing = SourceKeys.all.any { it !in resolved }
         if (missing) return true
-        val now = timeProvider.nowMillis()
-        return resolved.values.any { entry -> isStale(entry.rate, now) }
+        return resolved.values.any { entry -> isStale(entry.rate, nowMillis) }
     }
+
+    /**
+     * `true` cuando el recién llegado sirve aunque no traiga hora.
+     *
+     * Yadio —fuente upstream del paralelo— no publica la marca de tiempo de su cotización,
+     * y [isNewer] exige que el candidato tenga hora. Sin esta regla, la pasada consultaba a
+     * ese proveedor **justo porque** el dato resuelto estaba rancio y acto seguido descartaba
+     * su respuesta: la app se quedaba con el cierre viejo teniendo una fuente sana
+     * respondiendo en vivo, que es exactamente lo contrario de lo que busca el corte de
+     * pasada. Solo aplica sobre un titular rancio: una lectura sin hora no puede pisar a un
+     * dato que sí está fresco.
+     */
+    private fun acceptsUnstamped(
+        candidate: RemoteRate,
+        current: ResolvedRate,
+        nowMillis: Long,
+    ): Boolean = candidate.updatedAtMillis == null && isStale(current.rate, nowMillis)
 
     /** Umbral por fuente: el oficial publica ~1 vez/día; el paralelo, por horas. */
     private fun isStale(rate: RemoteRate, nowMillis: Long): Boolean {

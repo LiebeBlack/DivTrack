@@ -187,6 +187,39 @@ class DashboardViewModelTest {
         assertTrue("un refresco automático no debe mostrar snackbar", effects.isEmpty())
     }
 
+    @Test
+    fun `volver a la pantalla reintenta si la ultima pasada fallo`() = runTest {
+        val timeProvider = FakeTimeProvider(nowMillis = NOW_MILLIS)
+        // El dato mostrado es de hace un minuto: por edad, la ventana de frescura lo cubre.
+        rateRepository.rates.value = listOf(
+            rate(
+                RateSource.OFICIAL,
+                859.06,
+                previousClose = null,
+                fetchedAtMillis = NOW_MILLIS - MINUTE_MILLIS,
+            ),
+        )
+        rateRepository.refreshResult = Result.Error(DataError.Network())
+
+        val viewModel = createViewModel(timeProvider)
+        val effects = mutableListOf<DashboardEffect>()
+        collectEffects(viewModel, effects)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.isOffline)
+        val callsAfterOpen = rateRepository.refreshCalls
+        effects.clear()
+
+        viewModel.onIntent(DashboardIntent.OnResumed)
+        advanceUntilIdle()
+
+        // La red pudo volver mientras la app seguía mostrando el dato guardado: el regreso a
+        // la pantalla es el momento de reintentar, sin esperar a que el dato cumpla 15 minutos.
+        assertEquals(callsAfterOpen + 1, rateRepository.refreshCalls)
+        // Y sin repetir el aviso: el panel ya tiene su aviso permanente con la causa.
+        assertTrue("un reintento silencioso no repite el snackbar", effects.isEmpty())
+    }
+
     private fun TestScope.createViewModel(
         timeProvider: FakeTimeProvider = FakeTimeProvider(),
     ) = DashboardViewModel(

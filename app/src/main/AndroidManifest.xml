@@ -15,6 +15,12 @@
       día el APK muestra en "Permisos" algo que no sea de esta lista, viene de una librería y
       hay que decidir si se acepta o se elimina con tools:node="remove".
 
+      El módulo de actualizaciones NO añade ningún permiso nuevo, y no es un descuido: la
+      descarga la hace el gestor de descargas del sistema y el APK se guarda en la carpeta
+      privada de la app (`getExternalFilesDir`, sin permisos de almacenamiento), que es la
+      única ruta que expone el FileProvider de abajo. Publicar el aviso de actualización
+      tampoco necesita POST_NOTIFICATIONS: el resultado se guarda y se cuenta en Ajustes.
+
       ── Permisos que llegan del manifiesto fusionado ────────────────────────────────────
       WorkManager (sincronización en segundo plano) aporta:
         · WAKE_LOCK            -> mantiene la CPU despierta durante el trabajo.
@@ -90,6 +96,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          FileProvider del módulo de actualizaciones.
+
+          Su único trabajo es entregarle al instalador del sistema un `content://` de solo
+          lectura sobre el APK descargado, con permiso temporal por `Intent`. `exported="false"`
+          y `grantUriPermissions="true"` es la configuración mínima que funciona: ningún otro
+          proceso puede pedir esos archivos, solo recibir la URI concreta que la app le pasa.
+          Las rutas expuestas están en `res/xml/file_paths.xml` (una sola: la carpeta privada
+          de descargas).
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 
