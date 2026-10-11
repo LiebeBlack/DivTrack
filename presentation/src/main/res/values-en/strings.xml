@@ -132,6 +132,7 @@
     <string name="settings_update_download_failed">Couldn\'t start the download</string>
     <string name="settings_update_apk_missing">The downloaded file is no longer on the device</string>
     <string name="settings_update_no_installer">No installer is available on this device</string>
+    <string name="settings_update_allow_install">Turn on «Allow from this source» and tap «Install update» again</string>
     <string name="msg_update_available">A new version is available: %1$s</string>
     <string name="msg_update_current">You already have the latest published version</string>
 

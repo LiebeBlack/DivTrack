@@ -2,7 +2,9 @@ package com.liebeblack.divtrack.util
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Environment
+import android.provider.Settings
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.liebeblack.divtrack.R
@@ -19,11 +21,20 @@ import java.io.File
  * que solo tiene `:app`. `:presentation` pide la instalación con un efecto y este módulo la
  * ejecuta.
  *
- * **Qué no hace.** No instala nada por su cuenta y no pide permisos nuevos: lanza
- * `ACTION_VIEW` con el MIME de APK y Android muestra su propia pantalla de confirmación
- * (incluida la de «orígenes desconocidos» si el usuario no la había concedido). Sustituirse a
- * sí misma en silencio requeriría ser *device owner* o tener root, y no es algo que una app
- * de tasas deba hacer ni pueda prometer.
+ * **Qué no hace.** No instala nada por su cuenta: lanza `ACTION_VIEW` con el MIME de APK y
+ * Android muestra su propia pantalla de confirmación. Sustituirse a sí misma en silencio
+ * requeriría ser *device owner* o tener root, y no es algo que una app de tasas deba hacer ni
+ * pueda prometer.
+ *
+ * **Las dos autorizaciones que sí hacen falta** (y que antes faltaban, dejando un botón que no
+ * podía funcionar):
+ *
+ * 1. `REQUEST_INSTALL_PACKAGES` declarado en el manifiesto. Sin él, desde Android 8 una app
+ *    que apunta a API > 25 no puede pedir la instalación.
+ * 2. El ajuste «instalar apps desconocidas» de **esta** app. Es una decisión del usuario y
+ *    puede estar apagada, así que se consulta con `canRequestPackageInstalls()`: si está
+ *    apagada no se lanza un intent que el sistema va a rechazar, se lleva al usuario al
+ *    ajuste exacto y se le dice qué hacer. Al volver, el botón vuelve a funcionar.
  *
  * **Defensa.** El nombre del archivo viene de una URL remota, así que se rechaza cualquier
  * nombre con separadores de ruta: la instalación nunca puede apuntar fuera de la carpeta de
@@ -33,6 +44,15 @@ fun Context.installDownloadedUpdate(fileName: String) {
     val file = downloadedApkFile(fileName)
     if (file == null) {
         showInstallMessage(R.string.settings_update_apk_missing)
+        return
+    }
+
+    // Android 8+: instalar exige que el usuario haya autorizado a ESTA app como fuente. Sin
+    // esa autorización el instalador del sistema rechaza el intento, así que se comprueba
+    // antes y se lleva al usuario al ajuste exacto en lugar de dejar un botón mudo.
+    if (!canRequestPackageInstalls()) {
+        showInstallMessage(R.string.settings_update_allow_install)
+        openUnknownSourcesSettings()
         return
     }
 
@@ -53,6 +73,26 @@ fun Context.installDownloadedUpdate(fileName: String) {
     if (runCatching { startActivity(intent) }.isFailure) {
         showInstallMessage(R.string.settings_update_no_installer)
     }
+}
+
+/**
+ * ¿El usuario autorizó a esta app a instalar paquetes? (`Android 8+`)
+ *
+ * Si la consulta falla —no debería: el permiso está declarado en el manifiesto— se responde
+ * `true` y se intenta la instalación igual. Bloquear por un fallo de diagnóstico sería peor
+ * que dejar que sea el instalador del sistema quien decida.
+ *
+ * (Es la única app que se instala a sí misma: no se comprueba nada de otros paquetes.)
+ */
+private fun Context.canRequestPackageInstalls(): Boolean =
+    runCatching { packageManager.canRequestPackageInstalls() }.getOrDefault(true)
+
+/** Lleva al ajuste «instalar apps desconocidas» de esta app, no a los ajustes generales. */
+private fun Context.openUnknownSourcesSettings() {
+    val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+        .setData(Uri.parse("package:$packageName"))
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { startActivity(intent) }
 }
 
 private fun Context.downloadedApkFile(fileName: String): File? {
