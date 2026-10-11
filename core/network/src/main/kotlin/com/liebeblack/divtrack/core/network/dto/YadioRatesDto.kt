@@ -25,7 +25,10 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class YadioRatesDto(
-    @SerialName("USD") val usd: Map<String, Double> = emptyMap(),
+    // El valor del mapa es anulable a propósito: Yadio publica más de 150 divisas y basta con
+    // que una traiga `null` para que un `Map<String, Double>` estricto tumbe la respuesta
+    // entera —y con ella el paralelo, que es justo el dato que este proveedor aporta—.
+    @SerialName("USD") val usd: Map<String, Double?> = emptyMap(),
     val timestamp: Long? = null,
 ) {
     val ves: Double? get() = usd[VES_KEY]

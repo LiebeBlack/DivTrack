@@ -82,6 +82,7 @@
     <string name="provider_dolarapi">DolarAPI</string>
     <string name="provider_yadio">Yadio</string>
     <string name="provider_exchangerateapi">ER-API</string>
+    <string name="provider_dolarvzla">DolarVZLA</string>
     <string name="settings_igtf_default">IGTF enabled by default</string>
     <string name="settings_igtf_default_helper">The calculator starts with the tax applied.</string>
     <string name="settings_auto_sync">Background sync</string>
@@ -130,9 +131,8 @@
     <string name="settings_update_view_release">View the published release</string>
     <string name="settings_update_check_failed">Couldn\'t check for updates</string>
     <string name="settings_update_download_failed">Couldn\'t start the download</string>
-    <string name="settings_update_apk_missing">The downloaded file is no longer on the device</string>
-    <string name="settings_update_no_installer">No installer is available on this device</string>
-    <string name="settings_update_allow_install">Turn on «Allow from this source» and tap «Install update» again</string>
+    <!-- apk_missing / no_installer / allow_install live in :app: they are messages shown by
+         UpdateInstaller, which lives in the app module (nonTransitiveRClass=true). -->
     <string name="msg_update_available">A new version is available: %1$s</string>
     <string name="msg_update_current">You already have the latest published version</string>
 

@@ -1001,3 +1001,85 @@ leer los DTO contra las respuestas reales:
 **Coste.** `REQUEST_INSTALL_PACKAGES` es un permiso más en la ficha de la app: no da acceso a
 datos, no instala nada por su cuenta y sin él la función de actualizar era un botón que no podía
 funcionar. El resto son correcciones de datos y umbrales, sin coste en tiempo de ejecución.
+
+---
+
+## 38. Una cuarta fuente para el oficial: el cierre del BCV por CDN estático
+
+**Decisión.** El registro de proveedores acepta una cuarta implementación, `DolarVZLA`
+(prioridad 30), que publica **solo** el oficial leyendo el cierre del Banco Central de
+Venezuela desde `rates.dolarvzla.com/bcv/current.json`, un archivo JSON estático en CDN.
+
+**Evidencia recogida antes de decidir** (probado en vivo, 2026-10-11):
+
+| Fuente | Resultado | Decisión |
+|---|---|---|
+| `rates.dolarvzla.com/bcv/current.json` | 200 · oficial 876,7976 del **2026-10-13** (anterior 875,6505 del 2026-10-09) · sin clave, sin rate limit, CORS abierto | **adoptada** como 4ª fuente |
+| `api.dolarvzla.com` (API del mismo sitio) | 401: requiere clave propia (`x-dolarvzla-key`) y solo sirve el USDT de Binance | descartada |
+| `pydolarve.org` | DNS no resuelve; el repositorio del proyecto fue borrado (reportes desde oct-2025) | descartada |
+| `allratestoday.com` (API BCV) | exige clave y plan de pago | descartada |
+
+**Por qué esta fuente y no otra.** El oficial de DolarAPI depende de que su espejo de
+bcv.org.ve siga refrescando; cuando deja de hacerlo, la app sirve un cierre viejo con
+aspecto de actual (ADR 26). Este proveedor recorre el mismo dato por otra ruta — BCV →
+generador del sitio → CDN, sin API intermedia—, así que basta con que traiga una fecha más
+reciente para que la regla de frescura lo imponga sobre el cierre rancio. Y como es un
+archivo estático, su respuesta no depende de que nadie esté ejecutando una API en ese
+momento: cae menos y, cuando cae, vuelve solo.
+
+**Cómo entra sin tocar el esquema.** `ProviderIds` crece a cuatro ids (`DOLARVZLA`, prioridad
+30) y el registro la recorre igual que a las demás: la cola corta apenas el oficial está
+completo, así que en el caso normal esta fuente no se consulta y no cuesta una petición. Solo
+entra cuando los tres anteriores no trajeron un oficial utilizable, que es exactamente el
+caso para el que existe. El `id` viaja como texto por Room y por las preferencias, así que
+añadirlo no exige migración ninguna.
+
+**La fecha sin hora.** El CDN publica el cierre como `YYYY-MM-DD`, sin marca de tiempo.
+`IsoParsers` ya leía las fechas sin hora como medianoche de Venezuela (la corrección del
+ADR 37 se reutiliza aquí tal cual), de modo que un cierre del «2026-10-13» compite con el
+mismo «2026-10-13T00:00:00-04:00» de DolarAPI como iguales y gana el más reciente. Una fecha
+ilegible viaja como `null` (edad desconocida), no como un valor de 1970.
+
+**Alternativas descartadas.**
+
+- *Sustituir a DolarAPI por esta fuente.* Aporta menos: no tiene paralelo ni hora exacta, y
+  DolarAPI es además el upstream de la tasa paralelo vía Yadio.
+- *Raspar bcv.org.ve directamente.* Es la fuente primaria, pero exige parsear HTML con
+  selectores que cambian sin aviso, y el sitio no siempre responde desde la red móvil
+  venezolana: una API intermedia ya hizo ese trabajo por nosotros.
+- *Modelar `previous` y `changePercentage`.* Nadie los lee (ADR 19): la app no tiene pantalla
+  de histórico y la tendencia se calcula con el cierre diario de Room.
+
+**Coste.** Una petición más solo en el caso de cola, unos 40 líneas de red nuevas y un
+segmento más en el selector de proveedor de Ajustes (etiqueta nueva en es-VE y en inglés).
+Sin permisos, sin claves y sin cambios en Room ni en DataStore.
+
+---
+
+## 39. El oficial se le pide a DolarAPI por su endpoint dedicado
+
+**Decisión.** El proveedor primario pide el dólar **oficial** a
+`GET ve.dolarapi.com/v1/dolares/oficial` (la llamada principal) y el **paralelo** a
+`GET ve.dolarapi.com/v1/dolares`. Las dos llamadas van en paralelo y se respaldan entre
+sí: si una falla, la otra sigue entregando su tasa.
+
+**Evidencia** (verificado en vivo, 2026-10-11): el endpoint dedicado responde 200 con
+`promedio 875.6505` y `fechaActualizacion 2026-10-09T00:00:00-04:00` — el mismo dato que
+traía la lista, en un solo objeto y sin el resto del payload.
+
+**Por qué.** El producto de la app es el dólar oficial (ADR 35), y pedírselo al proveedor
+en su endpoint dedicado es pedirlo como él lo publica: una tasa, estable y sin depender
+de que la entrada del paralelo venga bien. El respaldo cruzado elimina el único punto
+débil que tenía el «una sola llamada»: el dedicado puede fallar sin arrastrar al paralelo
+(la lista sigue), la lista puede fallar sin arrastrar al oficial (el dedicado sigue), y
+solo cuando fallan las dos se registra la caída del proveedor — con el error del oficial,
+que es el más explicativo.
+
+**Visto en vivo, el mismo día.** El dedicado servía `875.6505` del **9 de octubre** mientras
+el BCV ya había publicado `876.7976` del **13** (lo traía DolarVZLA, ADR 38): la cola y la
+resolución por frescura (ADR 26) hicieron exactamente su trabajo — el oficial de DolarAPI
+entró primero, se marcó viejo y la pasada siguió hasta la fuente con el cierre más nuevo.
+
+**Coste.** Una petición HTTP más por pasada (dos contra el mismo host, en paralelo: el
+techo de tiempo del proveedor sigue siendo el de una sola) y unos 50 líneas de lógica con
+tests propios de los dos respaldos.

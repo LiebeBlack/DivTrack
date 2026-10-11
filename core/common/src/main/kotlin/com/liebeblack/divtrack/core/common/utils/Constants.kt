@@ -138,14 +138,16 @@ object ProviderIds {
     const val DOLARAPI: String = "DolarAPI"
     const val YADIO: String = "Yadio"
     const val EXCHANGERATEAPI: String = "ExchangeRateAPI"
+    const val DOLARVZLA: String = "DolarVZLA"
 
     /** Prioridad (menor = se consulta primero). Debe reflejar las constantes de red. */
     val providerPriority: Map<String, Int> = mapOf(
         DOLARAPI to 0,
         YADIO to 10,
         EXCHANGERATEAPI to 20,
+        DOLARVZLA to 30,
     )
 
-    /** Orden de consulta: DolarAPI → Yadio → ExchangeRateAPI. */
+    /** Orden de consulta: DolarAPI → Yadio → ExchangeRateAPI → DolarVZLA. */
     val ordered: List<String> = providerPriority.entries.sortedBy { it.value }.map { it.key }
 }

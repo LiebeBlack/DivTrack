@@ -13,10 +13,12 @@ import com.liebeblack.divtrack.core.network.logging.LogcatLogger
 import com.liebeblack.divtrack.core.network.monitor.AndroidConnectivityObserver
 import com.liebeblack.divtrack.core.network.monitor.ConnectivityObserver
 import com.liebeblack.divtrack.core.network.provider.DolarApiProvider
+import com.liebeblack.divtrack.core.network.provider.DolarVzlaProvider
 import com.liebeblack.divtrack.core.network.provider.ExchangeRateApiProvider
 import com.liebeblack.divtrack.core.network.provider.RateProvider
 import com.liebeblack.divtrack.core.network.provider.YadioProvider
 import com.liebeblack.divtrack.core.network.service.DolarApiService
+import com.liebeblack.divtrack.core.network.service.DolarVzlaService
 import com.liebeblack.divtrack.core.network.service.ExchangeRateApiService
 import com.liebeblack.divtrack.core.network.service.GithubReleasesService
 import com.liebeblack.divtrack.core.network.service.YadioService
@@ -38,9 +40,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 /**
- * Grafo de red. Un único `OkHttpClient` (pool de conexiones y caché compartidos) y cuatro
- * instancias de Retrofit que solo cambian de `baseUrl`: DolarAPI, Yadio, ExchangeRate-API y
- * la API de GitHub del módulo de actualizaciones.
+ * Grafo de red. Un único `OkHttpClient` (pool de conexiones y caché compartidos) y cinco
+ * instancias de Retrofit que solo cambian de `baseUrl`: DolarAPI, Yadio, ExchangeRate-API,
+ * DolarVZLA y la API de GitHub del módulo de actualizaciones.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -121,6 +123,15 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @DolarVzlaRetrofit
+    fun provideDolarVzlaRetrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
+        .baseUrl(BuildConfig.DOLARVZLA_BASE_URL)
+        .client(client)
+        .addConverterFactory(json.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
+        .build()
+
+    @Provides
+    @Singleton
     @GithubRetrofit
     fun provideGithubRetrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
         .baseUrl(BuildConfig.GITHUB_API_BASE_URL)
@@ -148,6 +159,11 @@ object NetworkModule {
     fun provideExchangeRateApiService(@ExchangeRateApiRetrofit retrofit: Retrofit): ExchangeRateApiService =
         retrofit.create(ExchangeRateApiService::class.java)
 
+    @Provides
+    @Singleton
+    fun provideDolarVzlaService(@DolarVzlaRetrofit retrofit: Retrofit): DolarVzlaService =
+        retrofit.create(DolarVzlaService::class.java)
+
     // --- Multi-proveedor: cada implementación entra en el SET de RateProvider ---
 
     @Provides
@@ -173,6 +189,14 @@ object NetworkModule {
         service: ExchangeRateApiService,
         timeProvider: TimeProvider,
     ): RateProvider = ExchangeRateApiProvider(service = service, timeProvider = timeProvider)
+
+    @Provides
+    @Singleton
+    @IntoSet
+    fun provideDolarVzlaRateProvider(
+        service: DolarVzlaService,
+        timeProvider: TimeProvider,
+    ): RateProvider = DolarVzlaProvider(service = service, timeProvider = timeProvider)
 }
 
 /** Bindings de interfaces a implementaciones con constructor inyectable. */

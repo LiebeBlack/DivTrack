@@ -64,7 +64,7 @@ Lo que sigue se comprobó **ejecutando** cosas, no asumiendo:
 
 ```
 :core:common      Kotlin/JVM puro. Result<T>, DataError, formateo es-VE, parser de importes.
-:core:network     Retrofit triple (DolarAPI + Yadio + ER-API), 4 interceptores, RateProvider + registro con circuit breaker y frescura.
+:core:network     Retrofit cuádruple (DolarAPI + Yadio + ER-API + DolarVZLA), 4 interceptores, RateProvider + registro con circuit breaker y frescura.
 :core:database    Room: tasa vigente + cierre diario (base de la flecha de tendencia).
 :core:datastore   DataStore: tema, IGTF, fuente por defecto, frecuencia de sync.
 :domain           Kotlin/JVM puro. Modelos, contratos de repositorio y 9 casos de uso.
@@ -501,6 +501,29 @@ siendo el valor del oficial, ExchangeRate-API no necesita clave y respeta el cor
 arranca, así que no hay compilación, ni tests, ni lint. Lo que sí se comprobó: cada símbolo nuevo
 tiene consumidor, cada texto existe en es-VE y en inglés, los `when` de los contratos siguen
 siendo exhaustivos y lo renombrado no dejó referencias sueltas.
+
+### Tercera parte: una cuarta fuente para el dólar oficial
+
+A petición explícita, el registro acepta un proveedor más que **responda en 2026 y publique el
+oficial en Bs**. El elegido es **DolarVZLA** (`rates.dolarvzla.com/bcv/current.json`), verificado
+en vivo el 2026-10-11: respondió 200 con el cierre del **13 de octubre** (`usd 876,7976`), no pide
+clave, no limita peticiones y sirve JSON **estático** desde CDN — la ruta más corta que se encontró
+para el cierre del BCV.
+
+- Entra como prioridad 30 (última): solo aporta el oficial, así que se consulta cuando la cola
+  llega hasta el final, que es justo cuando el oficial no llegó fresco. En el caso normal no se
+  consulta ni una vez.
+- Su fecha viene sin hora (`YYYY-MM-DD`): `IsoParsers` la lee como medianoche de Caracas, la misma
+  convención con la que DolarAPI fecha el oficial, así la resolución por frescura (ADR 26) compara
+  fechas equivalentes y gana el cierre más nuevo.
+- Las APIs que no pasaron quedan registradas en **ADR 38**: `pydolarve.org` (DNS no resuelve desde
+  2025 y su repositorio fue borrado) y `api.dolarvzla.com` (401, requiere clave) siguen fuera; lo
+  nuevo es el CDN del segundo, que sirve el mismo dato sin la llave.
+- El oficial se le pide ahora a DolarAPI por su **endpoint dedicado** (`/v1/dolares/oficial`) y el
+  paralelo por la lista (`/v1/dolares`), en paralelo y con respaldo cruzado (ADR 39). Verificado
+  en vivo el 2026-10-11: el dedicado servía 875,6505 del 9 de octubre mientras el BCV ya llevaba
+  publicado el 876,7976 del 13 — el caso exacto en que el titular viejo lo rescata la fuente más
+  nueva de la cola.
 
 ---
 

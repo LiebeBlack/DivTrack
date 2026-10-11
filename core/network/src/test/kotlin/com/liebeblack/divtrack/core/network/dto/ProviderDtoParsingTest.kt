@@ -143,4 +143,38 @@ class ProviderDtoParsingTest {
 
         assertFalse(dto.isFailure)
     }
+
+    @Test
+    fun `dolarvzla - cierre real del CDN con los bloques extra ignorados`() {
+        val payload = """
+            {
+              "current": { "date": "2026-10-13", "usd": 876.7976, "eur": 982.00454402 },
+              "previous": { "date": "2026-10-09", "usd": 875.6505, "eur": 980.61472543 },
+              "changePercentage": { "usd": 0.13099975389724816, "eur": 0.14172932079829498 }
+            }
+        """.trimIndent()
+
+        val dto = json.decodeFromString<DolarVzlaBcvDto>(payload)
+
+        assertEquals(876.7976, dto.current?.usd!!, 0.000001)
+        // La fecha llega como texto corto (`YYYY-MM-DD`): el proveedor la convierte a
+        // medianoche de Venezuela antes de meterla en la comparación por frescura.
+        assertEquals("2026-10-13", dto.current?.date)
+    }
+
+    @Test
+    fun `dolarvzla - sin bloque current no rompe el parseo`() {
+        // Un HTML de mantenimiento o un JSON vacío no deben tumbar el módulo: el proveedor
+        // devuelve `rates` vacío, el registro lo cuenta como fallo y sigue con la cola.
+        val dto = json.decodeFromString<DolarVzlaBcvDto>("""{ "previous": { "date": "2026-10-09" } }""")
+
+        assertNull(dto.current)
+    }
+
+    @Test
+    fun `dolarvzla - bloque current sin usd deja el valor en nulo`() {
+        val dto = json.decodeFromString<DolarVzlaBcvDto>("""{ "current": { "date": "2026-10-13" } }""")
+
+        assertNull(dto.current?.usd)
+    }
 }

@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#06130E" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#F7F1E5" media="(prefers-color-scheme: light)">
 <title>DivTrack — dólar oficial y paralelo de Venezuela, con conversión y IGTF</title>
-<meta name="description" content="App Android nativa (Kotlin + Compose) que sigue el dólar oficial (BCV) y el paralelo, resuelve la tasa por frescura entre tres proveedores y convierte en ambos sentidos con IGTF. Room como única fuente de verdad: abre con datos y funciona sin conexión.">
+<meta name="description" content="App Android nativa (Kotlin + Compose) que sigue el dólar oficial (BCV) y el paralelo, resuelve la tasa por frescura entre cuatro proveedores y convierte en ambos sentidos con IGTF. Room como única fuente de verdad: abre con datos y funciona sin conexión.">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMwNjEzMEUiLz48cGF0aCBkPSJNMTQgNDNMMzAgMjVMNDQgMzVMNTAgMjAiIHN0cm9rZT0iIzM5RjBBNSIgc3Ryb2tlLXdpZHRoPSI2IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
 <!--
   Página autocontenida: sin JavaScript, sin CDN, sin fuentes externas, sin imágenes externas,
@@ -613,7 +613,7 @@
       <h1>Dos tasas. Una respuesta clara.<br>Sin adornos.</h1>
       <p class="lede">
         DivTrack sigue el <strong>dólar oficial (BCV)</strong> y el <strong>dólar paralelo</strong>,
-        resuelve cada tasa <strong>por frescura entre tres proveedores</strong> y convierte en ambos
+        resuelve cada tasa <strong>por frescura entre cuatro proveedores</strong> y convierte en ambos
         sentidos con el IGTF (3 %) opcional. Room es la única fuente de verdad para la pantalla:
         la app abre con datos, funciona sin conexión y nunca pierde lo que ya tenía por un fallo
         de red.
@@ -867,7 +867,7 @@
         <span>La pantalla pinta al instante lo último guardado y, en paralelo, se lanza la sincronización. Nunca hay un “cargando” que borre datos existentes.</span>
       </li>
       <li>
-        <strong>Se consultan los tres proveedores en orden</strong>
+        <strong>Se consultan los cuatro proveedores en orden</strong>
         <span>DolarAPI (oficial y paralelo) → Yadio (paralelo, su fuente upstream) → ExchangeRate-API (oficial, independiente de los dos anteriores). El usuario puede elegir cuál va primero en Ajustes; el resto actúa de respaldo.</span>
       </li>
       <li>
@@ -896,7 +896,7 @@
       <div class="provider">
         <div class="name">DolarAPI <span class="prio">prioridad 0</span></div>
         <div class="what"><span class="tag oficial">oficial</span><span class="tag paralelo">paralelo</span></div>
-        <div class="host">ve.dolarapi.com/v1/dolares</div>
+        <div class="host">ve.dolarapi.com/v1/dolares/oficial · /v1/dolares</div>
       </div>
       <div class="provider">
         <div class="name">Yadio <span class="prio">prioridad 10</span></div>
@@ -907,6 +907,11 @@
         <div class="name">ExchangeRate-API <span class="prio">prioridad 20</span></div>
         <div class="what"><span class="tag oficial">oficial</span></div>
         <div class="host">open.er-api.com/v6/latest/USD</div>
+      </div>
+      <div class="provider">
+        <div class="name">DolarVZLA <span class="prio">prioridad 30</span></div>
+        <div class="what"><span class="tag oficial">oficial</span></div>
+        <div class="host">rates.dolarvzla.com/bcv/current.json</div>
       </div>
     </div>
 
@@ -964,7 +969,7 @@
         <div class="mod pure"><b>:core:common</b><em>Result, DataError, formateo es-VE, parser de importes, reloj</em></div>
       </div>
       <div class="split">
-        <div class="mod"><b>:core:network</b><em>Retrofit triple, 4 interceptores, proveedores</em></div>
+        <div class="mod"><b>:core:network</b><em>Retrofit ×5, 4 interceptores, proveedores</em></div>
         <div class="mod"><b>:core:database</b><em>Room: tasa vigente + cierre diario</em></div>
         <div class="mod"><b>:core:datastore</b><em>Preferencias (tema, IGTF, sync)</em></div>
       </div>

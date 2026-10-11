@@ -8,7 +8,7 @@ error de compilación.
 
 ```
 :core:common      (Kotlin/JVM puro)  Result<T>, DataError, formateo, parser de importes, reloj
-:core:network     (Android library)  Retrofit triple, interceptores, RateProvider + registro
+:core:network     (Android library)  Retrofit ×5 (4 proveedores + GitHub), interceptores, RateProvider + registro
 :core:database    (Android library)  Room: tasa vigente + cierre diario
 :core:datastore   (Android library)  DataStore: preferencias del usuario
 :domain           (Kotlin/JVM puro)  modelos, contratos, 9 casos de uso
@@ -180,8 +180,10 @@ XxxScreen.kt      XxxRoute (única función que toca el ViewModel) + XxxScreen (
 
 ## 4. Capa de red
 
-Un solo `OkHttpClient` compartido (pool de conexiones y caché de disco de 10 MB) y tres
-instancias de `Retrofit` que solo cambian de `baseUrl`.
+Un solo `OkHttpClient` compartido (pool de conexiones y caché de disco de 10 MB) y cinco
+instancias de `Retrofit` que solo cambian de `baseUrl`: las de los cuatro proveedores de
+(DolarAPI, Yadio, ExchangeRate-API y DolarVZLA) y la de la API de GitHub que usa el módulo
+de actualizaciones.
 
 Orden de interceptores, de fuera hacia dentro:
 

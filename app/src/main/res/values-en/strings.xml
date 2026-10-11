@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DivTrack</string>
+
+    <!-- Installer messages: same reason as in values/strings.xml (nonTransitiveRClass=true). -->
+    <string name="settings_update_apk_missing">The downloaded file is no longer on the device</string>
+    <string name="settings_update_no_installer">No installer is available on this device</string>
+    <string name="settings_update_allow_install">Turn on «Allow from this source» and tap «Install update» again</string>
+</resources>

@@ -1,6 +1,7 @@
 package com.liebeblack.divtrack.data.provider
 
 import com.liebeblack.divtrack.core.common.logging.NoOpLogger
+import com.liebeblack.divtrack.core.common.utils.AppConstants
 import com.liebeblack.divtrack.core.common.utils.SourceKeys
 import com.liebeblack.divtrack.core.network.error.NetworkErrorMapper
 import com.liebeblack.divtrack.core.network.model.RemoteRate
@@ -114,12 +115,12 @@ class ProviderRegistryResilienceTest {
 
     @Test
     fun `gana el dato mas fresco aunque llegue de un proveedor de cola`() = runTest {
-        // DolarAPI responde "bien" pero con el cierre de AYER: el banco dejó de publicar.
+        // DolarAPI responde "bien" pero con un cierre de hace días: el banco dejó de publicar.
         val conDatoRancio = FakeRateProvider(
             id = "DolarAPI",
             priority = 0,
             rates = listOf(
-                rate(SourceKeys.OFICIAL, 860.18, updatedAtMillis = AYER_MILLIS),
+                rate(SourceKeys.OFICIAL, 860.18, updatedAtMillis = RANCIO_MILLIS),
             ),
         )
         // ExchangeRate-API, de cola, trae el tipo de cambio de HOY.
@@ -182,7 +183,7 @@ class ProviderRegistryResilienceTest {
             id = "DolarAPI",
             priority = 0,
             rates = listOf(
-                rate(SourceKeys.OFICIAL, 860.18, updatedAtMillis = AYER_MILLIS),
+                rate(SourceKeys.OFICIAL, 860.18, updatedAtMillis = RANCIO_MILLIS),
                 rate(SourceKeys.PARALELO, 955.71, updatedAtMillis = HOY_MILLIS),
             ),
         )
@@ -265,8 +266,20 @@ class ProviderRegistryResilienceTest {
     private companion object {
         const val DELTA = 0.000001
         const val COOLDOWN_MILLIS = 10L * 60L * 1000L
+        const val MILLIS_PER_HOUR = 60L * 60L * 1000L
+
         // Instantes fijos coherentes con el reloj del fake (2026-06-14T02:40Z ≈ 1.8e12 ms).
         const val HOY_MILLIS = 1_800_000_000_000L
-        const val AYER_MILLIS = HOY_MILLIS - 25L * 60L * 60L * 1000L
+        const val AYER_MILLIS = HOY_MILLIS - 25L * MILLIS_PER_HOUR
+
+        /**
+         * Una marca que **sí** está rancio para el oficial, según el umbral real del proyecto.
+         *
+         * Se deriva de `AppConstants` a propósito: estos dos tests fijan el corte de pasada
+         * ("se sigue preguntando mientras una tasa resuelta esté rancio"), y una fecha escrita
+         * a mano los dejaba midiendo una regla que ya no existe en cuanto el umbral cambió.
+         */
+        const val RANCIO_MILLIS =
+            HOY_MILLIS - (AppConstants.STALE_RATE_HOURS + 1) * MILLIS_PER_HOUR
     }
 }

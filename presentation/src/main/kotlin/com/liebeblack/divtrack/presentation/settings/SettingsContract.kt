@@ -21,7 +21,7 @@ val SyncIntervalOptions: List<Int> = listOf(15, 30, 60, 120, 240)
  */
 const val AUTOMATIC_PROVIDER_ID: String = "auto"
 
-/** Opciones del selector de proveedor preferido: automático + los tres, en su orden base. */
+/** Opciones del selector de proveedor preferido: automático + los cuatro, en su orden base. */
 val ProviderOptions: List<String> = listOf(AUTOMATIC_PROVIDER_ID) + ProviderIds.ordered
 
 /** Etiqueta corta de cada opción del selector (los segmentos son angostos). */
@@ -31,6 +31,7 @@ internal fun providerLabelRes(providerId: String): Int = when (providerId) {
     ProviderIds.DOLARAPI -> R.string.provider_dolarapi
     ProviderIds.YADIO -> R.string.provider_yadio
     ProviderIds.EXCHANGERATEAPI -> R.string.provider_exchangerateapi
+    ProviderIds.DOLARVZLA -> R.string.provider_dolarvzla
     else -> R.string.provider_automatic
 }
 
@@ -110,7 +111,7 @@ sealed interface SettingsIntent {
 
     data class SetSyncInterval(val minutes: Int) : SettingsIntent
 
-    /** `null` = volver al orden automático (DolarAPI → Yadio → ExchangeRateAPI). */
+    /** `null` = volver al orden automático (DolarAPI → Yadio → ExchangeRateAPI → DolarVZLA). */
     data class SelectProvider(val providerId: String?) : SettingsIntent
 
     data class SetWifiOnly(val enabled: Boolean) : SettingsIntent

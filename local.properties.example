@@ -19,6 +19,8 @@ dolarapi.baseUrl=https://ve.dolarapi.com/
 yadio.baseUrl=https://api.yadio.io/
 # ExchangeRate-API: respaldo independiente del dólar oficial
 exchangerateapi.baseUrl=https://open.er-api.com/
+# DolarVZLA: CDN estático con el cierre oficial del BCV (sin API key, sin rate limit)
+dolarvzla.baseUrl=https://rates.dolarvzla.com/
 
 # --- Módulo de actualizaciones (GitHub Releases) ---
 # API pública de GitHub, donde el flujo de publicación deja el APK vigente en un release

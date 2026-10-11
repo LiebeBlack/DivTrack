@@ -42,6 +42,11 @@ android {
             "EXCHANGERATEAPI_BASE_URL",
             "\"${configuredValue("exchangerateapi.baseUrl", "https://open.er-api.com/")}\"",
         )
+        buildConfigField(
+            "String",
+            "DOLARVZLA_BASE_URL",
+            "\"${configuredValue("dolarvzla.baseUrl", "https://rates.dolarvzla.com/")}\"",
+        )
 
         // API pública de GitHub (v3), usada por el módulo de actualizaciones para leer el
         // release rolling que publica CI en cada push a main. Se configura con
@@ -92,7 +97,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
-    // Deserialización de los fixtures JSON verificados de los tres proveedores.
+    // Deserialización de los fixtures JSON verificados de los cuatro proveedores.
     testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)
 }

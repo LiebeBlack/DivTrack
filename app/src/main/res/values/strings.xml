@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">DivTrack</string>
+
+    <!--
+      Textos del instalador de actualizaciones (`UpdateInstaller`, en este módulo).
+
+      Viven AQUÍ y no en :presentation porque `android.nonTransitiveRClass=true`: el `R`
+      de :app solo contiene recursos de :app, y estos mensajes los lanza este módulo (el
+      FileProvider y el manifiesto también son de aquí). Un string de :presentation no
+      resuelve desde el código de :app y la compilación falla.
+    -->
+    <string name="settings_update_apk_missing">El archivo descargado ya no está en el dispositivo</string>
+    <string name="settings_update_no_installer">No hay un instalador disponible en este dispositivo</string>
+    <string name="settings_update_allow_install">Activa «Permitir desde esta fuente» y vuelve a tocar «Instalar actualización»</string>
 </resources>
