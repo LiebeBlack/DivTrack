@@ -48,7 +48,15 @@ public final class MainActivity extends Activity {
     /** La publicación oficial es diaria: pasado un día, el dato se señala como viejo. */
     private static final long STALE_DATA_MS = 24L * 60L * 60L * 1000L;
 
-    private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
+    private static final ExecutorService networkExecutor = Executors.newSingleThreadExecutor(
+            new java.util.concurrent.ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable runnable) {
+                    Thread thread = new Thread(runnable, "DivTrackLite-net");
+                    thread.setDaemon(true);
+                    return thread;
+                }
+            });
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Runnable visibleCheck = new Runnable() {
         @Override
@@ -72,6 +80,8 @@ public final class MainActivity extends Activity {
     private boolean isRefreshing;
     private volatile boolean activityDestroyed;
     private float preferredRateTextSizePx;
+    private SharedPreferences cachedPreferences;
+    private ViewTreeObserver.OnGlobalLayoutListener pendingLayoutListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,7 +132,7 @@ public final class MainActivity extends Activity {
     protected void onDestroy() {
         activityDestroyed = true;
         stopVisibleChecks();
-        networkExecutor.shutdownNow();
+        mainHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 
@@ -298,7 +308,7 @@ public final class MainActivity extends Activity {
             status.append(getString(R.string.status_cache_preserved));
         }
         finishRefresh();
-        status.setTextColor(getResources().getColor(R.color.lite_error));
+        status.setTextColor(resolveColor(R.color.lite_error));
     }
 
     private void finishRefresh() {
@@ -309,12 +319,20 @@ public final class MainActivity extends Activity {
 
     private void showStatus(CharSequence text, boolean warn) {
         status.setText(text);
-        status.setTextColor(getResources().getColor(
+        status.setTextColor(resolveColor(
                 warn ? R.color.lite_warn : R.color.lite_muted));
     }
 
     private SharedPreferences preferences() {
-        return appContext.getSharedPreferences(PREFERENCES, MODE_PRIVATE);
+        if (cachedPreferences == null) {
+            cachedPreferences = appContext.getSharedPreferences(PREFERENCES, MODE_PRIVATE);
+        }
+        return cachedPreferences;
+    }
+
+    @SuppressWarnings("deprecation")
+    private int resolveColor(int colorRes) {
+        return getResources().getColor(colorRes);
     }
 
     private boolean hasStoredRate() {
@@ -359,46 +377,54 @@ public final class MainActivity extends Activity {
         return getString(R.string.age_days, hours / 24L);
     }
 
-    private void fitRateTextToWidth() {
-        rateValue.getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        int availableWidth = rateValue.getWidth()
-                                - rateValue.getPaddingLeft()
-                                - rateValue.getPaddingRight();
-                        if (availableWidth <= 0) {
-                            return;
-                        }
-                        if (rateValue.getViewTreeObserver().isAlive()) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                                rateValue.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                            } else {
-                                rateValue.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                            }
-                        }
+    @SuppressWarnings("deprecation")
+    private void removeLayoutListener(ViewTreeObserver.OnGlobalLayoutListener listener) {
+        if (listener == null || !rateValue.getViewTreeObserver().isAlive()) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            rateValue.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
+        } else {
+            rateValue.getViewTreeObserver().removeGlobalOnLayoutListener(listener);
+        }
+    }
 
-                        float baseSize = preferredRateTextSizePx;
-                        if (baseSize <= 0f) {
-                            baseSize = rateValue.getTextSize();
-                            preferredRateTextSizePx = baseSize;
-                        }
-                        float measuredWidth = rateValue.getPaint()
-                                .measureText(rateValue.getText().toString());
-                        if (measuredWidth > availableWidth && measuredWidth > 0f) {
-                            float adjustedSize = baseSize * availableWidth / measuredWidth;
-                            float minimumSize = 24f * getResources()
-                                    .getDisplayMetrics().scaledDensity;
-                            rateValue.setTextSize(
-                                    android.util.TypedValue.COMPLEX_UNIT_PX,
-                                    Math.max(minimumSize, adjustedSize));
-                        } else {
-                            rateValue.setTextSize(
-                                    android.util.TypedValue.COMPLEX_UNIT_PX,
-                                    baseSize);
-                        }
-                    }
-                });
+    private void fitRateTextToWidth() {
+        removeLayoutListener(pendingLayoutListener);
+        pendingLayoutListener = new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                int availableWidth = rateValue.getWidth()
+                        - rateValue.getPaddingLeft()
+                        - rateValue.getPaddingRight();
+                if (availableWidth <= 0) {
+                    return;
+                }
+                removeLayoutListener(this);
+                pendingLayoutListener = null;
+
+                float baseSize = preferredRateTextSizePx;
+                if (baseSize <= 0f) {
+                    baseSize = rateValue.getTextSize();
+                    preferredRateTextSizePx = baseSize;
+                }
+                float measuredWidth = rateValue.getPaint()
+                        .measureText(rateValue.getText().toString());
+                if (measuredWidth > availableWidth && measuredWidth > 0f) {
+                    float adjustedSize = baseSize * availableWidth / measuredWidth;
+                    float minimumSize = 24f * getResources()
+                            .getDisplayMetrics().scaledDensity;
+                    rateValue.setTextSize(
+                            android.util.TypedValue.COMPLEX_UNIT_PX,
+                            Math.max(minimumSize, adjustedSize));
+                } else {
+                    rateValue.setTextSize(
+                            android.util.TypedValue.COMPLEX_UNIT_PX,
+                            baseSize);
+                }
+            }
+        };
+        rateValue.getViewTreeObserver().addOnGlobalLayoutListener(pendingLayoutListener);
     }
 
     private static String formatRate(BigDecimal rate) {
