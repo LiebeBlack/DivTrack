@@ -2,12 +2,10 @@ package com.liebeblack.divtrack.presentation.navigation
 
 import com.liebeblack.divtrack.domain.model.UserSettings
 import com.liebeblack.divtrack.domain.usecase.EnsureSyncScheduledUseCase
-import com.liebeblack.divtrack.domain.usecase.EnsureUpdateCheckScheduledUseCase
 import com.liebeblack.divtrack.domain.usecase.ObserveSettingsUseCase
 import com.liebeblack.divtrack.domain.usecase.UpdateSettingsUseCase
 import com.liebeblack.divtrack.presentation.fake.FakeSettingsRepository
 import com.liebeblack.divtrack.presentation.fake.FakeSyncScheduler
-import com.liebeblack.divtrack.presentation.fake.FakeUpdateCheckScheduler
 import com.liebeblack.divtrack.presentation.rule.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -18,13 +16,11 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Arranque de la app: los dos trabajos de fondo quedan programados y son **independientes**
- * —apagar la sincronización de tasas no apaga la comprobación de versión—, que es lo que
- * justifica que sean dos programaciones y no una.
+ * Arranque de la app: el trabajo periódico de tasas se alinea con las preferencias.
  *
  * No hace falta colectar el estado: el flujo de preferencias del shell es `Eagerly` y el
  * `init` corre en `viewModelScope` (el dispatcher de test), así que `advanceUntilIdle` deja
- * pasar las dos programaciones antes de afirmar nada.
+ * pasar la programación antes de afirmar nada.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AppViewModelTest {
@@ -33,45 +29,37 @@ class AppViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun `al arrancar se programan las tasas y la comprobacion de version`() = runTest {
+    fun `al arrancar se programa el trabajo de tasas`() = runTest {
         val syncScheduler = FakeSyncScheduler()
-        val updateScheduler = FakeUpdateCheckScheduler()
 
-        createViewModel(syncScheduler = syncScheduler, updateScheduler = updateScheduler)
+        createViewModel(syncScheduler = syncScheduler)
         advanceUntilIdle()
 
         assertNotNull(syncScheduler.scheduledIntervalMinutes)
-        assertEquals(1, updateScheduler.scheduleCalls)
     }
 
     @Test
-    fun `con la sincronizacion apagada el trabajo de tasas se cancela y el de version no`() =
-        runTest {
-            val syncScheduler = FakeSyncScheduler()
-            val updateScheduler = FakeUpdateCheckScheduler()
+    fun `con la sincronizacion apagada el trabajo de tasas se cancela`() = runTest {
+        val syncScheduler = FakeSyncScheduler()
 
-            createViewModel(
-                settings = UserSettings(autoSyncEnabled = false),
-                syncScheduler = syncScheduler,
-                updateScheduler = updateScheduler,
-            )
-            advanceUntilIdle()
+        createViewModel(
+            settings = UserSettings(autoSyncEnabled = false),
+            syncScheduler = syncScheduler,
+        )
+        advanceUntilIdle()
 
-            assertEquals(1, syncScheduler.cancelCalls)
-            assertEquals(1, updateScheduler.scheduleCalls)
-        }
+        assertEquals(1, syncScheduler.cancelCalls)
+    }
 
     private fun createViewModel(
         settings: UserSettings = UserSettings(),
         syncScheduler: FakeSyncScheduler = FakeSyncScheduler(),
-        updateScheduler: FakeUpdateCheckScheduler = FakeUpdateCheckScheduler(),
     ): AppViewModel {
         val settingsRepository = FakeSettingsRepository(initial = settings)
         return AppViewModel(
             observeSettings = ObserveSettingsUseCase(settingsRepository),
             updateSettings = UpdateSettingsUseCase(settingsRepository),
             ensureSyncScheduled = EnsureSyncScheduledUseCase(settingsRepository, syncScheduler),
-            ensureUpdateCheckScheduled = EnsureUpdateCheckScheduledUseCase(updateScheduler),
         )
     }
 }

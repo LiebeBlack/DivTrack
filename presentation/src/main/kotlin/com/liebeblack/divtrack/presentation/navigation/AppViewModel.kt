@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liebeblack.divtrack.domain.model.UserSettings
 import com.liebeblack.divtrack.domain.usecase.EnsureSyncScheduledUseCase
-import com.liebeblack.divtrack.domain.usecase.EnsureUpdateCheckScheduledUseCase
 import com.liebeblack.divtrack.domain.usecase.ObserveSettingsUseCase
 import com.liebeblack.divtrack.domain.usecase.UpdateSettingsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,7 +28,6 @@ class AppViewModel @Inject constructor(
     observeSettings: ObserveSettingsUseCase,
     private val updateSettings: UpdateSettingsUseCase,
     private val ensureSyncScheduled: EnsureSyncScheduledUseCase,
-    private val ensureUpdateCheckScheduled: EnsureUpdateCheckScheduledUseCase,
 ) : ViewModel() {
 
     val settings: StateFlow<UserSettings?> = observeSettings()
@@ -50,11 +48,6 @@ class AppViewModel @Inject constructor(
     init {
         // El trabajo periódico se alinea con lo que digan las preferencias al arrancar.
         viewModelScope.launch { ensureSyncScheduled() }
-
-        // La comprobación de versión es independiente de la sincronización de tasas: un
-        // trabajo diario propio, sin notificaciones, que solo escribe el resultado en
-        // DataStore para que Ajustes lo cuente cuando el usuario entre.
-        viewModelScope.launch { ensureUpdateCheckScheduled() }
     }
 
     fun completeWelcome() {

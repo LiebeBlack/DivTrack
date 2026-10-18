@@ -35,10 +35,6 @@ class FakeUserPreferencesDataSource(
         state.value = state.value.copy(defaultSourceKey = sourceKey)
     }
 
-    override suspend fun setIgtfEnabled(enabled: Boolean) {
-        state.value = state.value.copy(igtfEnabled = enabled)
-    }
-
     override suspend fun setAutoSyncEnabled(enabled: Boolean) {
         state.value = state.value.copy(autoSyncEnabled = enabled)
     }

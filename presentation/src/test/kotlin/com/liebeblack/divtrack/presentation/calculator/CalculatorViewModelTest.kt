@@ -29,9 +29,8 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * La calculadora es el corazón de la app: se prueba que **no existe el botón "Calcular"**,
- * que el IGTF se aplica con la aritmética correcta y que pegar un importe en formato
- * venezolano no rompe nada.
+ * La calculadora es el corazón de la app: se prueba que **no existe el botón "Calcular"**
+ * y que pegar un importe en formato venezolano no rompe nada.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalculatorViewModelTest {
@@ -114,22 +113,6 @@ class CalculatorViewModelTest {
         assertEquals("10,00", state.totalUsdText)
         assertEquals("365,00", state.totalBsText)
         assertTrue(state.canCopy)
-    }
-
-    @Test
-    fun `activar el igtf recalcula el total sobre el neto`() = runTest {
-        val viewModel = createViewModel()
-        collectState(viewModel)
-
-        viewModel.onIntent(CalculatorIntent.AmountChanged("10"))
-        advanceUntilIdle()
-        viewModel.onIntent(CalculatorIntent.ToggleIgtf(true))
-        advanceUntilIdle()
-
-        val state = viewModel.state.value
-        assertEquals("10,95", state.igtfBsText)
-        assertEquals("375,95", state.totalBsText)
-        assertTrue(settingsRepository.settings.value.igtfEnabled)
     }
 
     @Test
