@@ -5,7 +5,7 @@ import com.liebeblack.divtrack.domain.model.ThemeMode
 import com.liebeblack.divtrack.domain.model.UserSettings
 import kotlinx.coroutines.flow.Flow
 
-/** Contrato de preferencias (tema, fuente, IGTF, sincronización, proveedor preferido). */
+/** Contrato de preferencias (tema, fuente, sincronización, proveedor preferido). */
 interface SettingsRepository {
 
     fun observeSettings(): Flow<UserSettings>
@@ -13,8 +13,6 @@ interface SettingsRepository {
     suspend fun setThemeMode(mode: ThemeMode)
 
     suspend fun setDefaultSource(source: RateSource)
-
-    suspend fun setIgtfEnabled(enabled: Boolean)
 
     suspend fun setAutoSyncEnabled(enabled: Boolean)
 

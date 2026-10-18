@@ -7,7 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.liebeblack.divtrack.presentation.navigation.DivTrackApp
 import com.liebeblack.divtrack.util.appVersionName
-import com.liebeblack.divtrack.util.installDownloadedUpdate
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -28,15 +27,8 @@ class MainActivity : ComponentActivity() {
         // Se resuelve una sola vez, no en cada recomposición.
         val appVersion = applicationContext.appVersionName()
 
-        // El instalador del APK descargado: es lo único que no puede vivir en
-        // `:presentation`, porque necesita el `FileProvider` de este módulo (el dueño del
-        // manifiesto y de la carpeta privada de descargas).
-        val onInstallUpdate: (String) -> Unit = { fileName ->
-            applicationContext.installDownloadedUpdate(fileName)
-        }
-
         setContent {
-            DivTrackApp(appVersion = appVersion, onInstallUpdate = onInstallUpdate)
+            DivTrackApp(appVersion = appVersion)
         }
     }
 }

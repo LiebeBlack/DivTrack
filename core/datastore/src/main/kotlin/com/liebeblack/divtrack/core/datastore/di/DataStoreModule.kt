@@ -5,9 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
-import com.liebeblack.divtrack.core.datastore.DataStoreUpdateStateDataSource
 import com.liebeblack.divtrack.core.datastore.DataStoreUserPreferencesDataSource
-import com.liebeblack.divtrack.core.datastore.UpdateStateDataSource
 import com.liebeblack.divtrack.core.datastore.UserPreferencesDataSource
 import dagger.Binds
 import dagger.Module
@@ -46,15 +44,4 @@ abstract class DataStoreBindingsModule {
     abstract fun bindUserPreferencesDataSource(
         impl: DataStoreUserPreferencesDataSource,
     ): UserPreferencesDataSource
-
-    /**
-     * Estado del módulo de actualizaciones. Comparte la **misma** instancia de DataStore que
-     * las preferencias: dos objetos sobre el mismo archivo lanzan `IllegalStateException` en
-     * DataStore, así que no hay un segundo archivo ni un segundo grafo que mantener.
-     */
-    @Binds
-    @Singleton
-    abstract fun bindUpdateStateDataSource(
-        impl: DataStoreUpdateStateDataSource,
-    ): UpdateStateDataSource
 }

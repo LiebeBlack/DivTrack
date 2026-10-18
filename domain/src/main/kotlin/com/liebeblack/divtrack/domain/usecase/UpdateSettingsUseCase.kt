@@ -14,8 +14,6 @@ class UpdateSettingsUseCase @Inject constructor(
 
     suspend fun setDefaultSource(source: RateSource) = repository.setDefaultSource(source)
 
-    suspend fun setIgtfEnabled(enabled: Boolean) = repository.setIgtfEnabled(enabled)
-
     suspend fun setAutoSyncEnabled(enabled: Boolean) = repository.setAutoSyncEnabled(enabled)
 
     suspend fun setSyncInterval(minutes: Int) = repository.setSyncInterval(minutes)

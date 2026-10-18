@@ -16,9 +16,6 @@ data class UserPreferences(
     /** Clave canónica de la fuente por defecto: `oficial` | `paralelo`. */
     val defaultSourceKey: String = SourceKeys.OFICIAL,
 
-    /** IGTF activado por defecto en la calculadora. */
-    val igtfEnabled: Boolean = false,
-
     /** Sincronización periódica en segundo plano (WorkManager). */
     val autoSyncEnabled: Boolean = true,
 

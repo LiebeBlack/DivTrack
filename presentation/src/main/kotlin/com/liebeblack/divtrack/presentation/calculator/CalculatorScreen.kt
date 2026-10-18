@@ -58,7 +58,6 @@ import com.liebeblack.divtrack.presentation.common.asString
 import com.liebeblack.divtrack.presentation.common.copyToClipboard
 import com.liebeblack.divtrack.presentation.common.labelRes
 import com.liebeblack.divtrack.presentation.components.AmountField
-import com.liebeblack.divtrack.presentation.components.IgtfSwitchRow
 import com.liebeblack.divtrack.presentation.components.SegmentedSelector
 import com.liebeblack.divtrack.presentation.theme.DivTrackThemeTokens
 import com.liebeblack.divtrack.presentation.theme.Spacing
@@ -264,12 +263,6 @@ fun CalculatorScreen(
                         )
                     }
                 }
-
-                IgtfSwitchRow(
-                    checked = state.igtfEnabled,
-                    onCheckedChange = { enabled -> onIntent(CalculatorIntent.ToggleIgtf(enabled)) },
-                    igtfRateText = state.igtfRateText,
-                )
 
                 // Crédito en cuotas: el monto ya escrito, repartido entre el plazo elegido.
                 // Usa el mismo total del desglose (tasa aplicada e IGTF incluido), así que

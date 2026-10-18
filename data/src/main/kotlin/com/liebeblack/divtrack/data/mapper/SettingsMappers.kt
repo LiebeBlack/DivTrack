@@ -13,7 +13,6 @@ import com.liebeblack.divtrack.domain.model.UserSettings
 internal fun UserPreferences.toDomain(): UserSettings = UserSettings(
     themeMode = ThemeMode.fromStorage(themeMode),
     defaultSource = RateSource.fromKey(defaultSourceKey) ?: RateSource.OFICIAL,
-    igtfEnabled = igtfEnabled,
     autoSyncEnabled = autoSyncEnabled,
     syncIntervalMinutes = syncIntervalMinutes,
     // Cadena vacía = automático: se normaliza aquí para que el dominio solo vea `null`

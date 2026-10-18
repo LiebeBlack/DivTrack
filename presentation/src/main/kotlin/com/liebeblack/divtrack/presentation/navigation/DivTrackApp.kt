@@ -45,13 +45,10 @@ import com.liebeblack.divtrack.presentation.theme.DivTrackTheme
  *
  * @param appVersion versión instalada, inyectada desde `:app` (único módulo que conoce
  *   `BuildConfig`), solo para mostrarla en la pantalla de ajustes.
- * @param onInstallUpdate lanza el instalador del sistema con el APK ya descargado. Vive en
- *   `:app` porque necesita su `FileProvider`; `:presentation` solo pide que ocurra.
  */
 @Composable
 fun DivTrackApp(
     appVersion: String = "",
-    onInstallUpdate: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: AppViewModel = hiltViewModel(),
 ) {
@@ -64,10 +61,7 @@ fun DivTrackApp(
     DivTrackTheme(themeMode = themeMode) {
         Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             when (welcomeCompleted) {
-                true -> DivTrackNavigation(
-                    appVersion = appVersion,
-                    onInstallUpdate = onInstallUpdate,
-                )
+                true -> DivTrackNavigation(appVersion = appVersion)
                 false -> WelcomeScreen(
                     isSaving = isCompletingWelcome,
                     saveFailed = welcomeSaveFailed,
@@ -85,15 +79,10 @@ fun DivTrackApp(
 }
 
 @Composable
-private fun DivTrackNavigation(appVersion: String, onInstallUpdate: (String) -> Unit) {
+private fun DivTrackNavigation(appVersion: String) {
     // Back stack persistente: sobrevive a la rotación y a la muerte del proceso.
     val backStack = rememberNavBackStack(TopLevelDestination.start.key)
     val currentKey = backStack.lastOrNull() ?: TopLevelDestination.start.key
-
-    // El lambda del instalador viaja envuelto en `rememberUpdatedState`: así la entrada de
-    // Ajustes siempre llama al más reciente sin que su identidad cambie, que si no forzaría
-    // a reconstruir el grafo de navegación en cada recomposición (ver el comentario de abajo).
-    val currentInstallUpdate = rememberUpdatedState(onInstallUpdate)
 
     // El proveedor de entradas se construye UNA vez. Si se creara en cada recomposición,
     // `NavDisplay` recibiría un grafo distinto en cada pasada y volvería a resolver la
@@ -103,12 +92,7 @@ private fun DivTrackNavigation(appVersion: String, onInstallUpdate: (String) -> 
         entryProvider<NavKey> {
             entry<DashboardKey> { DashboardRoute() }
             entry<CalculatorKey> { CalculatorRoute() }
-            entry<SettingsKey> {
-                SettingsRoute(
-                    appVersion = appVersion,
-                    onInstallUpdate = { fileName -> currentInstallUpdate.value(fileName) },
-                )
-            }
+            entry<SettingsKey> { SettingsRoute(appVersion = appVersion) }
         }
     }
 

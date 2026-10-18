@@ -25,9 +25,6 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun setDefaultSource(source: RateSource) =
         preferencesDataSource.setDefaultSource(source.key)
 
-    override suspend fun setIgtfEnabled(enabled: Boolean) =
-        preferencesDataSource.setIgtfEnabled(enabled)
-
     override suspend fun setAutoSyncEnabled(enabled: Boolean) =
         preferencesDataSource.setAutoSyncEnabled(enabled)
 

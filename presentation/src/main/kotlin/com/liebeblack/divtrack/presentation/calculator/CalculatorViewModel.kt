@@ -54,9 +54,9 @@ import kotlinx.coroutines.launch
  * haya tocado el importe.
  *
  * **También divide en cuotas.** Con el monto ya escrito, el usuario elige 3, 6, 12 o 24
- * cuotas y ve la cuota mensual en ambas monedas, calculada sobre el mismo total (con IGTF si
- * está activo). No depende de la red: sigue funcionando con la última tasa guardada aunque
- * la base local haya tenido que reconstruirse.
+ * cuotas y ve la cuota mensual en ambas monedas, calculada sobre el mismo total. No depende
+ * de la red: sigue funcionando con la última tasa guardada aunque la base local haya tenido
+ * que reconstruirse.
  */
 @HiltViewModel
 class CalculatorViewModel @Inject constructor(
@@ -71,7 +71,6 @@ class CalculatorViewModel @Inject constructor(
     private val inputText = MutableStateFlow("")
     private val direction = MutableStateFlow(ConversionDirection.USD_TO_BS)
     private val selectedSource = MutableStateFlow<RateSource?>(null)
-    private val igtfEnabled = MutableStateFlow<Boolean?>(null)
     private val installments = MutableStateFlow(DEFAULT_INSTALLMENTS)
     private val availableRates = MutableStateFlow(CalculatorRates())
     private val isSyncing = MutableStateFlow(false)
@@ -96,14 +95,12 @@ class CalculatorViewModel @Inject constructor(
         inputText,
         direction,
         selectedSource,
-        igtfEnabled,
         availableRates,
-    ) { input, currentDirection, source, igtf, rates ->
+    ) { input, currentDirection, source, rates ->
         CalculatorInputs(
             input = input,
             direction = currentDirection,
             source = source,
-            igtf = igtf,
             rates = rates,
         )
     }
@@ -117,7 +114,6 @@ class CalculatorViewModel @Inject constructor(
             input = inputs.input,
             direction = inputs.direction,
             requestedSource = inputs.source,
-            igtf = inputs.igtf,
             rates = inputs.rates,
             isSyncing = syncing,
             installments = installmentCount,
@@ -140,7 +136,6 @@ class CalculatorViewModel @Inject constructor(
             // esta sesión, su elección manda (el valor no nulo gana).
             observeSettings().collect { settings ->
                 if (selectedSource.value == null) selectedSource.value = settings.defaultSource
-                if (igtfEnabled.value == null) igtfEnabled.value = settings.igtfEnabled
             }
         }
 
@@ -171,11 +166,6 @@ class CalculatorViewModel @Inject constructor(
                     ConversionDirection.USD_TO_BS -> ConversionDirection.BS_TO_USD
                     ConversionDirection.BS_TO_USD -> ConversionDirection.USD_TO_BS
                 }
-            }
-
-            is CalculatorIntent.ToggleIgtf -> {
-                igtfEnabled.value = intent.enabled
-                viewModelScope.launch { updateSettings.setIgtfEnabled(intent.enabled) }
             }
 
             CalculatorIntent.ClearAmount -> inputText.value = ""
@@ -245,7 +235,6 @@ class CalculatorViewModel @Inject constructor(
                         source = current.selectedSource,
                         amountText = current.inputText,
                         rateText = current.selectedRateText,
-                        igtfEnabled = current.igtfEnabled,
                         igtfText = current.igtfBsText,
                         totalBsText = current.totalBsText,
                         totalUsdText = current.totalUsdText,
@@ -259,7 +248,6 @@ class CalculatorViewModel @Inject constructor(
         input: String,
         direction: ConversionDirection,
         requestedSource: RateSource?,
-        igtf: Boolean?,
         rates: CalculatorRates,
         isSyncing: Boolean,
         installments: Int,
@@ -276,13 +264,12 @@ class CalculatorViewModel @Inject constructor(
         // `options` sale de `rates` en el mismo orden, así que basta una búsqueda.
         val selectedRate = options.firstOrNull { it.source == source }?.value
 
-        val igtfEnabledValue = igtf ?: false
         val conversion: Conversion? = calculateConversion(
             direction = direction,
             source = source,
             rate = selectedRate,
             rawAmount = input,
-            igtfEnabled = igtfEnabledValue,
+            igtfEnabled = false,
         )
 
         // La cuota sale del mismo total ya calculado (IGTF incluido, si está activo): dividir
@@ -303,7 +290,6 @@ class CalculatorViewModel @Inject constructor(
             selectedRateText = selectedRate?.let { rates.formattedValues[source] } ?: "—",
             selectedRateAgeText = rates.formattedUpdatedAt[source],
             isSyncing = isSyncing,
-            igtfEnabled = igtfEnabledValue,
             igtfRateText = AppConstants.IGTF_LABEL,
             igtfBsText = conversion?.let { CurrencyFormatters.amount(it.igtfBs) } ?: "—",
             totalBsText = conversion?.let { CurrencyFormatters.amount(it.totalBs) } ?: "—",
@@ -335,12 +321,11 @@ class CalculatorViewModel @Inject constructor(
         },
     )
 
-    /** Los cinco datos que alimentan el cálculo, agrupados para `combine`. */
+    /** Los datos que alimentan el cálculo, agrupados para `combine`. */
     private data class CalculatorInputs(
         val input: String,
         val direction: ConversionDirection,
         val source: RateSource?,
-        val igtf: Boolean?,
         val rates: CalculatorRates,
     )
 

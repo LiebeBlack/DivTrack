@@ -30,8 +30,6 @@ interface UserPreferencesDataSource {
 
     suspend fun setDefaultSource(sourceKey: String)
 
-    suspend fun setIgtfEnabled(enabled: Boolean)
-
     suspend fun setAutoSyncEnabled(enabled: Boolean)
 
     suspend fun setSyncIntervalMinutes(minutes: Int)
@@ -66,10 +64,6 @@ class DataStoreUserPreferencesDataSource @Inject constructor(
     override suspend fun setDefaultSource(sourceKey: String) {
         val normalised = sourceKey.lowercase().takeIf { it in SourceKeys.all } ?: SourceKeys.OFICIAL
         dataStore.edit { it[Keys.DEFAULT_SOURCE] = normalised }
-    }
-
-    override suspend fun setIgtfEnabled(enabled: Boolean) {
-        dataStore.edit { it[Keys.IGTF_ENABLED] = enabled }
     }
 
     override suspend fun setAutoSyncEnabled(enabled: Boolean) {
@@ -108,7 +102,6 @@ class DataStoreUserPreferencesDataSource @Inject constructor(
     private fun Preferences.toUserPreferences(): UserPreferences = UserPreferences(
         themeMode = this[Keys.THEME_MODE] ?: UserPreferences.THEME_SYSTEM,
         defaultSourceKey = this[Keys.DEFAULT_SOURCE] ?: SourceKeys.OFICIAL,
-        igtfEnabled = this[Keys.IGTF_ENABLED] ?: false,
         autoSyncEnabled = this[Keys.AUTO_SYNC] ?: true,
         syncIntervalMinutes = this[Keys.SYNC_INTERVAL]
             ?: AppConstants.SYNC_DEFAULT_INTERVAL_MINUTES,
@@ -121,7 +114,6 @@ class DataStoreUserPreferencesDataSource @Inject constructor(
     private object Keys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val DEFAULT_SOURCE = stringPreferencesKey("default_source")
-        val IGTF_ENABLED = booleanPreferencesKey("igtf_enabled")
         val AUTO_SYNC = booleanPreferencesKey("auto_sync_enabled")
         val SYNC_INTERVAL = intPreferencesKey("sync_interval_minutes")
         val PREFERRED_PROVIDER = stringPreferencesKey("preferred_provider_id")

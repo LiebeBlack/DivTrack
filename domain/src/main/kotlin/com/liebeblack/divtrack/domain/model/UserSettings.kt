@@ -15,7 +15,6 @@ import com.liebeblack.divtrack.core.common.utils.ProviderIds
 data class UserSettings(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val defaultSource: RateSource = RateSource.OFICIAL,
-    val igtfEnabled: Boolean = false,
     val autoSyncEnabled: Boolean = true,
     val syncIntervalMinutes: Int = AppConstants.SYNC_DEFAULT_INTERVAL_MINUTES,
     val defaultProviderId: String? = null,

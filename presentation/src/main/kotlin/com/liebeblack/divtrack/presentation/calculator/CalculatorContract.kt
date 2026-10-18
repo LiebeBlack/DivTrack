@@ -41,7 +41,6 @@ data class CalculatorUiState(
 
     /** `true` mientras la pasada contra los proveedores está en vuelo. */
     val isSyncing: Boolean = false,
-    val igtfEnabled: Boolean = false,
     val igtfRateText: String = "",
     val igtfBsText: String = "—",
     val totalBsText: String = "—",
@@ -87,8 +86,6 @@ sealed interface CalculatorIntent {
 
     data object SwapDirection : CalculatorIntent
 
-    data class ToggleIgtf(val enabled: Boolean) : CalculatorIntent
-
     data object ClearAmount : CalculatorIntent
 
     data object CopyBreakdown : CalculatorIntent
@@ -108,7 +105,6 @@ data class BreakdownSummary(
     val source: RateSource,
     val amountText: String,
     val rateText: String,
-    val igtfEnabled: Boolean,
     val igtfText: String,
     val totalBsText: String,
     val totalUsdText: String,

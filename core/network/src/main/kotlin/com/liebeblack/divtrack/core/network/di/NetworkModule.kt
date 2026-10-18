@@ -20,7 +20,6 @@ import com.liebeblack.divtrack.core.network.provider.YadioProvider
 import com.liebeblack.divtrack.core.network.service.DolarApiService
 import com.liebeblack.divtrack.core.network.service.DolarVzlaService
 import com.liebeblack.divtrack.core.network.service.ExchangeRateApiService
-import com.liebeblack.divtrack.core.network.service.GithubReleasesService
 import com.liebeblack.divtrack.core.network.service.YadioService
 import dagger.Binds
 import dagger.Module
@@ -40,9 +39,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 /**
- * Grafo de red. Un único `OkHttpClient` (pool de conexiones y caché compartidos) y cinco
- * instancias de Retrofit que solo cambian de `baseUrl`: DolarAPI, Yadio, ExchangeRate-API,
- * DolarVZLA y la API de GitHub del módulo de actualizaciones.
+ * Grafo de red. Un único `OkHttpClient` (pool de conexiones y caché compartidos) y cuatro
+ * instancias de Retrofit que solo cambian de `baseUrl`: DolarAPI, Yadio, ExchangeRate-API y
+ * DolarVZLA.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -129,20 +128,6 @@ object NetworkModule {
         .client(client)
         .addConverterFactory(json.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
         .build()
-
-    @Provides
-    @Singleton
-    @GithubRetrofit
-    fun provideGithubRetrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
-        .baseUrl(BuildConfig.GITHUB_API_BASE_URL)
-        .client(client)
-        .addConverterFactory(json.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
-        .build()
-
-    @Provides
-    @Singleton
-    fun provideGithubReleasesService(@GithubRetrofit retrofit: Retrofit): GithubReleasesService =
-        retrofit.create(GithubReleasesService::class.java)
 
     @Provides
     @Singleton
