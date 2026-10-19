@@ -116,9 +116,6 @@ class RateWidgetProvider : AppWidgetProvider() {
 
         // Actualizar widget
         appWidgetManager.updateAppWidget(widgetId, views)
-
-        // Liberar referencias inmediatamente
-        data
     }
 
     companion object {
