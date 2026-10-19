@@ -23,4 +23,11 @@
     <string name="widget_refresh">Actualizar</string>
     <string name="widget_updated">Actualizado: %1$s</string>
     <string name="widget_no_data">Sin datos</string>
+
+    <!--
+      Textos de la notificación persistente (viven en :app porque usa nonTransitiveRClass=true).
+    -->
+    <string name="notification_channel_name">Tasas de cambio</string>
+    <string name="notification_channel_description">Muestra las tasas de cambio en una notificación permanente</string>
+    <string name="notification_title">DivTrack · Tasas de cambio</string>
 </resources>

@@ -81,8 +81,8 @@ class RateNotificationService : Service() {
             ) { official, parallel, settings ->
                 Triple(official, parallel, settings)
             }.onEach { (official, parallel, settings) ->
-                val officialText = official?.rate?.toString() ?: "---"
-                val parallelText = parallel?.rate?.toString() ?: "---"
+                val officialText = official?.value?.toString() ?: "---"
+                val parallelText = parallel?.value?.toString() ?: "---"
 
                 // Actualizar notificación solo si el servicio está activo
                 if (settings.enablePersistentNotification) {

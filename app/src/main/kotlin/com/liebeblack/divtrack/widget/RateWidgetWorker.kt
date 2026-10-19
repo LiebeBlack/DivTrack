@@ -46,8 +46,8 @@ class RateWidgetWorker @AssistedInject constructor(
                 if (rate != null) {
                     // Guardar en cache usando singleton (instantáneo, sin bloqueos)
                     WidgetDataManager.getInstance(context).saveRate(
-                        rate = rate.rate,
-                        timestamp = rate.lastUpdatedAtMillis,
+                        rate = rate.value,
+                        timestamp = rate.updatedAtMillis ?: rate.fetchedAtMillis,
                         source = rate.providerId,
                     )
 
