@@ -8,11 +8,22 @@
 <meta name="theme-color" content="#F7F1E5" media="(prefers-color-scheme: light)">
 <title>DivTrack — dólar oficial y paralelo de Venezuela, con conversión instantánea</title>
 <meta name="description" content="App Android nativa (Kotlin + Compose) que sigue el dólar oficial (BCV) y el paralelo, resuelve la tasa por frescura entre cuatro proveedores y convierte en ambos sentidos al instante. Room como única fuente de verdad: abre con datos y funciona sin conexión.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_VE">
+<meta property="og:site_name" content="DivTrack">
+<meta property="og:title" content="DivTrack — dólar oficial y paralelo de Venezuela">
+<meta property="og:description" content="Dos tasas, una respuesta clara: BCV y paralelo resueltos por frescura entre cuatro fuentes, con calculadora bidireccional y modo sin conexión.">
+<meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMwNjEzMEUiLz48cGF0aCBkPSJNMTQgNDNMMzAgMjVMNDQgMzVMNTAgMjAiIHN0cm9rZT0iIzM5RjBBNSIgc3Ryb2tlLXdpZHRoPSI2IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
 <!--
   Página autocontenida: sin JavaScript, sin CDN, sin fuentes externas, sin imágenes externas,
   sin una sola petición de red (el favicon viaja como data URI). Se puede abrir desde el disco,
   imprimir o publicar tal cual.
+
+  Todo lo «interactivo» es CSS puro: selector de tema Sistema/Claro/Oscuro con radios
+  (el mismo trío que la pantalla Ajustes de la app), menú móvil con <details>, acordeón de
+  FAQ con <details>, barra de progreso de scroll y revelados al entrar en pantalla con
+  animation-timeline —todos progresivos: sin soporte, la página se ve y funciona igual.
 
   Los tokens de color son 1:1 con la app (presentation/theme/Color.kt y Theme.kt): Obsidian,
   ObsidianElevated/Border/Muted, Mint/MintDeep/MintContrast, Amber, CloudCanvas/CloudSurface/
@@ -25,11 +36,16 @@
 -->
 <style>
   /* ============================== Tokens ============================== */
+  /* Tres estados de tema, sin JavaScript: el sistema manda por defecto y dos radios
+     (forzado claro / forzado oscuro) ganan por especificidad sobre el media query. */
   :root {
+    color-scheme: dark;
+
     /* Superficies y texto (tema oscuro = el que trae la app por defecto) */
     --bg: #06130E;              /* Obsidian */
     --surface: #0D2118;         /* ObsidianElevated */
     --surface-2: #123024;       /* superficie de bloque secundario */
+    --surface-3: #0A1B14;       /* profundidad: fondo de pantalla traslúcida */
     --border: #1C3D2C;          /* ObsidianBorder */
     --border-strong: #397653;   /* outline del esquema oscuro */
     --muted: #B0C0B6;           /* ObsidianMuted = onSurfaceVariant */
@@ -41,6 +57,7 @@
 
     /* Marca */
     --mint: #39F0A5;            /* Mint */
+    --mint-soft: #7CF7C6;       /* Mint a la mitad de camino, para degradados */
     --mint-deep: #008F5B;       /* MintDeep */
     --mint-ink: #006B46;        /* MintContrast */
     --amber: #FFB020;           /* Amber = tertiary, el aviso de dato rancio */
@@ -54,18 +71,26 @@
     --down: #EA3943;            /* TrendDown */
     --flat: #8A94A6;            /* TrendFlat */
 
+    /* Decoración */
+    --grid-line: color-mix(in srgb, var(--mint) 8%, transparent);
+    --glass: color-mix(in srgb, var(--bg) 84%, transparent);
+    --glow-mint: color-mix(in srgb, var(--mint) 16%, transparent);
+    --glow-amber: color-mix(in srgb, var(--amber) 10%, transparent);
+
     /* Radios = DivTrackShapes */
     --r-xs: 8px;
     --r-s: 12px;
     --r-m: 16px;
     --r-l: 22px;
     --r-xl: 28px;
+    --r-pill: 999px;
 
     /* Ritmo */
     --max: 1120px;
     --gap: 16px;
     --sec: clamp(56px, 8vw, 88px);
     --shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 18px 40px -28px rgba(0, 0, 0, 0.75);
+    --shadow-lift: 0 2px 0 rgba(255, 255, 255, 0.03), 0 30px 60px -34px rgba(0, 0, 0, 0.85);
 
     --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -73,9 +98,11 @@
 
   @media (prefers-color-scheme: light) {
     :root {
+      color-scheme: light;
       --bg: #F7F1E5;            /* CloudCanvas */
       --surface: #FFFDF8;       /* CloudSurface */
       --surface-2: #F1E8D5;     /* CloudShade */
+      --surface-3: #FFFDF8;
       --border: #E4D9C3;        /* CloudBorder */
       --border-strong: #D8C9AC;
       --muted: #454E46;         /* SlateText */
@@ -86,6 +113,7 @@
       --chip-on-text: #06130E;
 
       --mint: #006B46;          /* MintContrast: el acento legible sobre crema */
+      --mint-soft: #008F5B;
       --mint-deep: #008F5B;
       --mint-ink: #006B46;
       --amber: #B45309;         /* AmberDeep: ámbar legible como texto */
@@ -97,8 +125,76 @@
       --down: #B3261E;          /* TrendDownDeep */
       --flat: #5A6575;          /* TrendFlatDeep */
 
+      --grid-line: color-mix(in srgb, var(--mint) 9%, transparent);
+      --glow-mint: color-mix(in srgb, var(--mint) 12%, transparent);
+      --glow-amber: color-mix(in srgb, var(--amber) 12%, transparent);
+
       --shadow: 0 1px 0 rgba(6, 19, 14, 0.02), 0 18px 36px -30px rgba(6, 19, 14, 0.35);
+      --shadow-lift: 0 2px 0 rgba(6, 19, 14, 0.03), 0 28px 56px -36px rgba(6, 19, 14, 0.45);
     }
+  }
+
+  /* Tema forzado: ganan por especificidad (1 id) al bloque base y al media query. */
+  html:has(#th-light:checked) {
+    color-scheme: light;
+    --bg: #F7F1E5;
+    --surface: #FFFDF8;
+    --surface-2: #F1E8D5;
+    --surface-3: #FFFDF8;
+    --border: #E4D9C3;
+    --border-strong: #D8C9AC;
+    --muted: #454E46;
+    --text: #06130E;
+    --on-accent: #FFFFFF;
+    --container-low: #F1E8D5;
+    --chip-on: #B8E8D3;
+    --chip-on-text: #06130E;
+    --mint: #006B46;
+    --mint-soft: #008F5B;
+    --mint-deep: #008F5B;
+    --mint-ink: #006B46;
+    --amber: #B45309;
+    --official-surface: #EAF4E8;
+    --parallel-muted: #746A5D;
+    --up: #0E7C50;
+    --down: #B3261E;
+    --flat: #5A6575;
+    --grid-line: color-mix(in srgb, var(--mint) 9%, transparent);
+    --glow-mint: color-mix(in srgb, var(--mint) 12%, transparent);
+    --glow-amber: color-mix(in srgb, var(--amber) 12%, transparent);
+    --shadow: 0 1px 0 rgba(6, 19, 14, 0.02), 0 18px 36px -30px rgba(6, 19, 14, 0.35);
+    --shadow-lift: 0 2px 0 rgba(6, 19, 14, 0.03), 0 28px 56px -36px rgba(6, 19, 14, 0.45);
+  }
+
+  html:has(#th-dark:checked) {
+    color-scheme: dark;
+    --bg: #06130E;
+    --surface: #0D2118;
+    --surface-2: #123024;
+    --surface-3: #0A1B14;
+    --border: #1C3D2C;
+    --border-strong: #397653;
+    --muted: #B0C0B6;
+    --text: #F5F8FB;
+    --on-accent: #06130E;
+    --container-low: #06130E;
+    --chip-on: #124A34;
+    --chip-on-text: #FFFCF4;
+    --mint: #39F0A5;
+    --mint-soft: #7CF7C6;
+    --mint-deep: #008F5B;
+    --mint-ink: #006B46;
+    --amber: #FFB020;
+    --official-surface: #0D2D20;
+    --parallel-muted: #AAA092;
+    --up: #16C784;
+    --down: #EA3943;
+    --flat: #8A94A6;
+    --grid-line: color-mix(in srgb, var(--mint) 8%, transparent);
+    --glow-mint: color-mix(in srgb, var(--mint) 16%, transparent);
+    --glow-amber: color-mix(in srgb, var(--amber) 10%, transparent);
+    --shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 18px 40px -28px rgba(0, 0, 0, 0.75);
+    --shadow-lift: 0 2px 0 rgba(255, 255, 255, 0.03), 0 30px 60px -34px rgba(0, 0, 0, 0.85);
   }
 
   /* ============================== Base ============================== */
@@ -107,7 +203,8 @@
   html {
     scroll-behavior: smooth;
     /* La barra de navegación es sticky: los anclajes no deben quedar debajo. */
-    scroll-padding-top: 84px;
+    scroll-padding-top: 96px;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -119,21 +216,24 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
   }
+
+  ::selection { background: color-mix(in srgb, var(--mint) 30%, transparent); color: var(--text); }
 
   /* Cifras alineadas: el mismo motivo que las tabulares de Manrope en la app. */
   .num { font-variant-numeric: tabular-nums; }
 
-  h1, h2, h3 { margin: 0; line-height: 1.12; letter-spacing: -0.022em; }
-  h1 { font-size: clamp(2.1rem, 5.4vw, 3.5rem); font-weight: 750; }
-  h2 { font-size: clamp(1.45rem, 3.2vw, 2.05rem); font-weight: 700; }
-  h3 { font-size: 1.02rem; font-weight: 650; }
-  p { margin: 0 0 12px; }
+  h1, h2, h3 { margin: 0; line-height: 1.12; letter-spacing: -0.024em; text-wrap: balance; }
+  h1 { font-size: clamp(2.3rem, 6vw, 3.75rem); font-weight: 800; }
+  h2 { font-size: clamp(1.55rem, 3.4vw, 2.3rem); font-weight: 750; }
+  h3 { font-size: 1.04rem; font-weight: 700; }
+  p { margin: 0 0 12px; text-wrap: pretty; }
   p:last-child { margin-bottom: 0; }
 
   a { color: var(--mint); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  a:focus-visible, button:focus-visible, summary:focus-visible {
+  a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible, label:focus-visible {
     outline: 2px solid var(--mint);
     outline-offset: 2px;
     border-radius: 6px;
@@ -151,75 +251,199 @@
 
   .wrap { max-width: var(--max); margin: 0 auto; padding: 0 clamp(16px, 4vw, 28px); }
 
+  /* Oculto pero visible para lectores y para el teclado (radios de tema). */
+  .vh {
+    position: absolute; width: 1px; height: 1px;
+    margin: -1px; padding: 0; border: 0;
+    clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+  }
+
   .skip {
     position: absolute; left: -9999px; top: 0;
     background: var(--mint); color: var(--on-accent); padding: 10px 16px;
-    border-radius: 0 0 var(--r-s) 0; font-weight: 700; z-index: 30;
+    border-radius: 0 0 var(--r-s) 0; font-weight: 700; z-index: 40;
   }
   .skip:focus { left: 0; }
 
   /* ============================== Navegación ============================== */
   nav {
-    position: sticky; top: 0; z-index: 20;
-    background: color-mix(in srgb, var(--bg) 86%, transparent);
-    backdrop-filter: blur(14px) saturate(1.2);
+    position: sticky; top: 0; z-index: 30;
+    background: var(--glass);
+    backdrop-filter: blur(16px) saturate(1.25);
+    -webkit-backdrop-filter: blur(16px) saturate(1.25);
     border-bottom: 1px solid var(--border);
   }
   nav .wrap {
     display: flex; align-items: center; gap: 18px;
-    min-height: 62px; padding-top: 8px; padding-bottom: 8px;
+    min-height: 64px; padding-top: 8px; padding-bottom: 8px;
   }
   nav .brand {
     display: inline-flex; align-items: center; gap: 9px;
-    font-weight: 750; letter-spacing: -0.02em; font-size: 1.02rem; color: var(--text);
+    font-weight: 800; letter-spacing: -0.02em; font-size: 1.04rem; color: var(--text);
   }
   nav .brand:hover { text-decoration: none; }
   nav .brand .mark {
-    width: 26px; height: 26px; border-radius: 8px; flex: none;
+    width: 28px; height: 28px; border-radius: 9px; flex: none;
     background: linear-gradient(140deg, var(--mint), var(--mint-deep));
     display: grid; place-items: center; color: var(--on-accent);
-    font-size: 0.82rem; font-weight: 800;
+    font-size: 0.84rem; font-weight: 800;
+    box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--mint) 70%, transparent);
   }
-  nav .brand b { color: var(--mint); font-weight: 750; }
+  nav .brand b { color: var(--mint); font-weight: 800; }
   nav .links {
-    display: flex; gap: 18px; margin-left: auto;
+    display: flex; gap: 4px; margin-left: auto;
     overflow-x: auto; scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
   }
   nav .links::-webkit-scrollbar { display: none; }
-  nav .links a { color: var(--muted); font-size: 0.88rem; white-space: nowrap; }
-  nav .links a:hover { color: var(--text); text-decoration: none; }
-  nav .cta {
-    flex: none; font-size: 0.84rem; font-weight: 700;
-    background: var(--mint); color: var(--on-accent);
-    padding: 8px 14px; border-radius: 999px;
+  nav .links a {
+    color: var(--muted); font-size: 0.86rem; font-weight: 550;
+    white-space: nowrap; padding: 7px 11px; border-radius: var(--r-pill);
+    transition: color 140ms ease, background 140ms ease;
   }
-  nav .cta:hover { text-decoration: none; filter: brightness(1.06); }
-  @media (max-width: 720px) {
+  nav .links a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
+  nav .cta {
+    flex: none; font-size: 0.85rem; font-weight: 750;
+    background: var(--mint); color: var(--on-accent);
+    padding: 9px 16px; border-radius: var(--r-pill);
+    box-shadow: 0 8px 22px -12px color-mix(in srgb, var(--mint) 80%, transparent);
+    transition: filter 140ms ease, transform 140ms ease;
+  }
+  nav .cta:hover { text-decoration: none; filter: brightness(1.07); transform: translateY(-1px); }
+
+  /* Barra de progreso de lectura: animation-timeline, sin JS (progresivo). */
+  .progress {
+    position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+    background: linear-gradient(90deg, var(--mint), var(--amber));
+    transform: scaleX(0); transform-origin: left; display: none;
+  }
+
+  /* --- Control de tema (Sistema / Claro / Oscuro), el mismo trío que Ajustes --- */
+  .themectl {
+    display: flex; gap: 2px; padding: 3px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--r-pill); flex: none;
+  }
+  .themectl label {
+    font-size: 0.74rem; font-weight: 650; color: var(--muted);
+    padding: 5px 11px; border-radius: var(--r-pill);
+    cursor: pointer; user-select: none; white-space: nowrap;
+    transition: background 140ms ease, color 140ms ease;
+  }
+  .themectl label:hover { color: var(--text); }
+  html:has(#th-auto:checked)  label[for="th-auto"],
+  html:has(#th-light:checked) label[for="th-light"],
+  html:has(#th-dark:checked)  label[for="th-dark"] {
+    background: var(--chip-on); color: var(--chip-on-text);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mint) 55%, transparent);
+  }
+  html:has(#th-auto:focus-visible)  label[for="th-auto"],
+  html:has(#th-light:focus-visible) label[for="th-light"],
+  html:has(#th-dark:focus-visible)  label[for="th-dark"] {
+    outline: 2px solid var(--mint); outline-offset: 2px;
+  }
+
+  /* --- Menú móvil: <details>, sin JavaScript --- */
+  nav details.burger { display: none; margin-left: auto; position: relative; }
+  nav details.burger > summary {
+    list-style: none; cursor: pointer;
+    width: 40px; height: 40px; border-radius: var(--r-s);
+    background: var(--surface-2); border: 1px solid var(--border);
+    display: grid; place-items: center;
+  }
+  nav details.burger > summary::-webkit-details-marker { display: none; }
+  nav details.burger > summary .bars,
+  nav details.burger > summary .bars::before,
+  nav details.burger > summary .bars::after {
+    content: ""; display: block; width: 17px; height: 2px; border-radius: 2px;
+    background: var(--text); transition: transform 180ms ease, opacity 180ms ease;
+  }
+  nav details.burger > summary .bars { position: relative; }
+  nav details.burger > summary .bars::before { position: absolute; top: -6px; }
+  nav details.burger > summary .bars::after { position: absolute; top: 6px; }
+  nav details.burger[open] > summary .bars { background: transparent; }
+  nav details.burger[open] > summary .bars::before { transform: translateY(6px) rotate(45deg); }
+  nav details.burger[open] > summary .bars::after { transform: translateY(-6px) rotate(-45deg); }
+
+  .menu-panel {
+    position: absolute; right: 0; top: calc(100% + 12px);
+    width: min(84vw, 320px);
+    /* En pantallas cortas la lista larga se desplaza dentro del panel,
+       sin que el botón de descarga se quede fuera del alcance. */
+    max-height: calc(100dvh - 96px); overflow-y: auto; overscroll-behavior: contain;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-l); box-shadow: var(--shadow-lift);
+    padding: 14px; display: grid; gap: 4px; z-index: 35;
+  }
+  .menu-panel a {
+    color: var(--text); font-size: 0.95rem; font-weight: 600;
+    padding: 10px 12px; border-radius: var(--r-s);
+  }
+  .menu-panel a:hover { background: var(--surface-2); text-decoration: none; }
+  .menu-panel .menu-cta {
+    margin-top: 8px; text-align: center;
+    background: var(--mint); color: var(--on-accent); font-weight: 750;
+  }
+  .menu-panel .menu-cta:hover { background: var(--mint); filter: brightness(1.06); }
+  .menu-panel .themectl { margin-top: 10px; justify-content: center; }
+  .menu-panel .menu-tag {
+    font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); font-weight: 700; padding: 8px 12px 2px;
+  }
+
+  @media (max-width: 940px) {
+    nav .links { display: none; }
     nav .cta { display: none; }
+    nav details.burger { display: block; }
+  }
+  /* El selector de tema solo cabe en la barra a partir de cierto ancho; el menú móvil y
+     el pie lo llevan siempre (mismos ids, mismas etiquetas). */
+  nav .wrap > .themectl { display: none; }
+  @media (min-width: 1200px) {
+    nav .wrap > .themectl { display: flex; }
   }
 
   /* ============================== Hero ============================== */
   header.hero {
     position: relative; overflow: hidden;
-    padding: clamp(44px, 7vw, 84px) 0 var(--sec);
+    padding: clamp(48px, 7vw, 92px) 0 var(--sec);
     border-bottom: 1px solid var(--border);
+    isolation: isolate;
   }
+  /* Rejilla técnica de fondo */
   header.hero::before {
-    content: ""; position: absolute; inset: -30% 40% auto -20%; height: 560px;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--mint) 18%, transparent), transparent);
-    filter: blur(24px); pointer-events: none;
+    content: ""; position: absolute; inset: 0; z-index: -2;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(120% 90% at 30% 0%, #000 10%, transparent 72%);
+    mask-image: radial-gradient(120% 90% at 30% 0%, #000 10%, transparent 72%);
+    pointer-events: none;
   }
   header.hero::after {
-    content: ""; position: absolute; right: -10%; top: 30%; width: 420px; height: 420px;
-    background: radial-gradient(closest-side, color-mix(in srgb, var(--amber) 10%, transparent), transparent);
-    filter: blur(30px); pointer-events: none;
+    content: ""; position: absolute; z-index: -1; pointer-events: none;
+    right: -8%; top: 22%; width: 460px; height: 460px;
+    background: radial-gradient(closest-side, var(--glow-amber), transparent);
+    filter: blur(34px);
+    animation: aurora 26s ease-in-out infinite alternate;
+  }
+  .hero-aurora {
+    position: absolute; z-index: -1; pointer-events: none;
+    left: -14%; top: -28%; width: 640px; height: 560px;
+    background: radial-gradient(closest-side, var(--glow-mint), transparent);
+    filter: blur(30px);
+    animation: aurora 22s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes aurora {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to   { transform: translate3d(40px, 26px, 0) scale(1.12); }
   }
 
   .hero-grid {
     position: relative;
-    display: grid; gap: clamp(24px, 4vw, 44px);
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    display: grid; gap: clamp(28px, 4vw, 52px);
+    grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
     align-items: start;
   }
   @media (max-width: 900px) {
@@ -227,81 +451,123 @@
   }
 
   .eyebrow {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 0.76rem; letter-spacing: 0.09em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 16px;
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 700; color: var(--muted);
+    margin-bottom: 18px;
+    padding: 7px 14px 7px 11px;
+    border: 1px solid var(--border); border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
   }
   .eyebrow .dot {
     width: 8px; height: 8px; border-radius: 50%; flex: none;
     background: var(--mint); box-shadow: 0 0 0 4px color-mix(in srgb, var(--mint) 18%, transparent);
+    animation: pulse 2.4s ease-in-out infinite;
   }
-  .lede { font-size: clamp(1rem, 1.9vw, 1.12rem); color: var(--muted); max-width: 60ch; margin-top: 16px; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--mint) 18%, transparent); }
+    50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--mint) 6%, transparent); }
+  }
+
+  .hero h1 .grad {
+    background: linear-gradient(100deg, var(--text) 8%, var(--mint) 55%, var(--mint-soft) 78%, var(--amber) 115%);
+    -webkit-background-clip: text; background-clip: text;
+    color: var(--text);
+  }
+  @supports (-webkit-background-clip: text) or (background-clip: text) {
+    .hero h1 .grad { color: transparent; }
+  }
+
+  .lede { font-size: clamp(1rem, 1.9vw, 1.14rem); color: var(--muted); max-width: 62ch; margin-top: 18px; }
   .lede strong { color: var(--text); font-weight: 650; }
 
-  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
   .button {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 0.92rem; font-weight: 700; padding: 11px 18px;
-    border-radius: 999px; border: 1px solid transparent;
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 0.94rem; font-weight: 750; padding: 13px 22px;
+    border-radius: var(--r-pill); border: 1px solid transparent;
+    transition: filter 150ms ease, transform 150ms ease, border-color 150ms ease;
   }
-  .button.primary { background: var(--mint); color: var(--on-accent); }
-  .button.primary:hover { text-decoration: none; filter: brightness(1.07); }
-  .button.ghost {
-    background: var(--surface); border-color: var(--border); color: var(--text);
+  .button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+  .button.primary {
+    background: var(--mint); color: var(--on-accent);
+    box-shadow: 0 14px 34px -18px color-mix(in srgb, var(--mint) 90%, transparent);
   }
-  .button.ghost:hover { text-decoration: none; border-color: var(--border-strong); }
+  .button.primary:hover { text-decoration: none; filter: brightness(1.07); transform: translateY(-2px); }
+  .button.ghost { background: var(--surface); border-color: var(--border); color: var(--text); }
+  .button.ghost:hover { text-decoration: none; border-color: var(--border-strong); transform: translateY(-2px); }
 
-  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
   .badge {
-    font-size: 0.76rem; padding: 5px 11px; border-radius: 999px;
+    font-size: 0.75rem; padding: 5px 12px; border-radius: var(--r-pill);
     border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    transition: border-color 150ms ease, color 150ms ease;
   }
-  .badge b { color: var(--text); font-weight: 650; }
+  .badge:hover { border-color: var(--border-strong); color: var(--text); }
+  .badge b { color: var(--text); font-weight: 700; }
 
   .facts {
-    display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin-top: 30px;
+    display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 32px;
   }
   @media (max-width: 560px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .fact {
+    position: relative; overflow: hidden;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-m); padding: 12px 14px;
+    border-radius: var(--r-m); padding: 14px 16px;
+    transition: border-color 160ms ease, transform 160ms ease;
   }
+  .fact:hover { border-color: var(--border-strong); transform: translateY(-2px); }
   .fact .k { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.02em; }
-  .fact .v { font-size: 1.18rem; font-weight: 700; letter-spacing: -0.02em; }
+  .fact .v { font-size: 1.24rem; font-weight: 800; letter-spacing: -0.03em; margin-top: 2px; }
+  .fact .v small { font-size: 0.6em; font-weight: 650; color: var(--muted); }
 
   /* ============================== Tarjetas de tasa (espejo de RateCard) ============================== */
-  .rates { display: grid; gap: var(--gap); }
+  .rates { display: grid; gap: var(--gap); position: relative; }
   .rate {
     position: relative; overflow: hidden; text-align: center;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-l); box-shadow: var(--shadow);
+    border-radius: var(--r-l); box-shadow: var(--shadow-lift);
+    transition: transform 180ms ease;
   }
+  .rate:hover { transform: translateY(-3px); }
   .rate::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--accent); }
   .rate.official {
     --accent: var(--mint);
     border-color: var(--mint);
     border-width: 1.5px;
     background: var(--official-surface);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--mint) 10%, transparent), var(--shadow-lift);
   }
   .rate.official::before { height: 8px; }
+  /* barrido de frescura sobre la tarjeta héroe */
+  .rate.official::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%, color-mix(in srgb, var(--mint) 12%, transparent) 50%, transparent 70%);
+    transform: translateX(-120%);
+    animation: sweep 6.5s ease-in-out infinite;
+  }
+  @keyframes sweep {
+    0%, 62% { transform: translateX(-120%); }
+    88%, 100% { transform: translateX(120%); }
+  }
   /* El paralelo no compite con la oficial: en la app su tarjeta usa ParallelMuted de arriba
      abajo (franja, cifra, variación y pie). El ámbar queda para los selectores. */
   .rate.parallel { --accent: color-mix(in srgb, var(--parallel-muted) 55%, transparent); }
-  .rate .body { padding: 26px 20px 18px; }
-  .rate .label { font-size: 0.82rem; font-weight: 650; color: var(--muted); }
-  .rate.official .label { color: var(--mint); font-size: 0.95rem; }
-  .rate .value { font-weight: 750; letter-spacing: -0.035em; margin: 10px 0 4px; }
-  .rate.official .value { font-size: clamp(2.4rem, 6vw, 3.1rem); color: var(--mint); }
-  .rate.parallel .value { font-size: clamp(1.6rem, 4vw, 1.95rem); color: var(--parallel-muted); }
+  .rate .body { padding: 28px 22px 20px; position: relative; z-index: 1; }
+  .rate .label { font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+  .rate.official .label { color: var(--mint); font-size: 0.95rem; letter-spacing: 0.01em; }
+  .rate .value { font-weight: 800; letter-spacing: -0.04em; margin: 10px 0 4px; }
+  .rate.official .value { font-size: clamp(2.5rem, 6vw, 3.3rem); color: var(--mint); }
+  .rate.parallel .value { font-size: clamp(1.6rem, 4vw, 2rem); color: var(--parallel-muted); }
   .rate.parallel .label { color: var(--parallel-muted); }
-  .rate .value small { font-size: 0.4em; font-weight: 650; letter-spacing: 0; color: var(--muted); }
+  .rate .value small { font-size: 0.4em; font-weight: 700; letter-spacing: 0; color: var(--muted); }
   .rate .foot { font-size: 0.73rem; color: var(--muted); margin-top: 12px; }
 
   .delta {
     display: inline-flex; align-items: center; gap: 5px;
-    font-size: 0.76rem; font-weight: 700; font-variant-numeric: tabular-nums;
-    padding: 3px 9px; border-radius: 999px;
+    font-size: 0.76rem; font-weight: 750; font-variant-numeric: tabular-nums;
+    padding: 3px 10px; border-radius: var(--r-pill);
     background: color-mix(in srgb, var(--tone) 14%, transparent);
     color: var(--tone);
   }
@@ -314,26 +580,74 @@
   .spread {
     display: flex; align-items: center; justify-content: center; gap: 12px; text-align: left;
     background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: var(--r-m); padding: 14px 18px; margin-top: var(--gap);
+    border-radius: var(--r-m); padding: 15px 18px; margin-top: var(--gap);
+    transition: border-color 160ms ease;
   }
+  .spread:hover { border-color: var(--border-strong); }
   .spread .info {
     flex: none; width: 26px; height: 26px; border-radius: 50%;
     display: grid; place-items: center;
     border: 1px solid var(--border-strong); color: var(--muted); font-size: 0.78rem;
   }
   .spread .k { color: var(--muted); font-size: 0.76rem; display: block; }
-  .spread .v { font-weight: 700; font-size: 0.98rem; }
+  .spread .v { font-weight: 750; font-size: 0.98rem; }
+
+  /* ============================== Banda de métricas ============================== */
+  .stats {
+    border-bottom: 1px solid var(--border);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--surface) 55%, transparent), transparent),
+      var(--container-low);
+    padding: clamp(26px, 4vw, 40px) 0;
+  }
+  .stats .grid-stats {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  @media (max-width: 900px) { .stats .grid-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .stats .grid-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .stat {
+    text-align: center; padding: 6px 8px;
+    border-right: 1px solid var(--border);
+  }
+  .stat:last-child { border-right: 0; }
+  @media (max-width: 900px) {
+    .stat { border-right: 0; }
+    .stat:nth-child(3n) { border-right: 0; }
+  }
+  @media (max-width: 520px) { .stat:nth-child(2n) { border-right: 0; } }
+  .stat .v {
+    font-size: clamp(1.5rem, 3vw, 1.9rem); font-weight: 800; letter-spacing: -0.035em;
+    background: linear-gradient(160deg, var(--text), color-mix(in srgb, var(--mint) 85%, var(--text)));
+    -webkit-background-clip: text; background-clip: text; color: var(--text);
+    line-height: 1.1;
+  }
+  @supports (-webkit-background-clip: text) or (background-clip: text) {
+    .stat .v { color: transparent; }
+  }
+  .stat .k { font-size: 0.72rem; color: var(--muted); margin-top: 4px; letter-spacing: 0.02em; }
 
   /* ============================== Secciones ============================== */
-  section { padding: var(--sec) 0; border-bottom: 1px solid var(--border); }
+  section { padding: var(--sec) 0; border-bottom: 1px solid var(--border); position: relative; }
   section:last-of-type { border-bottom: 0; }
-  .section-head { max-width: 72ch; margin-bottom: clamp(24px, 4vw, 40px); }
-  .section-head h2 { margin-bottom: 10px; }
-  .hint { color: var(--muted); }
+  .section-head { max-width: 74ch; margin-bottom: clamp(24px, 4vw, 42px); }
+  .section-head h2 { margin-bottom: 12px; }
+  .hint { color: var(--muted); font-size: 1.0rem; }
+  .hint strong { color: var(--text); font-weight: 650; }
   .kicker {
-    display: inline-block; font-size: 0.74rem; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase; color: var(--mint);
-    margin-bottom: 10px;
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 0.73rem; font-weight: 800;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--mint);
+    margin-bottom: 12px;
+  }
+  .kicker .idx {
+    font-family: var(--mono); font-size: 0.66rem; color: var(--muted);
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: var(--r-pill); padding: 2px 8px; letter-spacing: 0.04em;
+  }
+  .kicker::after {
+    content: ""; width: 44px; height: 1px;
+    background: linear-gradient(90deg, var(--border-strong), transparent);
   }
 
   .grid { display: grid; gap: var(--gap); }
@@ -342,24 +656,58 @@
   .cols-4 { grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); }
 
   .card {
+    position: relative;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-m); padding: 20px;
-    transition: border-color 160ms ease, transform 160ms ease;
+    border-radius: var(--r-m); padding: 22px;
+    transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   }
-  .card h3 { margin-bottom: 8px; }
-  .card p { color: var(--muted); font-size: 0.9rem; }
+  .card h3 { margin-bottom: 9px; }
+  .card p { color: var(--muted); font-size: 0.91rem; }
   .card p code { font-size: 0.84em; }
-  @media (hover: hover) {
-    .card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+  .card .ico {
+    width: 38px; height: 38px; border-radius: var(--r-s); margin-bottom: 14px;
+    display: grid; place-items: center;
+    background: color-mix(in srgb, var(--mint) 12%, var(--surface-2));
+    border: 1px solid color-mix(in srgb, var(--mint) 32%, var(--border));
+    color: var(--mint);
   }
+  .card .ico svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .card.amber .ico {
+    background: color-mix(in srgb, var(--amber) 12%, var(--surface-2));
+    border-color: color-mix(in srgb, var(--amber) 32%, var(--border));
+    color: var(--amber);
+  }
+  @media (hover: hover) {
+    .card:hover {
+      border-color: var(--border-strong); transform: translateY(-3px);
+      box-shadow: var(--shadow);
+    }
+  }
+  .card h3 code { font-size: 0.9em; }
+
+  /* Caja «sin rodeos»: franja de acento a la izquierda */
+  .aside-box {
+    background: var(--container-low); border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: var(--r-m); padding: 18px 22px; margin-top: 24px;
+  }
+  .aside-box h3 { margin-bottom: 8px; }
+  .aside-box p, .aside-box li { color: var(--muted); font-size: 0.91rem; }
+  .aside-box ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+  .aside-box li::marker { color: var(--amber); }
+  .aside-box strong { color: var(--text); }
 
   /* ============================== Maquetas de pantalla ============================== */
-  .screens { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .screens { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(244px, 1fr)); }
   .phone {
     margin: 0; /* el <figure> trae 1em 40px del navegador y encogía la maqueta */
     display: flex; flex-direction: column;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-xl); padding: 11px; box-shadow: var(--shadow);
+    border-radius: calc(var(--r-xl) + 6px); padding: 12px; box-shadow: var(--shadow-lift);
+    transition: transform 200ms ease, border-color 200ms ease;
+  }
+  @media (hover: hover) {
+    .phone:hover { transform: translateY(-4px); border-color: var(--border-strong); }
   }
   .screen {
     /* flex: 1 = las cuatro pantallas terminan a la misma altura, sin franja muerta */
@@ -475,52 +823,61 @@
     stroke-linecap: round; stroke-linejoin: round;
   }
   .legal { font-size: 0.6rem; color: var(--muted); line-height: 1.45; }
-  .cap { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 10px; display: block; }
+  .cap { font-size: 0.73rem; color: var(--muted); text-align: center; margin-top: 12px; display: block; }
 
   /* ============================== Flujo ============================== */
   ol.flow { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
   ol.flow li {
     counter-increment: step; position: relative;
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-m); padding: 16px 18px 16px 60px;
+    border-radius: var(--r-m); padding: 17px 20px 17px 62px;
+    transition: border-color 160ms ease, transform 160ms ease;
   }
+  @media (hover: hover) { ol.flow li:hover { border-color: var(--border-strong); transform: translateX(3px); } }
   ol.flow li::before {
     content: counter(step); position: absolute; left: 16px; top: 15px;
-    width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
-    background: var(--surface-2); border: 1px solid var(--border);
-    color: var(--mint); font-size: 0.8rem; font-weight: 750;
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: color-mix(in srgb, var(--mint) 12%, var(--surface-2));
+    border: 1px solid color-mix(in srgb, var(--mint) 40%, var(--border));
+    color: var(--mint); font-size: 0.8rem; font-weight: 800;
   }
-  ol.flow li strong { display: block; margin-bottom: 2px; }
+  ol.flow li strong { display: block; margin-bottom: 3px; font-weight: 700; }
   ol.flow li span { color: var(--muted); font-size: 0.9rem; }
+  ol.flow li em { font-style: normal; color: var(--text); font-weight: 650; }
 
   /* ============================== Proveedores ============================== */
-  .providers { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-top: 24px; }
+  .providers { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-top: 26px; }
   .provider {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-m); padding: 16px 18px;
+    border-radius: var(--r-m); padding: 17px 19px;
+    transition: border-color 160ms ease, transform 160ms ease;
   }
-  .provider .name { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95rem; }
+  @media (hover: hover) { .provider:hover { border-color: var(--border-strong); transform: translateY(-2px); } }
+  .provider .name { display: flex; align-items: center; gap: 8px; font-weight: 750; font-size: 0.96rem; flex-wrap: wrap; }
   .provider .prio {
-    font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    font-size: 0.67rem; font-weight: 750; padding: 2px 9px; border-radius: var(--r-pill);
     background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+    font-variant-numeric: tabular-nums;
   }
-  .provider .what { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .provider .what { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px; }
   .tag {
-    font-size: 0.68rem; padding: 3px 9px; border-radius: 999px;
+    font-size: 0.68rem; padding: 3px 10px; border-radius: var(--r-pill);
     border: 1px solid var(--border); color: var(--muted);
   }
   .tag.oficial { color: var(--mint); border-color: color-mix(in srgb, var(--mint) 45%, var(--border)); }
   .tag.paralelo { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, var(--border)); }
-  .provider .host { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-top: 10px; }
+  .provider .host { font-family: var(--mono); font-size: 0.71rem; color: var(--muted); margin-top: 11px; word-break: break-all; }
 
   /* ============================== Diagrama de módulos ============================== */
   .modules { display: grid; gap: 10px; justify-items: center; }
   .mod {
     width: min(100%, 560px); background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-s); padding: 12px 16px; font-size: 0.86rem;
+    border-radius: var(--r-s); padding: 13px 17px; font-size: 0.87rem;
+    transition: border-color 160ms ease;
   }
+  .mod:hover { border-color: var(--border-strong); }
   .mod b { font-family: var(--mono); font-size: 0.85rem; }
-  .mod em { color: var(--muted); font-style: normal; font-size: 0.78rem; display: block; margin-top: 2px; }
+  .mod em { color: var(--muted); font-style: normal; font-size: 0.78rem; display: block; margin-top: 3px; }
   .mod.pure { border-color: color-mix(in srgb, var(--mint) 45%, var(--border)); }
   .dialine { color: var(--muted); font-size: 1rem; line-height: 1; }
   .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; width: min(100%, 560px); }
@@ -531,61 +888,273 @@
     overflow: hidden; background: var(--surface);
   }
   table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
-  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th, td { text-align: left; padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
   th {
-    color: var(--muted); font-size: 0.72rem; text-transform: uppercase;
-    letter-spacing: 0.07em; font-weight: 700; background: var(--surface-2);
+    color: var(--muted); font-size: 0.71rem; text-transform: uppercase;
+    letter-spacing: 0.08em; font-weight: 800; background: var(--surface-2);
   }
   td .v { font-family: var(--mono); font-size: 0.83rem; }
   tr:last-child td { border-bottom: 0; }
-  .scroll-x { overflow-x: auto; }
-  table td:first-child { white-space: nowrap; }
+  tbody tr { transition: background 120ms ease; }
+  tbody tr:hover { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+  .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table td:first-child { white-space: nowrap; font-weight: 650; }
+  table td.first-normal:first-child { white-space: normal; }
+  .yes { color: var(--up); font-weight: 750; }
+  .no { color: var(--muted); }
+  .cell-ico { display: inline-flex; align-items: center; gap: 6px; }
+  .cell-ico svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
   /* ============================== Código ============================== */
   pre {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--r-s); padding: 14px 16px; overflow-x: auto;
-    font-family: var(--mono); font-size: 0.81rem; line-height: 1.55; margin: 0 0 14px;
+    position: relative;
+    background: var(--surface-3); border: 1px solid var(--border);
+    border-radius: var(--r-m); padding: 16px 18px; overflow-x: auto;
+    font-family: var(--mono); font-size: 0.81rem; line-height: 1.6; margin: 0 0 16px;
+  }
+  pre::before {
+    content: "$"; position: absolute; right: 14px; top: 10px;
+    color: var(--muted); opacity: 0.5; font-size: 0.72rem; letter-spacing: 0.1em;
   }
   pre .c { color: var(--muted); }
 
   /* ============================== Pills ============================== */
   .pill {
-    display: inline-block; font-size: 0.7rem; font-weight: 700;
-    padding: 3px 9px; border-radius: 999px;
+    display: inline-block; font-size: 0.69rem; font-weight: 800;
+    padding: 3px 10px; border-radius: var(--r-pill);
     border: 1px solid var(--border); color: var(--muted); white-space: nowrap;
+    letter-spacing: 0.03em;
   }
-  .pill.ok { color: var(--up); border-color: color-mix(in srgb, var(--up) 45%, var(--border)); }
-  .pill.warn { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, var(--border)); }
+  .pill.ok { color: var(--up); border-color: color-mix(in srgb, var(--up) 45%, var(--border)); background: color-mix(in srgb, var(--up) 8%, transparent); }
+  .pill.warn { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 45%, var(--border)); background: color-mix(in srgb, var(--amber) 8%, transparent); }
+
+  /* ============================== Novedades (línea de tiempo) ============================== */
+  .timeline { position: relative; display: grid; gap: 4px; padding-left: 30px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 9px; top: 10px; bottom: 10px; width: 2px;
+    background: linear-gradient(180deg, var(--mint), var(--border-strong) 70%, transparent);
+    border-radius: 2px;
+  }
+  .novedad {
+    position: relative; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-m); padding: 16px 19px; margin-bottom: 10px;
+    transition: border-color 160ms ease, transform 160ms ease;
+  }
+  @media (hover: hover) { .novedad:hover { border-color: var(--border-strong); transform: translateX(3px); } }
+  .novedad::before {
+    content: ""; position: absolute; left: -27px; top: 22px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--bg); border: 2.5px solid var(--mint);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--mint) 12%, transparent);
+  }
+  .novedad .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  .novedad h3 { font-size: 0.98rem; }
+  .novedad p { color: var(--muted); font-size: 0.9rem; margin-top: 6px; margin-bottom: 0; }
+  .novedad .adr {
+    font-family: var(--mono); font-size: 0.68rem; font-weight: 700;
+    color: var(--mint); background: color-mix(in srgb, var(--mint) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--mint) 35%, var(--border));
+    border-radius: var(--r-pill); padding: 2px 9px;
+  }
+  .timeline .out ::marker, .timeline .out { color: var(--down); }
+  .ver-todo {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 14px;
+    font-size: 0.88rem; font-weight: 700;
+  }
+
+  /* ============================== FAQ (details) ============================== */
+  .faq { display: grid; gap: 10px; max-width: 860px; }
+  .faq details {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-m); overflow: hidden;
+    transition: border-color 160ms ease;
+  }
+  .faq details[open] { border-color: var(--border-strong); }
+  .faq summary {
+    list-style: none; cursor: pointer;
+    display: flex; align-items: center; gap: 14px;
+    padding: 17px 20px; font-weight: 700; font-size: 0.97rem;
+    letter-spacing: -0.01em;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary:hover { color: var(--mint); }
+  .faq summary .q {
+    flex: none; width: 26px; height: 26px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 0.72rem; font-weight: 800;
+    background: color-mix(in srgb, var(--mint) 12%, var(--surface-2));
+    border: 1px solid color-mix(in srgb, var(--mint) 35%, var(--border));
+    color: var(--mint); font-family: var(--mono);
+  }
+  .faq summary .plus {
+    margin-left: auto; flex: none; width: 20px; height: 20px; position: relative;
+    transition: transform 200ms ease;
+  }
+  .faq summary .plus::before,
+  .faq summary .plus::after {
+    content: ""; position: absolute; inset: 50% 2px auto; height: 2px;
+    background: var(--muted); border-radius: 2px; transform: translateY(-50%);
+  }
+  .faq summary .plus::after { transform: translateY(-50%) rotate(90deg); }
+  .faq details[open] summary .plus { transform: rotate(45deg); }
+  .faq .answer {
+    padding: 0 20px 18px 60px; color: var(--muted); font-size: 0.93rem;
+  }
+  .faq .answer strong { color: var(--text); font-weight: 650; }
+  @media (max-width: 560px) { .faq .answer { padding-left: 20px; } }
+
+  /* ============================== Glosario ============================== */
+  .glossary { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+  .term {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-m); padding: 16px 18px;
+    transition: border-color 160ms ease;
+  }
+  .term:hover { border-color: var(--border-strong); }
+  .term dt { font-weight: 750; font-size: 0.95rem; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .term dt .abbr {
+    font-family: var(--mono); font-size: 0.66rem; color: var(--muted);
+    border: 1px solid var(--border); border-radius: var(--r-pill); padding: 1px 8px;
+  }
+  .term dd { margin: 7px 0 0; color: var(--muted); font-size: 0.88rem; }
+  .term dd b { color: var(--text); font-weight: 650; }
+
+  /* ============================== Casos de uso (bento) ============================== */
+  .bento {
+    display: grid; gap: var(--gap);
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
+  .bento .card.wide { grid-column: span 2; }
+  @media (max-width: 760px) { .bento .card.wide { grid-column: span 1; } }
+  .bento .card .use-num {
+    position: absolute; top: 14px; right: 16px;
+    font-family: var(--mono); font-size: 0.7rem; color: var(--muted); opacity: 0.7;
+  }
+  .bento .card ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.88rem; display: grid; gap: 5px; }
+  .bento .card li::marker { color: var(--mint); }
 
   /* ============================== Footer ============================== */
-  footer { padding: 44px 0 68px; color: var(--muted); font-size: 0.85rem; }
-  footer .cols { display: grid; gap: 24px; grid-template-columns: minmax(0, 1.4fr) repeat(auto-fit, minmax(160px, 1fr)); }
-  footer h4 { margin: 0 0 8px; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
-  footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-  footer .foot-note { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); display: grid; gap: 6px; }
+  footer {
+    padding: 52px 0 72px; color: var(--muted); font-size: 0.86rem;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--surface) 45%, transparent));
+  }
+  footer .cols { display: grid; gap: 28px; grid-template-columns: minmax(0, 1.5fr) repeat(auto-fit, minmax(170px, 1fr)); }
+  footer h4 {
+    margin: 0 0 10px; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text); font-weight: 800;
+  }
+  footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--mint); }
+  footer .brand { font-weight: 800; letter-spacing: -0.02em; font-size: 1.05rem; color: var(--text); }
+  footer .brand b { color: var(--mint); }
+  footer .foot-note {
+    margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border);
+    display: grid; gap: 8px; font-size: 0.8rem;
+  }
+  footer .nojs-note {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.78rem; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-pill); padding: 7px 14px; width: fit-content;
+  }
+  footer .nojs-note b { color: var(--mint); font-weight: 750; }
+  footer .themectl { width: fit-content; margin-top: 4px; }
+
+  /* ============================== Utilidades ============================== */
+  .mt-0 { margin-top: 0; }
+  .mt-gap { margin-top: var(--gap); }
+  .mt-24 { margin-top: 24px; }
+  .center { text-align: center; }
+  .footnote { font-size: 0.8rem; color: var(--muted); margin-top: 16px; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 16px;
+    font-size: 0.8rem; color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend i {
+    width: 10px; height: 10px; border-radius: 3px; flex: none;
+    background: var(--sw, var(--mint)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sw, var(--mint)) 16%, transparent);
+  }
+
+  /* ============================== Progresivo: animación por scroll (sin JS) ============================== */
+  /* Solo donde el navegador soporta animation-timeline; si no, no se aplica nada y la
+     página se ve completa. Por eso vive dentro de @supports y el estado base es visible. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .progress {
+        display: block;
+        animation: growbar linear both;
+        animation-timeline: scroll(root block);
+      }
+      @keyframes growbar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+      .card, .stat, .provider, .term, .novedad, .fact,
+      ol.flow li, .faq details, .mod, .bento .card {
+        animation: reveal linear both;
+        animation-timeline: view();
+        /* Rango solo en fase `entry`: siempre alcanzable al entrar en pantalla,
+           aunque el elemento sea más alto que el viewport. Un `cover` sin llegar
+           a su fin dejaría el contenido a media opacidad. */
+        animation-range: entry 4% entry 60%;
+      }
+      .section-head, .tablewrap, .modules, .spread {
+        animation: reveal linear both;
+        animation-timeline: view();
+        animation-range: entry 2% entry 55%;
+      }
+      @keyframes reveal {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: none; }
+      }
+    }
+  }
 
   /* ============================== Impresión ============================== */
   @media print {
-    :root { --sec: 28px; }
-    nav, .actions { display: none; }
+    :root, html:has(#th-light:checked), html:has(#th-dark:checked) { --sec: 26px; color-scheme: light; }
+    /* Nada animado y nada semitransparente en papel. */
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
     body { background: #fff; color: #000; font-size: 11.5pt; }
-    section, header.hero { border-color: #ccc; page-break-inside: avoid; }
-    .card, .rate, .phone, .mini, pre, .tablewrap { border-color: #bbb; box-shadow: none; }
+    nav, .actions, .themectl, .progress, .skip, header.hero::before,
+    header.hero::after, .hero-aurora, nav details.burger { display: none !important; }
+    section, header.hero, .stats, footer { border-color: #ccc; page-break-inside: avoid; }
+    .card, .rate, .phone, .mini, pre, .tablewrap, .faq details, .novedad, .term {
+      border-color: #bbb; box-shadow: none; break-inside: avoid;
+    }
+    .faq details:not([open]) > *:not(summary) { display: block; } /* el FAQ se imprime abierto */
     a { color: #000; }
+    .stat .v, .hero h1 .grad { color: #000 !important; background: none !important; -webkit-text-fill-color: #000; }
   }
 
   /* ============================== Movimiento reducido ============================== */
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .card { transition: none; }
-    .card:hover { transform: none; }
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+    .card:hover, .fact:hover, .phone:hover, .rate:hover,
+    ol.flow li:hover, .provider:hover, .novedad:hover,
+    .button:hover, nav .cta:hover { transform: none; }
   }
 </style>
 </head>
 <body>
 
 <a class="skip" href="#contenido">Saltar al contenido</a>
+
+<!-- Estado del tema: tres radios, ningún JavaScript. El nav, el menú móvil y el pie
+     apuntan a estos mismos ids con <label for>. -->
+<input type="radio" name="theme" id="th-auto" class="vh" checked>
+<input type="radio" name="theme" id="th-light" class="vh">
+<input type="radio" name="theme" id="th-dark" class="vh">
 
 <nav aria-label="Secciones de la página">
   <div class="wrap">
@@ -594,21 +1163,54 @@
       <a href="#pantallas">Pantallas</a>
       <a href="#funciona">Cómo funciona</a>
       <a href="#arquitectura">Arquitectura</a>
-      <a href="#stack">Stack</a>
-      <a href="#compilar">Compilar</a>
       <a href="#calidad">Calidad</a>
-      <a href="#decisiones">Decisiones</a>
-      <a href="#lite">Lite</a>
+      <a href="#faq">Preguntas</a>
+      <a href="#novedades">Novedades</a>
+    </div>
+    <div class="themectl" role="group" aria-label="Tema de la página">
+      <label for="th-auto">Sistema</label>
+      <label for="th-light">Claro</label>
+      <label for="th-dark">Oscuro</label>
     </div>
     <a class="cta" href="#descarga">Descargar</a>
+
+    <!-- Menú móvil: <details> + <summary>, cero JavaScript -->
+    <details class="burger">
+      <summary><span class="bars" aria-hidden="true"></span><span class="vh">Abrir el menú de secciones</span></summary>
+      <div class="menu-panel">
+        <span class="menu-tag">Secciones</span>
+        <a href="#pantallas">Pantallas</a>
+        <a href="#funciona">Cómo funciona</a>
+        <a href="#casos">Casos de uso</a>
+        <a href="#comparativa">Comparativa</a>
+        <a href="#arquitectura">Arquitectura</a>
+        <a href="#stack">Stack</a>
+        <a href="#privacidad">Privacidad</a>
+        <a href="#calidad">Calidad</a>
+        <a href="#decisiones">Decisiones</a>
+        <a href="#novedades">Novedades</a>
+        <a href="#faq">Preguntas frecuentes</a>
+        <a href="#glosario">Glosario</a>
+        <a href="#compilar">Compilar</a>
+        <a href="#lite">DivTrack Lite</a>
+        <div class="themectl" role="group" aria-label="Tema de la página">
+          <label for="th-auto">Sistema</label>
+          <label for="th-light">Claro</label>
+          <label for="th-dark">Oscuro</label>
+        </div>
+        <a class="menu-cta" href="#descarga">Descargar el APK</a>
+      </div>
+    </details>
   </div>
+  <div class="progress" aria-hidden="true"></div>
 </nav>
 
 <header class="hero" id="top">
+  <span class="hero-aurora" aria-hidden="true"></span>
   <div class="wrap hero-grid">
     <div>
       <p class="eyebrow"><span class="dot" aria-hidden="true"></span>App Android · Kotlin 100 % · Jetpack Compose</p>
-      <h1>Dos tasas. Una respuesta clara.<br>Sin adornos.</h1>
+      <h1>Dos tasas. Una respuesta clara.<br><span class="grad">Sin adornos.</span></h1>
       <p class="lede">
         DivTrack sigue el <strong>dólar oficial (BCV)</strong> y el <strong>dólar paralelo</strong>,
         resuelve cada tasa <strong>por frescura entre cuatro proveedores</strong> y convierte en ambos
@@ -618,8 +1220,14 @@
       </p>
 
       <div class="actions">
-        <a class="button primary" href="#descarga">Descargar el APK</a>
-        <a class="button ghost" href="#pantallas">Ver las pantallas</a>
+        <a class="button primary" href="#descarga">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
+          Descargar el APK
+        </a>
+        <a class="button ghost" href="#pantallas">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/></svg>
+          Ver las pantallas
+        </a>
       </div>
 
       <div class="badges">
@@ -629,13 +1237,13 @@
         <span class="badge"><b>Navigation 3</b></span>
         <span class="badge"><b>Hilt</b> · Room · Retrofit</span>
         <span class="badge"><b>8 módulos</b> · Clean Architecture</span>
-        <span class="badge"><b>82 tests</b> JVM</span>
+        <span class="badge"><b>88 tests</b> JVM</span>
         <span class="badge"><b>minSdk</b> 31 → target 37</span>
       </div>
 
       <div class="facts">
-        <div class="fact"><div class="k">APK release con R8</div><div class="v num">2,37 MB</div></div>
-        <div class="fact"><div class="k">Petición completa, con techo</div><div class="v num">20 s</div></div>
+        <div class="fact"><div class="k">APK release con R8</div><div class="v num">2,37 <small>MB</small></div></div>
+        <div class="fact"><div class="k">Petición completa, con techo</div><div class="v num">20 <small>s</small></div></div>
         <div class="fact"><div class="k">Permisos declarados</div><div class="v num">2</div></div>
       </div>
     </div>
@@ -672,24 +1280,55 @@
           <span class="v num">+11,11 % por encima del oficial (95,53 Bs.)</span>
         </span>
       </div>
+      <p class="footnote center" style="margin-top:14px">
+        Las cifras de arriba son una muestra con fecha: la app pinta siempre la última lectura guardada,
+        con su fuente y su hora.
+      </p>
     </div>
   </div>
 </header>
 
 <main id="contenido">
 
-<!-- Iconos de la barra inferior y del botón de copiar: SVG incrustado, sin CDN ni webfont. -->
+<!-- Sprite de iconos: SVG incrustado, sin CDN ni webfont. -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="ic-tasas" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
   <symbol id="ic-calc" viewBox="0 0 24 24"><rect x="4.5" y="3" width="15" height="18" rx="3"/><path d="M8.5 8.5h3M10 7v3M15.5 8.5h.01M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/></symbol>
   <symbol id="ic-ajustes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M18 6l-1.6 1.6M7.6 16.4L6 18"/></symbol>
   <symbol id="ic-copiar" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 14v6h14v-6"/></symbol>
+  <symbol id="ic-download" viewBox="0 0 24 24"><path d="M12 3.5v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4.5 20.5h15"/></symbol>
+  <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5.2c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V6l7-3z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
+  <symbol id="ic-offline" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M5 12.5a10 10 0 0 1 4-2.4"/><path d="M8.5 16a5.5 5.5 0 0 1 3-1.4"/><path d="M12 19.5h.01"/><path d="M14.5 10.4a10 10 0 0 1 4.5 2.1"/></symbol>
+  <symbol id="ic-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></symbol>
+  <symbol id="ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><path d="M12 3.5c2.4 2.4 3.6 5.3 3.6 8.5S14.4 18.1 12 20.5c-2.4-2.4-3.6-5.3-3.6-8.5S9.6 5.9 12 3.5z"/></symbol>
+  <symbol id="ic-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.5"/><path d="M3 19.5c0-3 2.7-5 6-5s6 2 6 5"/><path d="M16 5.6a3.5 3.5 0 0 1 0 6.3"/><path d="M17.5 14.9c2 .7 3.5 2.4 3.5 4.6"/></symbol>
+  <symbol id="ic-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11"/></symbol>
+  <symbol id="ic-book" viewBox="0 0 24 24"><path d="M12 6.5C10.5 5.3 8.6 4.7 6 4.7c-.9 0-1.7.1-2.4.2v13.4c.7-.1 1.5-.2 2.4-.2 2.6 0 4.5.6 6 1.8 1.5-1.2 3.4-1.8 6-1.8.9 0 1.7.1 2.4.2V4.9c-.7-.1-1.5-.2-2.4-.2-2.6 0-4.5.6-6 1.8z"/><path d="M12 6.5v13.4"/></symbol>
+  <symbol id="ic-layers" viewBox="0 0 24 24"><path d="M12 3.5l8.5 4.6L12 12.7 3.5 8.1 12 3.5z"/><path d="M3.5 12.4L12 17l8.5-4.6"/><path d="M3.5 16.4L12 21l8.5-4.6"/></symbol>
+  <symbol id="ic-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/></symbol>
+  <symbol id="ic-bolt" viewBox="0 0 24 24"><path d="M13.5 3L5 13.5h6L10.5 21 19 10.5h-6L13.5 3z"/></symbol>
+  <symbol id="ic-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.2"/></symbol>
+  <symbol id="ic-alert" viewBox="0 0 24 24"><path d="M12 4.5L21 19.5H3L12 4.5z"/><path d="M12 10v4"/><path d="M12 16.8h.01"/></symbol>
 </svg>
+
+<!-- ============================== Métricas ============================== -->
+<section class="stats" aria-label="Cifras del proyecto" style="padding-top:clamp(30px,4vw,44px);padding-bottom:clamp(30px,4vw,44px)">
+  <div class="wrap">
+    <div class="grid-stats">
+      <div class="stat"><div class="v num">88</div><div class="k">tests JVM · 0 fallos</div></div>
+      <div class="stat"><div class="v num">42</div><div class="k">ADR escritos</div></div>
+      <div class="stat"><div class="v num">8</div><div class="k">módulos Gradle</div></div>
+      <div class="stat"><div class="v num">4</div><div class="k">fuentes de tasas</div></div>
+      <div class="stat"><div class="v num">2,37 MB</div><div class="k">APK release con R8</div></div>
+      <div class="stat"><div class="v num">2</div><div class="k">permisos, ambos normales</div></div>
+    </div>
+  </div>
+</section>
 
 <section id="pantallas">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Producto</span>
+      <span class="kicker"><span class="idx">01</span>Producto</span>
       <h2>Tres pantallas, sin jerarquía</h2>
       <p class="hint">
         Barra inferior con tres pestañas planas. El back stack se mantiene acotado a
@@ -848,7 +1487,7 @@
 <section id="funciona">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Comportamiento</span>
+      <span class="kicker"><span class="idx">02</span>Comportamiento</span>
       <h2>Online-First de verdad</h2>
       <p class="hint">
         La red <strong>nunca</strong> alimenta la pantalla directamente: escribe en Room y Room
@@ -864,7 +1503,7 @@
       </li>
       <li>
         <strong>Se consultan los cuatro proveedores en orden</strong>
-        <span>DolarAPI (oficial y paralelo) → Yadio (paralelo, su fuente upstream) → ExchangeRate-API (oficial, independiente de los dos anteriores). El usuario puede elegir cuál va primero en Ajustes; el resto actúa de respaldo.</span>
+        <span>DolarAPI (oficial y paralelo) → Yadio (paralelo, su fuente upstream) → ExchangeRate-API (oficial, independiente de los dos anteriores) → DolarVZLA (el cierre del BCV por CDN estático). El usuario puede elegir cuál va primero en Ajustes; el resto actúa de respaldo.</span>
       </li>
       <li>
         <strong>Gana el dato más fresco, no el de mejor prioridad</strong>
@@ -910,9 +1549,11 @@
         <div class="host">rates.dolarvzla.com/bcv/current.json</div>
       </div>
     </div>
+    <p class="footnote">Los hosts salen de <code>BuildConfig</code>, nunca escritos en el código Kotlin: un clon limpio compila sin secretos.</p>
 
-    <div class="grid cols-3" style="margin-top:24px">
+    <div class="grid cols-3 mt-24">
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-refresh"/></svg></span>
         <h3>Sincronización silenciosa</h3>
         <p>
           WorkManager con restricción de red y backoff exponencial. El intervalo lo decide el
@@ -922,6 +1563,7 @@
         </p>
       </div>
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-layers"/></svg></span>
         <h3>Una sola pasada a la vez</h3>
         <p>
           Un <code>Mutex</code> en el repositorio serializa las sincronizaciones: el arranque, el
@@ -929,7 +1571,8 @@
           simultáneas contra las mismas APIs.
         </p>
       </div>
-      <div class="card">
+      <div class="card amber">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-alert"/></svg></span>
         <h3>Avisos que no mienten</h3>
         <p>
           Dato rancio del banco y dato sin conexión son avisos distintos. Cuando la tasa lleva
@@ -941,10 +1584,201 @@
   </div>
 </section>
 
+<section id="casos">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker"><span class="idx">03</span>Para quién</span>
+      <h2>Seis situaciones resueltas sin abrir un navegador</h2>
+      <p class="hint">
+        No es una app de finanzas generales: es el dólar venezolano y su calculadora, hechas
+        para repetirse veinte veces al día sin fricción.
+      </p>
+    </div>
+
+    <div class="bento">
+      <div class="card wide">
+        <span class="use-num">01</span>
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-calc"/></svg></span>
+        <h3>Cobras, ahorras o compras en dólares</h3>
+        <p>
+          La calculadora convierte en ambos sentidos <strong>al teclear</strong>, sin botón
+          «Calcular»: escribís en USD y sale en Bs., o al revés con un toque en el inversor.
+          La conversión es directa, 1 : tasa, <strong>sin impuestos ni cargos añadidos</strong>
+          (el recargo del 3 % y la simulación de cuotas se retiraron del dominio: ADR 5 y 32).
+        </p>
+        <ul>
+          <li>Selector de tasa: oficial o paralelo, recordado mientras las tasas no cambien.</li>
+          <li>«Copiar desglose» lleva el desglose completo al portapapeles.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="use-num">02</span>
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-tasas"/></svg></span>
+        <h3>Necesitas el precio de hoy, no el de ayer</h3>
+        <p>
+          Las dos tasas con su fuente y su hora, y la brecha entre ellas calculada una sola vez
+          por emisión. Si el dato lleva demasiado rato sin publicarse, la tarjeta lo avisa en
+          ámbar en lugar de presentar el cierre viejo como si fuera de hoy.
+        </p>
+      </div>
+
+      <div class="card">
+        <span class="use-num">03</span>
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-offline"/></svg></span>
+        <h3>Señal intermitente o datos agotados</h3>
+        <p>
+          La app abre con lo último guardado y el aviso nombra la causa real (sin conexión,
+          timeout, 503, 404). Un fallo de red <strong>nunca borra</strong> lo que ya estaba en
+          pantalla: Room manda, la red solo escribe.
+        </p>
+      </div>
+
+      <div class="card">
+        <span class="use-num">04</span>
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-globe"/></svg></span>
+        <h3>De viaje o con el reloj mal puesto</h3>
+        <p>
+          Todo cálculo de “día” y “cierre anterior” usa la hora de <strong>América/Caracas</strong>
+          inyectada, no la del dispositivo: un desfase horario no te regala una tendencia
+          equivocada (ADR 13).
+        </p>
+      </div>
+
+      <div class="card">
+        <span class="use-num">05</span>
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-phone"/></svg></span>
+        <h3>Un teléfono que ya es viejo</h3>
+        <p>
+          <a href="#lite">DivTrack Lite</a> es otro Gradle, otro lenguaje y otro mínimo: Java +
+          XML sobre <code>minSdk 14</code>, 47,8 KB, una sola pantalla con la tasa del BCV y cero
+          dependencias de terceros.
+        </p>
+      </div>
+
+      <div class="card">
+        <span class="use-num">06</span>
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-shield"/></svg></span>
+        <h3>No quieres que te pidan nada</h3>
+        <p>
+          Sin cuenta, sin registro y con <strong>dos permisos normales</strong>: INTERNET y
+          ACCESS_NETWORK_STATE. Ni diálogo de permisos, ni notificaciones, ni ubicación
+          (ADR 24). Los detalles están en <a href="#privacidad">Privacidad</a>.
+        </p>
+      </div>
+    </div>
+
+    <div class="aside-box">
+      <h3>Qué no hace DivTrack</h3>
+      <p>La honestidad también es una función:</p>
+      <ul>
+        <li><strong>No es oficial ni está afiliada al BCV.</strong> Son cotizaciones informativas de fuentes públicas; verifica antes de operar.</li>
+        <li><strong>No suma impuestos, recargos ni cuotas.</strong> La calculadora solo convierte (ADR 42); se retiró la semántica del IGTF (ADR 5, retirada).</li>
+        <li><strong>No intenta ser un cajón de herramientas.</strong> Un catálogo genérico (ROMs, bases numéricas, particiones) se rechazó por escrito: el producto es el dólar oficial y su calculadora (ADR 35).</li>
+        <li><strong>No lee tu dispositivo.</strong> Ni contactos, ni archivos, ni ubicación: los dos permisos son de red.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="comparativa">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker"><span class="idx">04</span>Comparativa</span>
+      <h2>DivTrack completa contra DivTrack Lite</h2>
+      <p class="hint">
+        Dos productos del mismo repositorio, con alcances distintos y sin solaparse: la completa
+        vive en ocho módulos con Compose; Lite es un subproyecto aparte para equipos donde el
+        stack moderno no es una opción (ADR 27).
+      </p>
+    </div>
+
+    <div class="tablewrap scroll-x">
+      <table>
+        <thead>
+          <tr><th>Característica</th><th>DivTrack</th><th>DivTrack Lite</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tasa oficial del BCV</td>
+            <td><span class="cell-ico yes"><svg><use href="#ic-check"/></svg>4 fuentes en red</span></td>
+            <td><span class="cell-ico yes"><svg><use href="#ic-check"/></svg>BCV → DolarAPI → ER-API</span></td>
+          </tr>
+          <tr>
+            <td>Tasa paralela + brecha</td>
+            <td><span class="cell-ico yes"><svg><use href="#ic-check"/></svg>Sí, opcional</span></td>
+            <td><span class="cell-ico no">—</span></td>
+          </tr>
+          <tr>
+            <td>Calculadora bidireccional</td>
+            <td><span class="cell-ico yes"><svg><use href="#ic-check"/></svg>Al teclear, con inversor</span></td>
+            <td><span class="cell-ico no">—</span></td>
+          </tr>
+          <tr>
+            <td>Pantallas</td>
+            <td class="v">3 (Tasas · Calculadora · Ajustes)</td>
+            <td class="v">1</td>
+          </tr>
+          <tr>
+            <td>Android mínimo</td>
+            <td class="v">12 · API 31</td>
+            <td class="v">4.0 · API 14</td>
+          </tr>
+          <tr>
+            <td>Tamaño (release con R8)</td>
+            <td class="v">2,37 MB</td>
+            <td class="v">47,8 KB</td>
+          </tr>
+          <tr>
+            <td>Permisos</td>
+            <td class="v">INTERNET · ACCESS_NETWORK_STATE</td>
+            <td class="v">INTERNET</td>
+          </tr>
+          <tr>
+            <td>Sincronización en segundo plano</td>
+            <td><span class="cell-ico yes"><svg><use href="#ic-check"/></svg>WorkManager, 15 min – 4 h</span></td>
+            <td><span class="cell-ico no">— solo con la pantalla abierta</span></td>
+          </tr>
+          <tr>
+            <td>Comprobación de versión en la app</td>
+            <td><span class="cell-ico yes"><svg><use href="#ic-check"/></svg>Release rolling de GitHub</span></td>
+            <td><span class="cell-ico no">— se publica junto al principal</span></td>
+          </tr>
+          <tr>
+            <td>Guarda lo último en</td>
+            <td class="v">Room (esquema versionado)</td>
+            <td class="v">SharedPreferences</td>
+          </tr>
+          <tr>
+            <td>Sin conexión</td>
+            <td>Muestra lo guardado y la causa del fallo</td>
+            <td>Muestra el último valor, su fuente y su fecha</td>
+          </tr>
+          <tr>
+            <td>Stack</td>
+            <td class="v">Kotlin 2.4 · Compose M3 · Hilt</td>
+            <td class="v">Java + XML · sin librerías de terceros</td>
+          </tr>
+          <tr>
+            <td>Tráfico cifrado obligatorio</td>
+            <td><span class="cell-ico yes"><svg><use href="#ic-check"/></svg>Sí</span></td>
+            <td><span class="cell-ico yes"><svg><use href="#ic-check"/></svg>Sí</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">
+      Cifras medidas en la corrida del 2026-10-03 sobre builds locales reales; los tamaños varían
+      con cada compilación. Lite compila con
+      <code>./gradlew -p lite :app:assembleRelease</code> y su APK se publica junto al principal.
+    </p>
+  </div>
+</section>
+
 <section id="arquitectura">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Ingeniería</span>
+      <span class="kicker"><span class="idx">05</span>Ingeniería</span>
       <h2>Arquitectura: las reglas las impone Gradle</h2>
       <p class="hint">
         Ocho módulos. <code>:domain</code> y <code>:core:common</code> son Kotlin/JVM puros, así que
@@ -973,6 +1807,7 @@
 
     <div class="grid cols-2">
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-layers"/></svg></span>
         <h3>MVI estricto, igual en todas las pantallas</h3>
         <p>
           <code>Contract</code> (intents + efectos), <code>UiState</code> inmutable,
@@ -982,6 +1817,7 @@
         </p>
       </div>
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-bolt"/></svg></span>
         <h3>Los ViewModel no conocen <code>Context</code></h3>
         <p>
           Los textos viajan como <code>UiText.Res(id)</code> y se resuelven en Compose. Por eso los
@@ -989,6 +1825,7 @@
         </p>
       </div>
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-alert"/></svg></span>
         <h3>Errores con nombre y apellido</h3>
         <p>
           <code>NetworkErrorMapper</code> es el único sitio que conoce <code>HttpException</code>,
@@ -997,6 +1834,7 @@
         </p>
       </div>
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-phone"/></svg></span>
         <h3>Pensado para gama baja</h3>
         <p>
           Superficies planas con borde de 1 dp en lugar de elevación, esqueleto de carga sin
@@ -1012,7 +1850,7 @@
 <section id="stack">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Toolchain</span>
+      <span class="kicker"><span class="idx">06</span>Toolchain</span>
       <h2>Stack</h2>
       <p class="hint">
         Todo fijado por catálogo de versiones y verificado contra Google Maven / Maven Central antes
@@ -1043,69 +1881,73 @@
   </div>
 </section>
 
-<section id="compilar">
+<section id="privacidad">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Reproducir</span>
-      <h2>Compilar y probar</h2>
+      <span class="kicker"><span class="idx">07</span>Privacidad</span>
+      <h2>Pide lo mínimo y lo dice</h2>
       <p class="hint">
-        Ninguna URL está escrita en el código Kotlin: se leen de <code>local.properties</code> y se
-        inyectan como campos de <code>BuildConfig</code>. Si el archivo no existe, se usan los
-        endpoints públicos, así que un clon limpio compila sin secretos.
+        Una app de dos tasas no necesita conocerte. Esto es todo lo que toca del dispositivo y
+        de la red, sin letra pequeña.
       </p>
     </div>
 
-    <pre><span class="c"># APK de depuración</span>
-./gradlew :app:assembleDebug
-
-<span class="c"># 82 tests JVM (sin emulador)</span>
-./gradlew testDebugUnitTest :domain:test :core:common:test
-
-<span class="c"># Release con R8 + métricas del compilador de Compose</span>
-./gradlew :app:assembleRelease -PcomposeMetrics=true
-
-<span class="c"># DivTrack Lite: subproyecto aparte, con su propio settings.gradle.kts</span>
-./gradlew -p lite :app:assembleRelease</pre>
-
-    <div class="grid cols-2" style="margin-bottom:var(--gap)">
+    <div class="grid cols-3">
       <div class="card">
-        <h3>CI en GitHub Actions</h3>
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-shield"/></svg></span>
+        <h3>Dos permisos y ni uno más</h3>
         <p>
-          Compila debug, ejecuta los tests, compila release con R8, compila DivTrack Lite, pasa el
-          lint y publica APKs, reportes y métricas de Compose como artefactos. JDK 21, SDK 37 y la
-          caché de Gradle.
+          <code>INTERNET</code> (consultar las APIs) y <code>ACCESS_NETWORK_STATE</code> (saber si
+          hay red para no esperar un timeout). Los dos son <strong>normales</strong>: no hay
+          diálogo de runtime ni estado que gestionar. Ni ubicación, ni contactos, ni almacenamiento,
+          ni cámara, ni notificaciones (ADR 24).
         </p>
       </div>
       <div class="card">
-        <h3>Si el toolchain se atasca</h3>
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-lock"/></svg></span>
+        <h3>Tráfico siempre cifrado</h3>
         <p>
-          AGP 9 con Kotlin integrado es reciente. <code>gradle.properties</code> documenta la
-          válvula de escape (<code>android.builtInKotlin=false</code> +
-          <code>android.newDsl=false</code>) que vuelve al modo clásico sin bajar de AGP 9.
+          <code>usesCleartextTraffic="false"</code> con <code>network_security_config</code>:
+          si algún <code>baseUrl</code> pasara a <code>http://</code>, el fallo aparece en el
+          primer intento en lugar de mandar tasas sin cifrar.
         </p>
       </div>
-    </div>
-
-    <div class="card" id="descarga">
-      <h3>Descarga e instalación</h3>
-      <p style="margin-bottom:10px">
-        El APK se publica en <strong>Releases</strong> de este repositorio, en la etiqueta rodante
-        <code>latest</code>, que se reemplaza en cada push a <code>main</code> una vez compilado y
-        con los tests en verde:
-      </p>
-      <ul style="margin:0 0 12px; padding-left:20px; color:var(--muted); font-size:0.9rem">
-        <li><code>DivTrack-&lt;versión&gt;-arm64-v8a.apk</code> — teléfonos ARM de 64 bits (la mayoría).</li>
-        <li><code>DivTrack-&lt;versión&gt;-armeabi-v7a.apk</code> — teléfonos ARM de 32 bits.</li>
-        <li><code>DivTrack-&lt;versión&gt;-x86_64.apk</code> — emuladores y Chromebooks.</li>
-        <li><code>SHA256SUMS.txt</code> — hashes para verificar la descarga.</li>
-      </ul>
-      <p class="hint" style="font-size:0.85rem">
-        Al instalar un APK fuera de Google Play hay que permitir “orígenes desconocidos”. Las
-        versiones release deben firmarse siempre con la misma clave para actualizarse encima de la
-        anterior; el canal debug usa una clave temporal del runner y publica las mismas tres
-        variantes con applicationId <code>…divtrack.debug</code>. DivTrack Lite se compila aparte
-        y no forma parte de este release.
-      </p>
+      <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-users"/></svg></span>
+        <h3>Sin cuenta ni registro</h3>
+        <p>
+          No hay login, ni identificación, ni correo que dejar: la app funciona igual para todos
+          desde la primera ejecución. Tampoco hay notificaciones del sistema (el worker de
+          WorkManager no publica ninguna).
+        </p>
+      </div>
+      <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-book"/></svg></span>
+        <h3>Respaldo con criterio</h3>
+        <p>
+          El auto-backup de Android <strong>excluye</strong> la base de Room y la caché HTTP:
+          restaurar tasas viejas en otro dispositivo mostraría datos caducos como actuales. Las
+          preferencias —tema y frecuencia— sí viajan (ADR 12).
+        </p>
+      </div>
+      <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-check"/></svg></span>
+        <h3>Cero SDK de medición</h3>
+        <p>
+          El stack entero es Hilt, Room, Retrofit, WorkManager, Compose y la API pública de
+          GitHub para las versiones: <strong>no hay SDK de analítica ni de publicidad</strong>, y
+          esta página tampoco carga rastreadores.
+        </p>
+      </div>
+      <div class="card amber">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-bolt"/></svg></span>
+        <h3>Una salida cuando algo falla</h3>
+        <p>
+          Cuando el problema es de conectividad, el aviso ofrece «Abrir ajustes de red» con una
+          <code>Intent</code> del sistema, sin permisos: un “sin conexión” sin nada que pulsar
+          deja al usuario atascado.
+        </p>
+      </div>
     </div>
   </div>
 </section>
@@ -1113,7 +1955,7 @@
 <section id="calidad">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Honestidad</span>
+      <span class="kicker"><span class="idx">08</span>Honestidad</span>
       <h2>Qué está comprobado y qué no</h2>
       <p class="hint">
         Lo que sigue se verificó <strong>ejecutando cosas</strong>, no asumiendo. Y lo que no se pudo
@@ -1121,27 +1963,28 @@
       </p>
     </div>
 
-    <div class="tablewrap" style="margin-bottom:24px">
+    <div class="tablewrap scroll-x" style="margin-bottom:24px">
       <table>
         <thead><tr><th>Comprobación</th><th>Resultado</th></tr></thead>
         <tbody>
-          <tr><td>APIs de tasas, en vivo</td><td><span class="pill ok">OK</span> (2026-10-03) DolarAPI VE responde 200 con el oficial del <strong>2 oct</strong> (más de 24 h: la app lo marca rancio) y el paralelo del día (974,34); Yadio 972,52; ExchangeRate-API trae el oficial vigente <strong>871,37</strong> y gana por frescura — la regla del ADR 26, vista con datos reales</td></tr>
-          <tr><td>Fuentes descartadas</td><td><span class="pill ok">OK</span> <code>pydolarve.org</code> no resuelve por DNS · <code>api.dolarvzla.com</code> responde 401 · <code>criptoya.com/api/USD/VES</code> responde 422</td></tr>
-          <tr><td>Recursos de texto</td><td><span class="pill ok">OK</span> 116 claves definidas en es-VE y otras 116 en inglés, con el mismo juego en los dos archivos · 0 claves huérfanas</td></tr>
-          <tr><td>Estructura del código</td><td><span class="pill ok">OK</span> todos los archivos con <code>package</code> = ruta, llaves balanceadas, 0 imports sin uso</td></tr>
-          <tr><td>Grafo de inyección</td><td><span class="pill ok">OK</span> toda clase con <code>@Inject constructor</code> tiene su <code>@Provides</code>, <code>@Binds</code> o <code>@IntoSet</code></td></tr>
-          <tr><td>Interfaz completa</td><td><span class="pill ok">OK</span> cada botón, selector, interruptor y gesto está cableado a una intención · 0 <code>onClick</code> vacíos, 0 <code>TODO</code></td></tr>
-          <tr><td>Referencias colgantes</td><td><span class="pill ok">OK</span> 0 tras eliminar el código muerto</td></tr>
-          <tr><td>Tests</td><td><span class="pill ok">OK</span> 88 casos JVM en el repo, <strong>0 fallos</strong> en la corrida del 2026-10-03, incluida la conversión directa en ambos sentidos, la resolución por tasa y los 6 casos nuevos del refresco al volver y de las fechas ISO</td></tr>
-          <tr><td>Compilación verificada (2026-10-03)</td><td><span class="pill ok">OK</span> <code>:app:assembleDebug</code> (21,9 MB) y <code>:app:assembleRelease</code> con R8 (2,40 MB) sobre un toolchain local real (JDK 21 + plataforma android-37.0), más el APK de DivTrack Lite. La migración a Java 21 y el split de tres ABIs de esta pasada quedan pendientes de la primera corrida de CI.</td></tr>
-          <tr><td>DivTrack Lite</td><td><span class="pill ok">OK</span> subproyecto aparte (<code>lite/</code>): Java + XML, API 14+, una sola pantalla y respaldos identificados. Verificado aquí: compila (release con R8, 47,8 KB) y su lógica de respaldo pasó un arnés JVM; ya no muestra ningún mensaje de error por la fuente que no respondió (ADR 27 y 28)</td></tr>
-          <tr><td>Pasadas anteriores</td><td><span class="pill ok">OK</span> eliminar el Histórico, arreglar conexión, permisos, rendimiento y el leak, y la revisión estricta posterior <strong>se recompilaron y se pasaron por tests</strong> en esta corrida: nada queda «sin re-verificar»</td></tr>
+          <tr><td>APIs de tasas, en vivo</td><td class="first-normal"><span class="pill ok">OK</span> (2026-10-03) DolarAPI VE responde 200 con el oficial del <strong>2 oct</strong> (más de 24 h: la app lo marca rancio) y el paralelo del día (974,34); Yadio 972,52; ExchangeRate-API trae el oficial vigente <strong>871,37</strong> y gana por frescura — la regla del ADR 26, vista con datos reales</td></tr>
+          <tr><td>Fuentes descartadas</td><td class="first-normal"><span class="pill ok">OK</span> <code>pydolarve.org</code> no resuelve por DNS · <code>api.dolarvzla.com</code> responde 401 · <code>criptoya.com/api/USD/VES</code> responde 422</td></tr>
+          <tr><td>Recursos de texto</td><td class="first-normal"><span class="pill ok">OK</span> 116 claves definidas en es-VE y otras 116 en inglés, con el mismo juego en los dos archivos · 0 claves huérfanas</td></tr>
+          <tr><td>Estructura del código</td><td class="first-normal"><span class="pill ok">OK</span> todos los archivos con <code>package</code> = ruta, llaves balanceadas, 0 imports sin uso</td></tr>
+          <tr><td>Grafo de inyección</td><td class="first-normal"><span class="pill ok">OK</span> toda clase con <code>@Inject constructor</code> tiene su <code>@Provides</code>, <code>@Binds</code> o <code>@IntoSet</code></td></tr>
+          <tr><td>Interfaz completa</td><td class="first-normal"><span class="pill ok">OK</span> cada botón, selector, interruptor y gesto está cableado a una intención · 0 <code>onClick</code> vacíos, 0 <code>TODO</code></td></tr>
+          <tr><td>Referencias colgantes</td><td class="first-normal"><span class="pill ok">OK</span> 0 tras eliminar el código muerto</td></tr>
+          <tr><td>Tests</td><td class="first-normal"><span class="pill ok">OK</span> 88 casos JVM en el repo, <strong>0 fallos</strong> en la corrida del 2026-10-03, incluida la conversión directa en ambos sentidos, la resolución por tasa y los 6 casos nuevos del refresco al volver y de las fechas ISO</td></tr>
+          <tr><td>Compilación verificada (2026-10-03)</td><td class="first-normal"><span class="pill ok">OK</span> <code>:app:assembleDebug</code> (21,9 MB) y <code>:app:assembleRelease</code> con R8 (2,40 MB) sobre un toolchain local real (JDK 21 + plataforma android-37.0), más el APK de DivTrack Lite. La migración a Java 21 y el split de tres ABIs de esta pasada quedan pendientes de la primera corrida de CI.</td></tr>
+          <tr><td>DivTrack Lite</td><td class="first-normal"><span class="pill ok">OK</span> subproyecto aparte (<code>lite/</code>): Java + XML, API 14+, una sola pantalla y respaldos identificados. Verificado aquí: compila (release con R8, 47,8 KB) y su lógica de respaldo pasó un arnés JVM; ya no muestra ningún mensaje de error por la fuente que no respondió (ADR 27 y 28)</td></tr>
+          <tr><td>Pasadas anteriores</td><td class="first-normal"><span class="pill ok">OK</span> eliminar el Histórico, arreglar conexión, permisos, rendimiento y el leak, y la revisión estricta posterior <strong>se recompilaron y se pasaron por tests</strong> en esta corrida: nada queda «sin re-verificar»</td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="grid cols-2">
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-check"/></svg></span>
         <h3>Los tests cubren lo que falla en silencio</h3>
         <p>
           El parser de importes es-VE (<code>1.234,56</code> y <code>1,234.56</code>), la conversión
@@ -1150,7 +1993,8 @@
           teclear y la reprogramación del trabajo periódico cuando cambian los ajustes.
         </p>
       </div>
-      <div class="card">
+      <div class="card amber">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-alert"/></svg></span>
         <h3>Bugs corregidos en varias pasadas</h3>
         <p>
           La calculadora ofrecía una tasa que no existía todavía; un gráfico se quedaba con los
@@ -1167,7 +2011,7 @@
 <section id="decisiones">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Criterio</span>
+      <span class="kicker"><span class="idx">09</span>Criterio</span>
       <h2>Decisiones escritas, no implícitas</h2>
       <p class="hint">
         Cada elección discutible está documentada con su alternativa descartada y su coste: AGP 9
@@ -1177,11 +2021,338 @@
         esquema de Room exportado sin migración destructiva.
       </p>
     </div>
-    <div class="grid cols-4">
-      <div class="card"><h3>42 ADR</h3><p>En <code>docs/DECISIONS.md</code>, cada uno con su coste.</p></div>
+    <div class="grid cols-3">
+      <div class="card"><h3>42 ADR</h3><p>En <a href="DECISIONS.md">DECISIONS.md</a>, cada uno con su coste.</p></div>
       <div class="card"><h3>8 módulos</h3><p>Con la dirección de dependencias impuesta por Gradle.</p></div>
-      <div class="card"><h3>2 idiomas</h3><p>Español de Venezuela por defecto e inglés completo.</p></div>
+      <div class="card"><h3>2 idiomas</h3><p>Español de Venezuela por defecto e inglés completo, 116 claves en cada archivo.</p></div>
       <div class="card"><h3>0 APIs hardcodeadas</h3><p>Las URLs entran por <code>BuildConfig</code>.</p></div>
+      <div class="card"><h3>Sin código muerto</h3><p>Las APIs que no usaba nadie se eliminaron (ADR 19); retirar es documentar, no esconder.</p></div>
+      <div class="card"><h3>Retiradas con acta</h3><p>El IGTF (ADR 5) y las cuotas (ADR 32) están marcados como retirados, no borrados.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="novedades">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker"><span class="idx">10</span>Novedades</span>
+      <h2>Qué cambió en la 4.7</h2>
+      <p class="hint">
+        La versión vigente del release rodante es <strong>DivTrack 4.7 (latest)</strong>. Estos son
+        los cambios de la pasada reciente, cada uno con su ADR en lugar de una nota de versiones
+        marketing.
+      </p>
+    </div>
+
+    <div class="timeline">
+      <article class="novedad">
+        <div class="head"><h3>El oficial tiene una sola voz</h3><span class="adr">ADR 39 · 40</span></div>
+        <p>DolarAPI se le pide por su endpoint dedicado (<code>/v1/dolares/oficial</code>) y, si responde, su valor manda: se acaba el oficial dibujado con dos fuentes distintas peleando.</p>
+      </article>
+      <article class="novedad">
+        <div class="head"><h3>Cuarta fuente: el cierre del BCV por CDN estático</h3><span class="adr">ADR 38</span></div>
+        <p>DolarVZLA entra como respaldo del oficial con el mismo contrato que el resto, para cuando las APIs dinámicas titubean.</p>
+      </article>
+      <article class="novedad">
+        <div class="head"><h3>La pasada es más tolerante y las pantallas reintentan</h3><span class="adr">ADR 36</span></div>
+        <p>Un proveedor que responde en vivo sin marca de tiempo ya no se descarta sin más, y cada pantalla reintenta al volver si la última comprobación quedó vieja.</p>
+      </article>
+      <article class="novedad">
+        <div class="head"><h3>APIs revisadas contra la realidad de Venezuela</h3><span class="adr">ADR 37</span></div>
+        <p>Se comprobó en vivo qué responde y qué no (dos fuentes descartadas con su causa), y se corrigió el slug del release: en otro repositorio la comprobación de versión respondería 404.</p>
+      </article>
+      <article class="novedad">
+        <div class="head"><h3>Java 21, tres ABIs y aritmética fuera del hilo principal</h3><span class="adr">ADR 41</span></div>
+        <p>Todo el grafo compila a bytecode 21, el release se parte en <code>armeabi-v7a</code>, <code>arm64-v8a</code> y <code>x86_64</code> (sin universal), y la calculadora calcula en <code>Dispatchers.Default</code>.</p>
+      </article>
+      <article class="novedad">
+        <div class="head"><h3>La calculadora solo convierte</h3><span class="adr">ADR 42</span></div>
+        <p>Fuera el recargo del 3 %, el interruptor y el selector de plazos: una sola fórmula auditable. El inversor de dirección pasa a botón sólido de ancho completo, con 56 dp de área táctil.</p>
+      </article>
+      <article class="novedad">
+        <div class="head"><h3>La app se actualiza sola, con una petición al día</h3><span class="adr">ADR 33 · 34</span></div>
+        <p>Módulo propio que lee el release rodante de GitHub con revalidación por ETag (304 sin cuerpo), ventana de 6 h y fallo rápido sin red. La descarga la hace el sistema; la instalación la confirma Android.</p>
+      </article>
+      <article class="novedad">
+        <div class="head"><h3>Refresco al volver y base dañada avisada</h3><span class="adr">ADR 29 · 31</span></div>
+        <p>El panel se refresca al regresar con su ventana de frescura, y una base dañada se recrea <strong>nunca en silencio</strong>: el usuario se entera.</p>
+      </article>
+    </div>
+
+    <div class="aside-box">
+      <h3>También se quitó cosas, y consta</h3>
+      <p>
+        El Histórico con su gráfico fuera (ADR 11), el IGTF (ADR 5, retirada) y las cuotas de la
+        calculadora (ADR 32, retirada). Menos superficie es menos bug: retirar también es
+        una decisión documentada.
+      </p>
+    </div>
+
+    <a class="ver-todo" href="DECISIONS.md">Ver los 42 ADR en DECISIONS.md →</a>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker"><span class="idx">11</span>Preguntas</span>
+      <h2>Preguntas frecuentes</h2>
+      <p class="hint">Respuestas cortas, con su ADR al final para quien quiera el detalle.</p>
+    </div>
+
+    <div class="faq">
+      <details open>
+        <summary><span class="q">?</span>¿DivTrack es oficial o está afiliada al Banco Central de Venezuela?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          <strong>No.</strong> Es una app independiente que lee fuentes públicas (DolarAPI, Yadio,
+          ExchangeRate-API y DolarVZLA) y publica lo que encuentra, con su fuente y su hora. Las
+          cotizaciones son informativas: no es una casa de cambio ni un ente público, y el aviso
+          legal va dentro de la propia app.
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Pide cuenta, correo o datos personales?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          <strong>No hay registro de ningún tipo.</strong> Los dos permisos declarados son
+          <code>INTERNET</code> y <code>ACCESS_NETWORK_STATE</code>, ambos normales, así que ni
+          diálogo de permisos hay. Detalle completo en <a href="#privacidad">Privacidad</a> (ADR 24).
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Funciona sin conexión?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          <strong>Sí, y sin pantalla vacía.</strong> Room es la única fuente de verdad: la app abre
+          con lo último guardado, la red solo escribe, y si la petición falla los datos locales
+          quedan intactos con el aviso de la causa real (ADR 3). La calculadora convierte con la
+          tasa guardada.
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Por qué el oficial a veces aparece con horas de retraso?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          Porque <strong>gana el dato más fresco, no el de mejor prioridad</strong>, y la frescura
+          tiene techo: oficial 96 h (tolera el fin de semana en que el BCV no publica) y paralelo
+          12 h. Si el banco dejó de publicar, la tarjeta lo dice en ámbar en vez de disfrazar el
+          cierre de ayer (ADR 26).
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿La calculadora suma el IGTF u otros cargos?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          <strong>No: convierte y nada más.</strong> Multiplica o divide con la tasa elegida, sin
+          pasos intermedios. El recargo del 3 % y la simulación de cuotas se eliminaron junto a su
+          estado, sus textos y sus tests (ADR 42; el IGTF documentado quedó retirado en ADR 5).
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Cómo se instala y cómo se actualiza?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          El APK se publica en la etiqueta rodante <code>latest</code> de los Releases, en tres
+          variantes por ABI y con <code>SHA256SUMS.txt</code> para verificar la descarga; hay que
+          permitir “orígenes desconocidos” y la firma debe ser la misma para actualizar encima
+          (ADR 34). Dentro de la app, el módulo de actualizaciones consulta ese release con
+          revalidación por ETag: una petición como mucho al día (ADR 33).
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Por qué Android 12 como mínimo?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          <code>minSdk 31</code> elimina desugaring y ramas de compatibilidad, usa el theming y el
+          arranque ya unificados de Android 12 y reduce el APK (ADR 14). Para teléfonos antiguos
+          está <a href="#lite">DivTrack Lite</a>, con <code>minSdk 14</code>.
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Para qué sirve DivTrack Lite?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          Para equipos donde el stack moderno no es opción: Java + XML sin librerías de terceros,
+          una sola pantalla con la tasa del BCV, respaldos identificados y cero permisos más allá
+          de <code>INTERNET</code>. Es un Gradle aparte, no un flavor (ADR 27 y 28).
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Por qué no tiene widget, cripto ni más herramientas?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          Porque el producto es <strong>el dólar oficial en Venezuela y su calculadora</strong>.
+          Un catálogo genérico de utilidades que llegó como petición se rechazó por escrito y queda
+          documentado en el ADR 35 para que no vuelva como “código muerto pendiente de conectar”.
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Qué pasa con mis datos si cambio de teléfono?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          El auto-backup <strong>excluye la base de tasas</strong> (restaurarla mostraría datos
+          caducos como actuales) y sí respalda preferencias como tema y frecuencia. Las tasas se
+          vuelven a bajar en segundos (ADR 12).
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Y si falla una fuente?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          El siguiente proveedor del orden responde en su lugar y la falla queda registrada como
+          sincronización <em>parcial</em> —un aviso suave, no un error—. El proveedor caído descansa
+          10 minutos en un circuit breaker en memoria; si estuvieran todos abiertos, se reintenta el
+          orden completo (ADR 26).
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="q">?</span>¿Cuesta algo o muestra anuncios?<span class="plus" aria-hidden="true"></span></summary>
+        <div class="answer">
+          El proyecto no incluye SDK de publicidad ni de analítica: el stack es Hilt, Room,
+          Retrofit, WorkManager y Compose (más la API pública de GitHub para versiones). No hay
+          compras dentro de la app ni servicios de terceros midiendo el uso.
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section id="glosario">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker"><span class="idx">12</span>Vocabulario</span>
+      <h2>Glosario en 30 segundos</h2>
+      <p class="hint">Las palabras que la app usa, sin jerga prestada de la banca.</p>
+    </div>
+
+    <dl class="glossary">
+      <div class="term">
+        <dt>BCV <span class="abbr">Banco Central de Venezuela</span></dt>
+        <dd>El ente que publica la <b>tasa oficial</b> del dólar. DivTrack no es el BCV ni lo representa: solo lee sus cifras cuando están disponibles.</dd>
+      </div>
+      <div class="term">
+        <dt>Dólar oficial</dt>
+        <dd>La tasa que fija el BCV. En la app es la <b>tarjeta héroe</b> y su frescura se mide con techo de 96 h para sobrevivir al fin de semana en que no se publica.</dd>
+      </div>
+      <div class="term">
+        <dt>Dólar paralelo</dt>
+        <dd>El precio del mercado fuera del canal oficial. Es opcional: se enciende en Ajustes y su frescura corre con techo de 12 h.</dd>
+      </div>
+      <div class="term">
+        <dt>Brecha</dt>
+        <dd>La diferencia entre paralelo y oficial, en porcentaje y en bolívares: <b>+11,11 % = 95,53 Bs.</b> en la muestra de arriba. Se deriva una sola vez por emisión de Room.</dd>
+      </div>
+      <div class="term">
+        <dt>Frescura</dt>
+        <dd>Cuánto tiempo se tolera un dato sin publicarse nuevo. Si un proveedor de cola manda algo más reciente, <b>gana el más fresco</b>, no el de mejor prioridad (ADR 26).</dd>
+      </div>
+      <div class="term">
+        <dt>Cierre diario</dt>
+        <dd>El último valor de cada día, guardado junto a la tasa vigente en una sola escritura atómica. Es lo que alimenta la tendencia (▲/▼) de la tarjeta.</dd>
+      </div>
+      <div class="term">
+        <dt>Online-First</dt>
+        <dd>Patrón de la app: la red <b>solo escribe</b> y Room empuja el cambio a la UI. Nunca hay un spinner que borre datos existentes (ADR 3).</dd>
+      </div>
+      <div class="term">
+        <dt>MVI</dt>
+        <dd>Modelo de vista-íntento: contrato de intenciones y efectos, estado inmutable y un ViewModel que reduce. Las tres pantallas usan exactamente el mismo esquema.</dd>
+      </div>
+      <div class="term">
+        <dt>APK / ABI</dt>
+        <dd>El APK es el instalador de Android; la ABI es su arquitectura. DivTrack publica tres —<span class="abbr">arm64-v8a</span>, <span class="abbr">armeabi-v7a</span>, <span class="abbr">x86_64</span>— para que cada equipo descargue el suyo.</dd>
+      </div>
+      <div class="term">
+        <dt>R8</dt>
+        <dd>El ofuscador y optimizador de Android: por eso el release pesa 2,37 MB sin arrastrar código muerto ni de depuración.</dd>
+      </div>
+      <div class="term">
+        <dt>minSdk</dt>
+        <dd>La versión de Android más baja que la app acepta. Aquí: <b>31</b> (Android 12) para la completa y <b>14</b> (Android 4.0) para Lite.</dd>
+      </div>
+      <div class="term">
+        <dt>Bs. <span class="abbr">bolívares</span></dt>
+        <dd>La moneda en la que se expresan los resultados. La app formatea en es-VE (<span class="num">1.234,56</span>) y usa siempre la hora de América/Caracas para lo que sea “hoy”.</dd>
+      </div>
+    </dl>
+  </div>
+</section>
+
+<section id="compilar">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="kicker"><span class="idx">13</span>Reproducir</span>
+      <h2>Compilar y probar</h2>
+      <p class="hint">
+        Ninguna URL está escrita en el código Kotlin: se leen de <code>local.properties</code> y se
+        inyectan como campos de <code>BuildConfig</code>. Si el archivo no existe, se usan los
+        endpoints públicos, así que un clon limpio compila sin secretos.
+      </p>
+    </div>
+
+    <pre><span class="c"># APK de depuración</span>
+./gradlew :app:assembleDebug
+
+<span class="c"># 88 tests JVM (sin emulador)</span>
+./gradlew testDebugUnitTest :domain:test :core:common:test
+
+<span class="c"># Release con R8 + métricas del compilador de Compose</span>
+./gradlew :app:assembleRelease -PcomposeMetrics=true
+
+<span class="c"># DivTrack Lite: subproyecto aparte, con su propio settings.gradle.kts</span>
+./gradlew -p lite :app:assembleRelease
+
+<span class="c"># Verificar una descarga contra el SHA256SUMS.txt del release</span>
+sha256sum -c SHA256SUMS.txt</pre>
+
+    <div class="grid cols-2" style="margin-bottom:var(--gap)">
+      <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-refresh"/></svg></span>
+        <h3>CI en GitHub Actions</h3>
+        <p>
+          Compila debug, ejecuta los tests, compila release con R8, compila DivTrack Lite, pasa el
+          lint y publica APKs, reportes y métricas de Compose como artefactos. JDK 21, SDK 37 y la
+          caché de Gradle. El workflow rechaza cualquier APK que no sea de las tres ABIs declaradas.
+        </p>
+      </div>
+      <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-alert"/></svg></span>
+        <h3>Si el toolchain se atasca</h3>
+        <p>
+          AGP 9 con Kotlin integrado es reciente. <code>gradle.properties</code> documenta la
+          válvula de escape (<code>android.builtInKotlin=false</code> +
+          <code>android.newDsl=false</code>) que vuelve al modo clásico sin bajar de AGP 9.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" id="descarga">
+      <span class="ico" aria-hidden="true"><svg><use href="#ic-download"/></svg></span>
+      <h3>Descarga e instalación</h3>
+      <p style="margin-bottom:10px">
+        El APK se publica en <strong>Releases</strong> de este repositorio, en la etiqueta rodante
+        <code>latest</code>, que se reemplaza en cada push a <code>main</code> una vez compilado y
+        con los tests en verde:
+      </p>
+      <ul style="margin:0 0 12px; padding-left:20px; color:var(--muted); font-size:0.9rem">
+        <li><code>DivTrack-&lt;versión&gt;-arm64-v8a.apk</code> — teléfonos ARM de 64 bits (la mayoría).</li>
+        <li><code>DivTrack-&lt;versión&gt;-armeabi-v7a.apk</code> — teléfonos ARM de 32 bits.</li>
+        <li><code>DivTrack-&lt;versión&gt;-x86_64.apk</code> — emuladores y Chromebooks.</li>
+        <li><code>SHA256SUMS.txt</code> — hashes para verificar la descarga.</li>
+      </ul>
+      <div class="legend" aria-label="Cómo verificar">
+        <span><i style="--sw:var(--mint)"></i>1 · Descarga el APK de tu ABI y el <code>SHA256SUMS.txt</code></span>
+        <span><i style="--sw:var(--amber)"></i>2 · <code>sha256sum -c SHA256SUMS.txt</code></span>
+        <span><i style="--sw:var(--up)"></i>3 · Android confirma la firma antes de instalar</span>
+      </div>
+      <p class="hint" style="font-size:0.85rem;margin-top:12px">
+        Al instalar un APK fuera de Google Play hay que permitir “orígenes desconocidos”. Las
+        versiones release deben firmarse siempre con la misma clave para actualizarse encima de la
+        anterior; el canal debug usa una clave temporal del runner y publica las mismas tres
+        variantes con applicationId <code>…divtrack.debug</code>. DivTrack Lite se compila aparte
+        y no forma parte de este release (ADR 34).
+      </p>
     </div>
   </div>
 </section>
@@ -1189,7 +2360,7 @@
 <section id="lite">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Segundo producto</span>
+      <span class="kicker"><span class="idx">14</span>Segundo producto</span>
       <h2>DivTrack Lite: para equipos antiguos</h2>
       <p class="hint">
         No es un <em>flavor</em> de esta app: es un subproyecto Gradle independiente, con su propio
@@ -1200,6 +2371,7 @@
 
     <div class="grid cols-2">
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-phone"/></svg></span>
         <h3>Qué hace</h3>
         <p>
           Una sola pantalla con la tasa USD/VES del BCV. Si el BCV no responde, intenta DolarAPI y
@@ -1213,6 +2385,7 @@
         </p>
       </div>
       <div class="card">
+        <span class="ico" aria-hidden="true"><svg><use href="#ic-bolt"/></svg></span>
         <h3>Cómo se distingue del principal</h3>
         <p>
           Java + XML, <code>minSdk 14</code>, HTTPS obligatorio, cero permisos más allá de
@@ -1232,27 +2405,46 @@
   <div class="wrap">
     <div class="cols">
       <div>
-        <div class="brand" style="font-weight:750;letter-spacing:-0.02em">Div<b style="color:var(--mint)">Track</b></div>
-        <p style="margin-top:8px;max-width:44ch">
+        <div class="brand">Div<b>Track</b></div>
+        <p style="margin-top:10px;max-width:46ch">
           App Android de tasas oficial y paralelo, con calculadora bidireccional instantánea.
           Kotlin, Compose, Clean Architecture modular y MVI por pantalla.
         </p>
+        <div class="nojs-note"><b>0 JS</b> · un solo archivo · sin peticiones de red</div>
+        <div class="themectl" role="group" aria-label="Tema de la página">
+          <label for="th-auto">Sistema</label>
+          <label for="th-light">Claro</label>
+          <label for="th-dark">Oscuro</label>
+        </div>
+      </div>
+      <div>
+        <h4>Producto</h4>
+        <ul>
+          <li><a href="#pantallas">Pantallas</a></li>
+          <li><a href="#funciona">Cómo funciona</a></li>
+          <li><a href="#casos">Casos de uso</a></li>
+          <li><a href="#comparativa">Comparativa</a></li>
+          <li><a href="#descarga">Descargar</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ingeniería</h4>
+        <ul>
+          <li><a href="#arquitectura">Arquitectura</a></li>
+          <li><a href="#stack">Stack</a></li>
+          <li><a href="#calidad">Calidad</a></li>
+          <li><a href="#privacidad">Privacidad</a></li>
+          <li><a href="#compilar">Compilar</a></li>
+        </ul>
       </div>
       <div>
         <h4>Documentación</h4>
         <ul>
-          <li><a href="ARCHITECTURE.md">Arquitectura</a></li>
-          <li><a href="DECISIONS.md">Decisiones (ADR)</a></li>
-          <li><a href="../README.md">README del proyecto</a></li>
-          <li><a href="../lite/README.md">README de Lite</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Secciones</h4>
-        <ul>
-          <li><a href="#pantallas">Pantallas</a></li>
-          <li><a href="#funciona">Cómo funciona</a></li>
-          <li><a href="#compilar">Compilar</a></li>
+          <li><a href="ARCHITECTURE.md">Arquitectura (MD)</a></li>
+          <li><a href="DECISIONS.md">Decisiones — 42 ADR</a></li>
+          <li><a href="#novedades">Novedades 4.7</a></li>
+          <li><a href="#faq">Preguntas frecuentes</a></li>
+          <li><a href="#glosario">Glosario</a></li>
           <li><a href="#lite">DivTrack Lite</a></li>
         </ul>
       </div>
@@ -1267,6 +2459,10 @@
         La app usa la tipografía Manrope bajo SIL Open Font License 1.1; esta página usa la pila del
         sistema para no depender de ninguna descarga. El código del proyecto todavía no declara
         licencia.
+      </div>
+      <div>
+        Esta página es HTML + CSS puro: sin JavaScript, sin fuentes ni imágenes externas y sin una
+        sola petición de red. Se abre con doble clic, se imprime y se publica tal cual.
       </div>
     </div>
   </div>
