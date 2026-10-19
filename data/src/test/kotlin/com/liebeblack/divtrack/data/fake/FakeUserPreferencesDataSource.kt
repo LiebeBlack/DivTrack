@@ -58,4 +58,20 @@ class FakeUserPreferencesDataSource(
     override suspend fun setShowParallelRate(enabled: Boolean) {
         state.value = state.value.copy(showParallelRate = enabled)
     }
+
+    override suspend fun setEnablePersistentNotification(enabled: Boolean) {
+        state.value = state.value.copy(enablePersistentNotification = enabled)
+    }
+
+    override suspend fun setHideUnofficialRate(enabled: Boolean) {
+        state.value = state.value.copy(hideUnofficialRate = enabled)
+    }
+
+    override suspend fun setCustomOfficialRate(rate: Double) {
+        state.value = state.value.copy(customOfficialRate = rate)
+    }
+
+    override suspend fun setCustomParallelRate(rate: Double) {
+        state.value = state.value.copy(customParallelRate = rate)
+    }
 }

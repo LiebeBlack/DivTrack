@@ -5,9 +5,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import com.liebeblack.divtrack.domain.repository.SettingsRepository
 import com.liebeblack.divtrack.presentation.navigation.DivTrackApp
+import com.liebeblack.divtrack.service.RateNotificationService
 import com.liebeblack.divtrack.util.appVersionName
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 /**
  * Única Activity de la app.
@@ -19,10 +26,26 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        lifecycleScope.launch {
+            settingsRepository.observeSettings()
+                .map { it.enablePersistentNotification }
+                .distinctUntilChanged()
+                .collect { enabled ->
+                    if (enabled) {
+                        RateNotificationService.startService(applicationContext)
+                    } else {
+                        RateNotificationService.stopService(applicationContext)
+                    }
+                }
+        }
 
         // Se resuelve una sola vez, no en cada recomposición.
         val appVersion = applicationContext.appVersionName()

@@ -28,4 +28,16 @@ class UpdateSettingsUseCase @Inject constructor(
 
     suspend fun setShowParallelRate(enabled: Boolean) =
         repository.setShowParallelRate(enabled)
+
+    suspend fun setEnablePersistentNotification(enabled: Boolean) =
+        repository.setEnablePersistentNotification(enabled)
+
+    suspend fun setHideUnofficialRate(enabled: Boolean) =
+        repository.setHideUnofficialRate(enabled)
+
+    suspend fun setCustomOfficialRate(rate: Double) =
+        repository.setCustomOfficialRate(rate)
+
+    suspend fun setCustomParallelRate(rate: Double) =
+        repository.setCustomParallelRate(rate)
 }

@@ -6,6 +6,7 @@ import com.liebeblack.divtrack.core.database.entity.CurrentRateEntity
 import com.liebeblack.divtrack.core.database.entity.RateHistoryEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 /**
  * Room simulado en memoria.
@@ -45,6 +46,9 @@ class FakeRateLocalDataSource : RateLocalDataSource {
     var failPrune: Boolean = false
 
     override fun observeCurrentRates(): Flow<List<CurrentRateEntity>> = currentRates
+
+    override fun observeCurrentRate(source: String): Flow<CurrentRateEntity?> =
+        currentRates.map { list -> list.firstOrNull { it.source == source } }
 
     override suspend fun currentRate(source: String): CurrentRateEntity? {
         failIfAsked(failReads)
