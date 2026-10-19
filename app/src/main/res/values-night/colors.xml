@@ -2,4 +2,12 @@
 <resources>
     <color name="window_background">#FF0A0E13</color>
     <color name="splash_background">#FF0A0E13</color>
+
+    <!-- Colores del widget en modo oscuro -->
+    <color name="widget_background">#FF0D2118</color>
+    <color name="widget_border">#FF1C3D2C</color>
+    <color name="widget_text_primary">#FFF5F8FB</color>
+    <color name="widget_text_secondary">#FFB0C0B6</color>
+    <color name="widget_button_background">#FF008F5B</color>
+    <color name="widget_button_text">#FFF5F8FB</color>
 </resources>

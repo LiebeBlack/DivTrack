@@ -6,4 +6,17 @@
     <string name="settings_update_apk_missing">The downloaded file is no longer on the device</string>
     <string name="settings_update_no_installer">No installer is available on this device</string>
     <string name="settings_update_allow_install">Turn on «Allow from this source» and tap «Install update» again</string>
+
+    <!-- Widget texts -->
+    <string name="widget_title">Official Dollar</string>
+    <string name="widget_description">Displays the official dollar rate and last update time</string>
+    <string name="widget_loading">Loading…</string>
+    <string name="widget_refresh">Refresh</string>
+    <string name="widget_updated">Updated: %1$s</string>
+    <string name="widget_no_data">No data</string>
+
+    <!-- Persistent notification texts -->
+    <string name="notification_channel_name">Exchange rates</string>
+    <string name="notification_channel_description">Displays exchange rates in an ongoing notification</string>
+    <string name="notification_title">DivTrack · Exchange rates</string>
 </resources>

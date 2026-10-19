@@ -4,13 +4,16 @@ import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.liebeblack.divtrack.MainActivity
 import com.liebeblack.divtrack.R
+import java.text.DecimalFormat
 import com.liebeblack.divtrack.domain.model.RateSource
 import com.liebeblack.divtrack.domain.repository.RateRepository
 import com.liebeblack.divtrack.domain.repository.SettingsRepository
@@ -77,6 +80,20 @@ class RateNotificationService : Service() {
         notificationManager.createNotificationChannel(channel)
     }
 
+    private val decimalFormat = DecimalFormat("#,##0.00")
+
+    private fun createContentIntent(): PendingIntent {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     private fun observeRates() {
         serviceScope.launch {
             kotlinx.coroutines.flow.combine(
@@ -86,8 +103,8 @@ class RateNotificationService : Service() {
             ) { official, parallel, settings ->
                 Triple(official, parallel, settings)
             }.onEach { (official, parallel, settings) ->
-                val officialText = official?.value?.toString() ?: "---"
-                val parallelText = parallel?.value?.toString() ?: "---"
+                val officialText = official?.value?.let { decimalFormat.format(it) } ?: "---"
+                val parallelText = parallel?.value?.let { decimalFormat.format(it) } ?: "---"
 
                 // Actualizar notificación solo si el servicio está activo
                 if (settings.enablePersistentNotification) {
@@ -105,6 +122,7 @@ class RateNotificationService : Service() {
             .setContentTitle(getString(R.string.notification_title))
             .setContentText("Oficial: $official Bs/USD")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(createContentIntent())
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setStyle(
@@ -120,6 +138,7 @@ class RateNotificationService : Service() {
             .setContentTitle(getString(R.string.notification_title))
             .setContentText("Oficial: $official Bs/USD")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(createContentIntent())
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setStyle(

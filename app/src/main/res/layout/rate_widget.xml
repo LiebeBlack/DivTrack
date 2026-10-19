@@ -15,17 +15,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/widget_title"
-        android:textSize="14sp"
-        android:textColor="@color/widget_text_primary"
+        android:textSize="12sp"
+        android:textColor="@color/widget_text_secondary"
+        android:letterSpacing="0.04"
+        android:textAllCaps="true"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="6dp" />
 
     <TextView
         android:id="@+id/widget_rate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="-- Bs/USD"
-        android:textSize="24sp"
+        android:text="@string/widget_no_data"
+        android:textSize="26sp"
         android:textColor="@color/widget_text_primary"
         android:textStyle="bold"
         android:layout_marginBottom="4dp"
@@ -36,18 +38,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/widget_loading"
-        android:textSize="12sp"
+        android:textSize="11sp"
         android:textColor="@color/widget_text_secondary"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="10dp"
         tools:text="Actualizado: 14:30" />
 
     <TextView
         android:id="@+id/widget_refresh"
         android:layout_width="wrap_content"
-        android:layout_height="36dp"
+        android:layout_height="32dp"
         android:text="@string/widget_refresh"
         android:textSize="12sp"
-        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:textColor="@color/widget_button_text"
         android:gravity="center"
         android:minWidth="0dp"
         android:minHeight="0dp"

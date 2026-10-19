@@ -40,7 +40,10 @@ class RateWidgetWorker @AssistedInject constructor(
         return try {
             // Ejecutar en dispatcher IO para no bloquear
             withContext(Dispatchers.IO) {
-                // Obtener tasa oficial
+                // Intentar refrescar desde la red; si no hay conexión, se usará la tasa en Room
+                rateRepository.refreshRates()
+
+                // Obtener tasa oficial (actualizada o de la base local)
                 val rate = rateRepository.getCurrentRate(RateSource.OFICIAL)
 
                 if (rate != null) {
