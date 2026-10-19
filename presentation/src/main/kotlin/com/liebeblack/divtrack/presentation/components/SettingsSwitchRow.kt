@@ -21,8 +21,7 @@ import com.liebeblack.divtrack.presentation.theme.Spacing
 /**
  * Fila de ajuste con interruptor: título, explicación y switch.
  *
- * Se usa para los interruptores de la sincronización en segundo plano; el IGTF se activa
- * desde la propia calculadora, donde se ve el efecto en el total al instante.
+ * Se usa para los interruptores de la sincronización en segundo plano.
  */
 @Composable
 fun SettingsSwitchRow(

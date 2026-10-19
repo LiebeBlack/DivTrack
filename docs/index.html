@@ -6,8 +6,8 @@
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#06130E" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#F7F1E5" media="(prefers-color-scheme: light)">
-<title>DivTrack — dólar oficial y paralelo de Venezuela, con conversión y IGTF</title>
-<meta name="description" content="App Android nativa (Kotlin + Compose) que sigue el dólar oficial (BCV) y el paralelo, resuelve la tasa por frescura entre cuatro proveedores y convierte en ambos sentidos con IGTF. Room como única fuente de verdad: abre con datos y funciona sin conexión.">
+<title>DivTrack — dólar oficial y paralelo de Venezuela, con conversión instantánea</title>
+<meta name="description" content="App Android nativa (Kotlin + Compose) que sigue el dólar oficial (BCV) y el paralelo, resuelve la tasa por frescura entre cuatro proveedores y convierte en ambos sentidos al instante. Room como única fuente de verdad: abre con datos y funciona sin conexión.">
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMwNjEzMEUiLz48cGF0aCBkPSJNMTQgNDNMMzAgMjVMNDQgMzVMNTAgMjAiIHN0cm9rZT0iIzM5RjBBNSIgc3Ryb2tlLXdpZHRoPSI2IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
 <!--
   Página autocontenida: sin JavaScript, sin CDN, sin fuentes externas, sin imágenes externas,
@@ -459,8 +459,6 @@
   }
   .chip.on { background: var(--chip-on); border-color: var(--mint); color: var(--chip-on-text); }
 
-  /* TextButton (p. ej. «Invertir dirección») */
-  .textbtn { text-align: center; font-size: 0.66rem; font-weight: 700; color: var(--mint); }
   .switchrow { display: flex; align-items: center; gap: 10px; font-size: 0.72rem; }
   .switchrow .track { margin-left: auto; width: 34px; height: 18px; border-radius: 999px; background: var(--mint); position: relative; flex: none; }
   .switchrow .track::after { content: ""; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); }
@@ -614,7 +612,7 @@
       <p class="lede">
         DivTrack sigue el <strong>dólar oficial (BCV)</strong> y el <strong>dólar paralelo</strong>,
         resuelve cada tasa <strong>por frescura entre cuatro proveedores</strong> y convierte en ambos
-        sentidos con el IGTF (3 %) opcional. Room es la única fuente de verdad para la pantalla:
+        sentidos al instante, sin impuestos añadidos. Room es la única fuente de verdad para la pantalla:
         la app abre con datos, funciona sin conexión y nunca pierde lo que ya tenía por un fallo
         de red.
       </p>
@@ -755,13 +753,12 @@
             <span class="lab">$ · Monto en dólares</span>
             <span class="val num">10</span>
           </div>
-          <div class="textbtn">Invertir dirección (Bs. / USD)</div>
+          <div class="btn">⇄ Invertir dirección</div>
           <div class="mini result">
-            <div class="resrow"><span class="lab">Total en bolívares</span><span class="n num">8.859,85</span></div>
-            <div class="resrow"><span class="lab">Total en USD</span><span class="n num">10,30</span></div>
-            <div class="resrow soft"><span class="lab">IGTF 3 % · estimado en Bs.</span><span class="n num">258,05</span></div>
+            <div class="resrow"><span class="lab">Total en bolívares</span><span class="n num">8.601,80</span></div>
+            <div class="resrow"><span class="lab">Total en USD</span><span class="n num">10,00</span></div>
+            <div class="resrow soft"><span class="lab">Conversión directa, sin cargos añadidos</span><span class="n num">1 : 860,18</span></div>
           </div>
-          <div class="switchrow">IGTF (3 %)<span class="track" aria-hidden="true"></span></div>
           <div class="btn"><svg class="ic" width="12" height="12"><use href="#ic-copiar"/></svg>Copiar desglose</div>
           <div class="navbar" aria-hidden="true">
             <span class="tab"><span class="ico"><svg width="15" height="15"><use href="#ic-tasas"/></svg></span>Tasas</span>
@@ -970,7 +967,7 @@
       <div class="split">
         <div class="mod"><b>:core:network</b><em>Retrofit ×5, 4 interceptores, proveedores</em></div>
         <div class="mod"><b>:core:database</b><em>Room: tasa vigente + cierre diario</em></div>
-        <div class="mod"><b>:core:datastore</b><em>Preferencias (tema, IGTF, sync)</em></div>
+        <div class="mod"><b>:core:datastore</b><em>Preferencias (tema, sync)</em></div>
       </div>
     </div>
 
@@ -1031,6 +1028,7 @@
           <tr><td>Android Gradle Plugin</td><td class="v">9.4.0</td><td>Kotlin integrado + DSL nuevo</td></tr>
           <tr><td>Gradle</td><td class="v">9.6.0</td><td>wrapper con checksum verificado</td></tr>
           <tr><td>Kotlin</td><td class="v">2.4.20</td><td>sin plugin <code>kotlin-android</code>: lo aporta AGP 9</td></tr>
+          <tr><td>Java / Kotlin JVM target</td><td class="v">21</td><td>bytecode moderno, optimizado por R8 en release</td></tr>
           <tr><td>KSP</td><td class="v">2.3.12</td><td>KSP2, desacoplado de la versión de Kotlin</td></tr>
           <tr><td>Compose BOM</td><td class="v">2026.09.00</td><td>Material 3</td></tr>
           <tr><td>Hilt</td><td class="v">2.60.1</td><td>≥ 2.59 es requisito para AGP 9</td></tr>
@@ -1096,14 +1094,17 @@
         con los tests en verde:
       </p>
       <ul style="margin:0 0 12px; padding-left:20px; color:var(--muted); font-size:0.9rem">
-        <li><code>DivTrack-release.apk</code> — release firmado, canal estable (<code>com.liebeblack.divtrack</code>).</li>
-        <li><code>DivTrack-debug.apk</code> — respaldo si no hay secretos de firma configurados (<code>…divtrack.debug</code>).</li>
-        <li><code>apklite.apk</code> — DivTrack Lite (<code>…divtrack.lite</code>), la versión ultraligera.</li>
+        <li><code>DivTrack-&lt;versión&gt;-arm64-v8a.apk</code> — teléfonos ARM de 64 bits (la mayoría).</li>
+        <li><code>DivTrack-&lt;versión&gt;-armeabi-v7a.apk</code> — teléfonos ARM de 32 bits.</li>
+        <li><code>DivTrack-&lt;versión&gt;-x86_64.apk</code> — emuladores y Chromebooks.</li>
+        <li><code>SHA256SUMS.txt</code> — hashes para verificar la descarga.</li>
       </ul>
       <p class="hint" style="font-size:0.85rem">
         Al instalar un APK fuera de Google Play hay que permitir “orígenes desconocidos”. Las
         versiones release deben firmarse siempre con la misma clave para actualizarse encima de la
-        anterior; el canal debug usa una clave temporal del runner.
+        anterior; el canal debug usa una clave temporal del runner y publica las mismas tres
+        variantes con applicationId <code>…divtrack.debug</code>. DivTrack Lite se compila aparte
+        y no forma parte de este release.
       </p>
     </div>
   </div>
@@ -1131,8 +1132,8 @@
           <tr><td>Grafo de inyección</td><td><span class="pill ok">OK</span> toda clase con <code>@Inject constructor</code> tiene su <code>@Provides</code>, <code>@Binds</code> o <code>@IntoSet</code></td></tr>
           <tr><td>Interfaz completa</td><td><span class="pill ok">OK</span> cada botón, selector, interruptor y gesto está cableado a una intención · 0 <code>onClick</code> vacíos, 0 <code>TODO</code></td></tr>
           <tr><td>Referencias colgantes</td><td><span class="pill ok">OK</span> 0 tras eliminar el código muerto</td></tr>
-          <tr><td>Tests</td><td><span class="pill ok">OK</span> 88 casos JVM en el repo, <strong>0 fallos</strong> en la corrida del 2026-10-03, incluida la aritmética del IGTF, la resolución por tasa y los 6 casos nuevos del refresco al volver y de las fechas ISO</td></tr>
-          <tr><td>Compilación real</td><td><span class="pill ok">OK</span> (2026-10-03) <code>:app:assembleDebug</code> (21,9 MB) y <code>:app:assembleRelease</code> con R8 (2,40 MB) sobre un toolchain local real (JDK 21 + plataforma android-37.0), más el APK de DivTrack Lite</td></tr>
+          <tr><td>Tests</td><td><span class="pill ok">OK</span> 88 casos JVM en el repo, <strong>0 fallos</strong> en la corrida del 2026-10-03, incluida la conversión directa en ambos sentidos, la resolución por tasa y los 6 casos nuevos del refresco al volver y de las fechas ISO</td></tr>
+          <tr><td>Compilación verificada (2026-10-03)</td><td><span class="pill ok">OK</span> <code>:app:assembleDebug</code> (21,9 MB) y <code>:app:assembleRelease</code> con R8 (2,40 MB) sobre un toolchain local real (JDK 21 + plataforma android-37.0), más el APK de DivTrack Lite. La migración a Java 21 y el split de tres ABIs de esta pasada quedan pendientes de la primera corrida de CI.</td></tr>
           <tr><td>DivTrack Lite</td><td><span class="pill ok">OK</span> subproyecto aparte (<code>lite/</code>): Java + XML, API 14+, una sola pantalla y respaldos identificados. Verificado aquí: compila (release con R8, 47,8 KB) y su lógica de respaldo pasó un arnés JVM; ya no muestra ningún mensaje de error por la fuente que no respondió (ADR 27 y 28)</td></tr>
           <tr><td>Pasadas anteriores</td><td><span class="pill ok">OK</span> eliminar el Histórico, arreglar conexión, permisos, rendimiento y el leak, y la revisión estricta posterior <strong>se recompilaron y se pasaron por tests</strong> en esta corrida: nada queda «sin re-verificar»</td></tr>
         </tbody>
@@ -1143,8 +1144,8 @@
       <div class="card">
         <h3>Los tests cubren lo que falla en silencio</h3>
         <p>
-          El parser de importes es-VE (<code>1.234,56</code> y <code>1,234.56</code>), la aritmética
-          del IGTF en ambos sentidos, que la red no destruya la caché, que la resolución sea por
+          El parser de importes es-VE (<code>1.234,56</code> y <code>1,234.56</code>), la conversión
+          directa en ambos sentidos, que la red no destruya la caché, que la resolución sea por
           tasa y por frescura, que el cierre diario alimente la tendencia, el cálculo automático al
           teclear y la reprogramación del trabajo periódico cuando cambian los ajustes.
         </p>
@@ -1171,13 +1172,13 @@
       <p class="hint">
         Cada elección discutible está documentada con su alternativa descartada y su coste: AGP 9
         con Kotlin integrado, Navigation 3 frente a Navigation Compose, Room como única fuente de
-        verdad, resolución de tasas por tasa y por frescura, la semántica exacta del IGTF,
-        <code>minSdk 31</code> (Android 12) para evitar el desugaring, la hora de Venezuela inyectada y el
+        verdad, resolución de tasas por tasa y por frescura, la conversión directa sin cargos
+        añadidos, <code>minSdk 31</code> (Android 12) para evitar el desugaring, la hora de Venezuela inyectada y el
         esquema de Room exportado sin migración destructiva.
       </p>
     </div>
     <div class="grid cols-4">
-      <div class="card"><h3>29 ADR</h3><p>En <code>docs/DECISIONS.md</code>, cada uno con su coste.</p></div>
+      <div class="card"><h3>42 ADR</h3><p>En <code>docs/DECISIONS.md</code>, cada uno con su coste.</p></div>
       <div class="card"><h3>8 módulos</h3><p>Con la dirección de dependencias impuesta por Gradle.</p></div>
       <div class="card"><h3>2 idiomas</h3><p>Español de Venezuela por defecto e inglés completo.</p></div>
       <div class="card"><h3>0 APIs hardcodeadas</h3><p>Las URLs entran por <code>BuildConfig</code>.</p></div>
@@ -1233,8 +1234,8 @@
       <div>
         <div class="brand" style="font-weight:750;letter-spacing:-0.02em">Div<b style="color:var(--mint)">Track</b></div>
         <p style="margin-top:8px;max-width:44ch">
-          App Android de tasas oficial y paralelo, con calculadora bidireccional e IGTF. Kotlin,
-          Compose, Clean Architecture modular y MVI por pantalla.
+          App Android de tasas oficial y paralelo, con calculadora bidireccional instantánea.
+          Kotlin, Compose, Clean Architecture modular y MVI por pantalla.
         </p>
       </div>
       <div>

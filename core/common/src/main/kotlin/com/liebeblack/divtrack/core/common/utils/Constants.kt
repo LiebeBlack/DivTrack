@@ -3,12 +3,6 @@ package com.liebeblack.divtrack.core.common.utils
 /** Constantes compartidas por todas las capas. Sin contexto de Android. */
 object AppConstants {
 
-    /** Impuesto a las Grandes Transacciones Financieras (alícuota vigente). */
-    const val IGTF_RATE: Double = 0.03
-
-    /** Etiqueta del IGTF lista para UI/copiar al portapapeles. */
-    const val IGTF_LABEL: String = "3 %"
-
     /** WorkManager no permite periodicidad menor a 15 minutos. */
     const val SYNC_MIN_INTERVAL_MINUTES: Int = 15
     const val SYNC_DEFAULT_INTERVAL_MINUTES: Int = 240
@@ -88,7 +82,7 @@ object AppConstants {
      *
      * La comprobación consulta la API pública de GitHub, que limita a 60 peticiones por
      * hora y por IP sin autenticar. Con esta ventana, entrar y salir de Ajustes (o el
-     * arranque repetido de la app) no gasta cuota; el botón «Buscar actualización» del
+     * arranque repetido de la app) no consume solicitudes; el botón «Buscar actualización» del
      * usuario sí la ignora a propósito, porque ahí la respuesta es lo que se pidió.
      */
     const val UPDATE_CHECK_MIN_INTERVAL_MILLIS: Long = 6L * 60L * 60L * 1000L

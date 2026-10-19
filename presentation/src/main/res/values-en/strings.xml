@@ -13,7 +13,7 @@
     <string name="welcome_rates_title">Rates with clear sources</string>
     <string name="welcome_rates_body">The official dollar always comes first. The parallel rate is optional and can be enabled in Settings.</string>
     <string name="welcome_calculator_title">Instant calculator</string>
-    <string name="welcome_calculator_body">Convert between dollars and bolivars as you type. Enable IGTF when you want it included in the calculation.</string>
+    <string name="welcome_calculator_body">Convert between dollars and bolivars as you type. The result updates on every keystroke.</string>
     <string name="welcome_sync_title">Automatic updates</string>
     <string name="welcome_sync_body">The app can refresh rates in the background. Android may delay this work based on battery, connectivity, and device restrictions.</string>
     <string name="welcome_disclaimer">Rates are informational and may change. Verify the value before making a decision.</string>
@@ -41,16 +41,9 @@
     <string name="calculator_rate_line">Applied rate: %1$s Bs per USD</string>
     <string name="calculator_hint">Type an amount and the result updates as you type.</string>
     <string name="calculator_no_rate">No rates available. Sync them from the rates tab.</string>
-    <string name="calculator_credit_title">Credit installments</string>
-    <string name="calculator_credit_chip">%1$dx</string>
-    <string name="calculator_credit_installment">Payment %1$d: %2$s Bs · $ %3$s</string>
-    <string name="calculator_credit_hint">Interest-free: the amount divided by the number of installments, at the applied rate.</string>
     <string name="result_mirror_bs">Total in bolivars</string>
     <string name="result_mirror_usd">Total in USD</string>
-    <string name="result_igtf">IGTF %1$s · estimated in Bs.</string>
-    <string name="igtf_label">IGTF (%1$s)</string>
-    <string name="igtf_helper">Informational estimate of 3 % in bolivars where applicable. Actual application depends on the transaction and current regulations.</string>
-    <string name="action_swap_direction">Swap direction (Bs. / USD)</string>
+    <string name="action_swap_direction">Swap direction</string>
     <string name="action_copy_breakdown">Copy breakdown</string>
     <string name="action_clear">Clear</string>
     <string name="copy_done">Breakdown copied to clipboard</string>
@@ -60,8 +53,6 @@
     <string name="copy_amount_usd">Amount entered: $%1$s</string>
     <string name="copy_amount_bs">Amount entered: Bs. %1$s</string>
     <string name="copy_rate">Rate applied: %1$s · %2$s Bs/USD</string>
-    <string name="copy_igtf_estimated">Estimated IGTF: %1$s Bs</string>
-    <string name="copy_igtf_not_applied">IGTF: Not applied</string>
     <string name="copy_total">TOTAL: $%1$s USD · %2$s Bs</string>
     <string name="copy_signature">Calculated with DivTrack</string>
 

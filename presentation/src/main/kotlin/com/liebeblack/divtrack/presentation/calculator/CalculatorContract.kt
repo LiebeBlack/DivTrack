@@ -16,12 +16,6 @@ data class RateOptionUi(
 )
 
 /**
- * Cuotas por defecto de la simulación de crédito: doce, el plazo más repetido en las
- * promociones del mercado venezolano. El usuario la cambia con un toque.
- */
-const val DEFAULT_INSTALLMENTS: Int = 12
-
-/**
  * Estado de la calculadora. Todos los textos ya vienen formateados en es-VE desde el
  * ViewModel: las composables solo pintan.
  */
@@ -42,21 +36,8 @@ data class CalculatorUiState(
     /** `true` mientras la pasada contra los proveedores está en vuelo. */
     val isSyncing: Boolean = false,
 
-    /** IGTF (3 %) aplicado al cálculo. Apagado por defecto. */
-    val igtfEnabled: Boolean = false,
-    val igtfRateText: String = "",
-    val igtfBsText: String = "—",
     val totalBsText: String = "—",
     val totalUsdText: String = "—",
-
-    /** Número de cuotas de la simulación de crédito (siempre ≥ 1). */
-    val installments: Int = DEFAULT_INSTALLMENTS,
-
-    /** Cuota mensual del monto actual en bolívares, con la tasa aplicada. */
-    val installmentBsText: String = "—",
-
-    /** Cuota mensual del monto actual en dólares, con la tasa aplicada. */
-    val installmentUsdText: String = "—",
     val canCopy: Boolean = false,
     // Hasta que Room no entregue una tasa, la pantalla no puede afirmar que hay una.
     val hasRate: Boolean = false,
@@ -71,12 +52,6 @@ sealed interface CalculatorIntent {
     data class AmountChanged(val value: String) : CalculatorIntent
 
     data class SelectSource(val source: RateSource) : CalculatorIntent
-
-    /** Cambia el número de cuotas de la simulación de crédito. */
-    data class SelectInstallments(val count: Int) : CalculatorIntent
-
-    /** Enciende o apaga el IGTF (3 %) sin perder el monto ya escrito. */
-    data object ToggleIgtf : CalculatorIntent
 
     /** Fuerza la pasada contra los proveedores y recalcula con lo que llegue. */
     data object Refresh : CalculatorIntent
@@ -112,8 +87,6 @@ data class BreakdownSummary(
     val source: RateSource,
     val amountText: String,
     val rateText: String,
-    val igtfEnabled: Boolean,
-    val igtfText: String,
     val totalBsText: String,
     val totalUsdText: String,
 )

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -20,11 +21,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,8 +35,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,9 +72,6 @@ import com.liebeblack.divtrack.presentation.theme.tabular
 
 /** Etiqueta del portapapeles que verán otras apps al pegar. */
 private const val CLIPBOARD_LABEL = "DivTrack"
-
-/** Plazos que ofrece la simulación de crédito; [DEFAULT_INSTALLMENTS] va marcado al abrir. */
-private val INSTALLMENT_OPTIONS = listOf(3, 6, 12, 24)
 
 @Composable
 fun CalculatorRoute(viewModel: CalculatorViewModel = hiltViewModel()) {
@@ -248,35 +246,39 @@ fun CalculatorScreen(
                     focusRequester = amountFocusRequester,
                 )
 
-                // El IGTF estaba en el estado pero el cálculo lo ignoraba siempre. Ahora el
-                // usuario lo enciende aquí y el total, las cuotas y el desglose copiado
-                // reaccionan en la misma tecla.
-                FilterChip(
-                    selected = state.igtfEnabled,
-                    onClick = { onIntent(CalculatorIntent.ToggleIgtf) },
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .heightIn(min = 48.dp),
-                    label = {
-                        Text(text = stringResource(R.string.igtf_label, state.igtfRateText))
-                    },
-                )
-
-                if (state.igtfEnabled) {
-                    Text(
-                        text = stringResource(R.string.igtf_helper),
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-
-                TextButton(
+                // Invertir la dirección es la acción secundaria más usada de la pantalla.
+                // Un botón sólido de ancho completo, con 56 dp mínimos, la separa de los
+                // campos y del resultado sin depender de un enlace de texto de bajo contraste.
+                Button(
                     onClick = { onIntent(CalculatorIntent.SwapDirection) },
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp),
+                    shape = MaterialTheme.shapes.large,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    contentPadding = PaddingValues(
+                        horizontal = Spacing.lg,
+                        vertical = Spacing.md,
+                    ),
                 ) {
-                    Text(text = stringResource(R.string.action_swap_direction))
+                    Icon(
+                        imageVector = Icons.Filled.SwapHoriz,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        text = stringResource(R.string.action_swap_direction),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
 
                 Surface(
@@ -305,66 +307,6 @@ fun CalculatorScreen(
                             value = state.totalUsdText,
                             valueColor = resultValueColor,
                             emphasize = true,
-                        )
-                        ResultRow(
-                            label = stringResource(R.string.result_igtf, state.igtfRateText),
-                            value = state.igtfBsText,
-                        )
-                    }
-                }
-
-                // Crédito en cuotas: el monto ya escrito, repartido entre el plazo elegido.
-                // Usa el mismo total del desglose (tasa aplicada e IGTF incluido), así que
-                // también funciona con la última tasa guardada cuando no hay red.
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    color = MaterialTheme.colorScheme.surfaceContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(Spacing.lg),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.calculator_credit_title),
-                            modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-                        SegmentedSelector(
-                            options = INSTALLMENT_OPTIONS,
-                            selected = state.installments,
-                            onSelect = { count ->
-                                onIntent(CalculatorIntent.SelectInstallments(count))
-                            },
-                            label = { count ->
-                                stringResource(R.string.calculator_credit_chip, count)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.calculator_credit_installment,
-                                state.installments,
-                                state.installmentBsText,
-                                state.installmentUsdText,
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.titleMedium.tabular(),
-                            color = resultValueColor,
-                            textAlign = TextAlign.Center,
-                        )
-                        Text(
-                            text = stringResource(R.string.calculator_credit_hint),
-                            modifier = Modifier.fillMaxWidth(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
                         )
                     }
                 }

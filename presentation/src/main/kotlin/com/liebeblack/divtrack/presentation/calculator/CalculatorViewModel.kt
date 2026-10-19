@@ -18,9 +18,11 @@ import com.liebeblack.divtrack.domain.usecase.SyncRatesUseCase
 import com.liebeblack.divtrack.domain.usecase.UpdateSettingsUseCase
 import com.liebeblack.divtrack.presentation.R
 import com.liebeblack.divtrack.presentation.common.UiText
+import com.liebeblack.divtrack.presentation.di.CalculatorDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -31,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -39,10 +42,15 @@ import kotlinx.coroutines.launch
  *
  * El cálculo es **automático en cada tecla**: `inputText` es un `MutableStateFlow` y el
  * estado de UI se deriva con `combine` + `stateIn(WhileSubscribed)`. No hay botón "Calcular"
- * y no se recalcula nada mientras nadie observa la pantalla (sin trabajo en background).
+ * y no se recalcula nada mientras nadie observa la pantalla (cero trabajo sin suscriptores).
  *
  * El saneado del texto (`NumberParsing.sanitizeAmountInput`) hace que pegar "1.234,56" o
  * escribir "1234,5" funcione sin que el usuario pelee con el formato.
+ *
+ * **La aritmética no corre en el hilo principal.** El `combine` que construye el estado se
+ * ejecuta en [calculationDispatcher] (`Dispatchers.Default` en producción) mediante `flowOn`;
+ * el hilo principal solo recibe el estado ya calculado. El dispatcher es inyectable para que
+ * los tests usen su scheduler virtual en vez de un hilo real.
  *
  * **La calculadora también sincroniza.** La tasa que usa sale de Room, y Room solo cambia
  * si alguien escribe: si esta pantalla no disparara la sincronización, entrar directo aquí
@@ -52,11 +60,6 @@ import kotlinx.coroutines.launch
  * tocar el cálculo que ya está en pantalla. Y al volver a la pestaña ([onResumed]) se repite
  * con el mismo criterio que el panel: la tasa que se ve puede ser de hace horas aunque nadie
  * haya tocado el importe.
- *
- * **También divide en cuotas.** Con el monto ya escrito, el usuario elige 3, 6, 12 o 24
- * cuotas y ve la cuota mensual en ambas monedas, calculada sobre el mismo total. No depende
- * de la red: sigue funcionando con la última tasa guardada aunque la base local haya tenido
- * que reconstruirse.
  */
 @HiltViewModel
 class CalculatorViewModel @Inject constructor(
@@ -66,13 +69,12 @@ class CalculatorViewModel @Inject constructor(
     private val calculateConversion: CalculateConversionUseCase,
     private val syncRates: SyncRatesUseCase,
     private val timeProvider: TimeProvider,
+    @CalculatorDispatcher private val calculationDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val inputText = MutableStateFlow("")
     private val direction = MutableStateFlow(ConversionDirection.USD_TO_BS)
     private val selectedSource = MutableStateFlow<RateSource?>(null)
-    private val installments = MutableStateFlow(DEFAULT_INSTALLMENTS)
-    private val igtfEnabled = MutableStateFlow(false)
     private val availableRates = MutableStateFlow(CalculatorRates())
     private val isSyncing = MutableStateFlow(false)
     private var syncJob: Job? = null
@@ -90,48 +92,40 @@ class CalculatorViewModel @Inject constructor(
     )
     val effects: SharedFlow<CalculatorEffect> = _effects.asSharedFlow()
 
-    // `combine` tipado solo admite 5 flujos: los datos del cálculo viajan agrupados en un
-    // snapshot y el estado de sincronización va fuera.
     private val calculationInputs = combine(
         inputText,
         direction,
         selectedSource,
         availableRates,
-        igtfEnabled,
-    ) { input, currentDirection, source, rates, applyIgtf ->
+    ) { input, currentDirection, source, rates ->
         CalculatorInputs(
             input = input,
             direction = currentDirection,
             source = source,
             rates = rates,
-            igtfEnabled = applyIgtf,
         )
     }
 
     val state: StateFlow<CalculatorUiState> = combine(
         calculationInputs,
         isSyncing,
-        installments,
-    ) { inputs, syncing, installmentCount ->
+    ) { inputs, syncing ->
         buildState(
             input = inputs.input,
             direction = inputs.direction,
             requestedSource = inputs.source,
             rates = inputs.rates,
             isSyncing = syncing,
-            installments = installmentCount,
-            applyIgtf = inputs.igtfEnabled,
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-        // `hasRate = false` desde el primer fotograma: hasta que Room no entregue una tasa
-        // real, la pantalla no debe afirmar que hay una disponible.
-        initialValue = CalculatorUiState(
-            igtfRateText = AppConstants.IGTF_LABEL,
-            hasRate = false,
-        ),
-    )
+    }
+        .flowOn(calculationDispatcher)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            // `hasRate = false` desde el primer fotograma: hasta que Room no entregue una tasa
+            // real, la pantalla no debe afirmar que hay una disponible.
+            initialValue = CalculatorUiState(hasRate = false),
+        )
 
     init {
         viewModelScope.launch {
@@ -160,13 +154,6 @@ class CalculatorViewModel @Inject constructor(
             }
 
             is CalculatorIntent.SelectSource -> selectedSource.value = intent.source
-
-            // Nunca menos de una cuota: el selector de la UI no lo permite, pero el estado no
-            // depende de que la UI se porte bien.
-            is CalculatorIntent.SelectInstallments ->
-                installments.value = intent.count.coerceAtLeast(1)
-
-            CalculatorIntent.ToggleIgtf -> igtfEnabled.value = !igtfEnabled.value
 
             CalculatorIntent.Refresh -> refresh(isUserInitiated = true)
 
@@ -246,8 +233,6 @@ class CalculatorViewModel @Inject constructor(
                         source = current.selectedSource,
                         amountText = current.inputText,
                         rateText = current.selectedRateText,
-                        igtfEnabled = current.igtfEnabled,
-                        igtfText = current.igtfBsText,
                         totalBsText = current.totalBsText,
                         totalUsdText = current.totalUsdText,
                     ),
@@ -262,8 +247,6 @@ class CalculatorViewModel @Inject constructor(
         requestedSource: RateSource?,
         rates: CalculatorRates,
         isSyncing: Boolean,
-        installments: Int,
-        applyIgtf: Boolean,
     ): CalculatorUiState {
         val options = rates.options
 
@@ -282,16 +265,7 @@ class CalculatorViewModel @Inject constructor(
             source = source,
             rate = selectedRate,
             rawAmount = input,
-            igtfEnabled = applyIgtf,
         )
-
-        // La cuota sale del mismo total ya calculado (IGTF incluido, si está activo): dividir
-        // es exacto porque el impuesto es proporcional a cada pago. Sin monto o sin tasa, el
-        // guion de "sin dato" se mantiene.
-        val installmentBsText =
-            conversion?.let { CurrencyFormatters.amount(it.totalBs / installments) } ?: "—"
-        val installmentUsdText =
-            conversion?.let { CurrencyFormatters.amount(it.totalUsd / installments) } ?: "—"
 
         // La fila "Tasa: X" también cuenta la edad del dato: una tasa de ayer es el motivo
         // nº1 de que las cuentas "no salgan", y no hay que dejar que se lea como actual.
@@ -303,14 +277,8 @@ class CalculatorViewModel @Inject constructor(
             selectedRateText = selectedRate?.let { rates.formattedValues[source] } ?: "—",
             selectedRateAgeText = rates.formattedUpdatedAt[source],
             isSyncing = isSyncing,
-            igtfEnabled = applyIgtf,
-            igtfRateText = AppConstants.IGTF_LABEL,
-            igtfBsText = conversion?.let { CurrencyFormatters.amount(it.igtfBs) } ?: "—",
-            totalBsText = conversion?.let { CurrencyFormatters.amount(it.totalBs) } ?: "—",
-            totalUsdText = conversion?.let { CurrencyFormatters.amount(it.totalUsd) } ?: "—",
-            installments = installments,
-            installmentBsText = installmentBsText,
-            installmentUsdText = installmentUsdText,
+            totalBsText = conversion?.let { CurrencyFormatters.amount(it.bsAmount) } ?: "—",
+            totalUsdText = conversion?.let { CurrencyFormatters.amount(it.usdAmount) } ?: "—",
             canCopy = conversion?.hasAmount == true,
             hasRate = selectedRate != null,
         )
@@ -341,7 +309,6 @@ class CalculatorViewModel @Inject constructor(
         val direction: ConversionDirection,
         val source: RateSource?,
         val rates: CalculatorRates,
-        val igtfEnabled: Boolean,
     )
 
     private data class CalculatorRates(

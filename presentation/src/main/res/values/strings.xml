@@ -18,7 +18,7 @@
     <string name="welcome_rates_title">Tasas claras, con su fuente</string>
     <string name="welcome_rates_body">El dólar oficial siempre ocupa el primer lugar. La tasa paralela es opcional y puedes activarla desde Ajustes.</string>
     <string name="welcome_calculator_title">Calculadora al instante</string>
-    <string name="welcome_calculator_body">Convierte entre dólares y bolívares mientras escribes. Activa el IGTF cuando necesites incluirlo en el cálculo.</string>
+    <string name="welcome_calculator_body">Convierte entre dólares y bolívares mientras escribes. El resultado se actualiza en cada tecla.</string>
     <string name="welcome_sync_title">Actualización automática</string>
     <string name="welcome_sync_body">La app puede actualizar las tasas en segundo plano. Android puede retrasar esa tarea según batería, conexión y restricciones del dispositivo.</string>
     <string name="welcome_disclaimer">Las tasas son informativas y pueden cambiar. Verifica el valor antes de tomar una decisión.</string>
@@ -46,16 +46,9 @@
     <string name="calculator_rate_line">Tasa aplicada: %1$s Bs por USD</string>
     <string name="calculator_hint">Escribe un monto y el resultado se calcula al instante, sin botones.</string>
     <string name="calculator_no_rate">Sin tasas disponibles. Sincroniza desde el panel de tasas.</string>
-    <string name="calculator_credit_title">Crédito en cuotas</string>
-    <string name="calculator_credit_chip">%1$dx</string>
-    <string name="calculator_credit_installment">Cuota %1$d: %2$s Bs · $ %3$s</string>
-    <string name="calculator_credit_hint">Sin intereses: el monto entre el número de cuotas, con la tasa aplicada.</string>
     <string name="result_mirror_bs">Total en bolívares</string>
     <string name="result_mirror_usd">Total en USD</string>
-    <string name="result_igtf">IGTF %1$s · estimado en Bs.</string>
-    <string name="igtf_label">IGTF (%1$s)</string>
-    <string name="igtf_helper">Estimación informativa del 3 % en bolívares cuando corresponda. La aplicación real depende de la operación y la normativa vigente.</string>
-    <string name="action_swap_direction">Invertir dirección (Bs. / USD)</string>
+    <string name="action_swap_direction">Invertir dirección</string>
     <string name="action_copy_breakdown">Copiar desglose</string>
     <string name="action_clear">Limpiar</string>
     <string name="copy_done">Desglose copiado al portapapeles</string>
@@ -65,8 +58,6 @@
     <string name="copy_amount_usd">Monto ingresado: $%1$s</string>
     <string name="copy_amount_bs">Monto ingresado: Bs. %1$s</string>
     <string name="copy_rate">Tasa aplicada: %1$s · %2$s Bs/USD</string>
-    <string name="copy_igtf_estimated">IGTF estimado: %1$s Bs</string>
-    <string name="copy_igtf_not_applied">IGTF: No aplicado</string>
     <string name="copy_total">TOTAL: $%1$s USD · %2$s Bs</string>
     <string name="copy_signature">Calculado con DivTrack</string>
 

@@ -163,10 +163,9 @@ XxxScreen.kt      XxxRoute (única función que toca el ViewModel) + XxxScreen (
   mantienen el verde dólar como acento principal y contraste legible en textos. Se usan
   superficies tonales y bordes suaves en lugar de blur o transparencias animadas para no
   añadir coste de GPU en dispositivos modestos.
-- El desglose de calculadora presenta totales y el IGTF estimado en bolívares, sin exponer
-  subtotales netos en la tarjeta ni en el texto copiado. La cifra es informativa y no implica
-  validación o aval del BCV/SENIAT; la aplicación del impuesto depende de la operación y la
-  normativa vigente.
+- El desglose de calculadora presenta solo los dos totales (USD y Bs), sin subtotales ni
+  cargos que la app no calcula. La cifra es informativa y no implica validación o aval del
+  BCV/SENIAT.
 - Al abrir el panel, la UI mantiene un esqueleto estático con el texto de carga mientras
   intenta sincronizar con las APIs. Room se observa desde el inicio para que la caché y el
   estado offline estén disponibles; la UI retiene la carga inicial hasta concluir la primera

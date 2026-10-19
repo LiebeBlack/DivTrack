@@ -109,30 +109,9 @@ class CalculatorViewModelTest {
 
         val state = viewModel.state.value
         assertEquals("10", state.inputText)
-        // Sin IGTF, el total que pinta la tarjeta coincide con el neto.
         assertEquals("10,00", state.totalUsdText)
         assertEquals("365,00", state.totalBsText)
         assertTrue(state.canCopy)
-    }
-
-    @Test
-    fun `el IGTF solo se aplica cuando el usuario lo enciende`() = runTest {
-        val viewModel = createViewModel()
-        collectState(viewModel)
-
-        viewModel.onIntent(CalculatorIntent.AmountChanged("10"))
-        advanceUntilIdle()
-        assertEquals("365,00", viewModel.state.value.totalBsText)
-
-        viewModel.onIntent(CalculatorIntent.ToggleIgtf)
-        advanceUntilIdle()
-
-        val state = viewModel.state.value
-        assertTrue(state.igtfEnabled)
-        // Ejemplo del pliego: $10 a 36,5 Bs con IGTF del 3 % -> 375,95 Bs.
-        assertEquals("10,95", state.igtfBsText)
-        assertEquals("375,95", state.totalBsText)
-        assertEquals("10,30", state.totalUsdText)
     }
 
     @Test
@@ -177,33 +156,6 @@ class CalculatorViewModelTest {
         assertEquals(RateSource.PARALELO, state.selectedSource)
         assertEquals("954,55", state.selectedRateText)
         assertEquals("9.545,50", state.totalBsText)
-    }
-
-    @Test
-    fun `la cuota del credito reparte el total en la moneda elegida`() = runTest {
-        val viewModel = createViewModel()
-        collectState(viewModel)
-
-        viewModel.onIntent(CalculatorIntent.AmountChanged("10"))
-        viewModel.onIntent(CalculatorIntent.SelectInstallments(12))
-        advanceUntilIdle()
-
-        val state = viewModel.state.value
-        assertEquals(12, state.installments)
-        // Total sin IGTF: 365,00 Bs y 10,00 $ -> 12 cuotas = 30,42 Bs y 0,83 $.
-        assertEquals("30,42", state.installmentBsText)
-        assertEquals("0,83", state.installmentUsdText)
-    }
-
-    @Test
-    fun `el numero de cuotas nunca baja de una`() = runTest {
-        val viewModel = createViewModel()
-        collectState(viewModel)
-
-        viewModel.onIntent(CalculatorIntent.SelectInstallments(0))
-        advanceUntilIdle()
-
-        assertEquals(1, viewModel.state.value.installments)
     }
 
     @Test
@@ -272,6 +224,9 @@ class CalculatorViewModelTest {
         calculateConversion = CalculateConversionUseCase(),
         syncRates = SyncRatesUseCase(rateRepository),
         timeProvider = timeProvider,
+        // El scheduler virtual también gobierna `flowOn`: sin esto, la aritmética correría
+        // en un hilo real y `advanceUntilIdle()` no esperaría por ella.
+        calculationDispatcher = UnconfinedTestDispatcher(testScheduler),
     )
 
     /**

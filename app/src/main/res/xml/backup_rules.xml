@@ -4,7 +4,7 @@
 
   Se excluye la base de datos de tasas: es un caché de datos públicos que la red vuelve a
   llenar en segundos, y restaurarla en otro dispositivo mostraría tasas caducadas como si
-  fueran propias. Las preferencias sí se respaldan (tema, IGTF, intervalo de sincronización):
+  fueran propias. Las preferencias sí se respaldan (tema, intervalo de sincronización):
   son del usuario, no del dispositivo.
 -->
 <full-backup-content>

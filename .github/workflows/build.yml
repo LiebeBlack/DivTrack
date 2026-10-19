@@ -292,12 +292,13 @@ jobs:
           mkdir -p dist
           for apk in "${APKS[@]}"; do
             filename=$(basename "$apk")
-            abi=$(printf '%s' "$filename" | sed -E 's/^app-(arm64-v8a|armeabi-v7a|x86_64|x86|universal)-.*\.apk$/\1/')
+            abi=$(printf '%s' "$filename" | sed -E 's/^app-(arm64-v8a|armeabi-v7a|x86_64)-.*\.apk$/\1/')
             if [ "$abi" = "$filename" ]; then
-              # Red de seguridad: si AGP entrega un único APK sin sufijo de ABI, se
-              # publica como universal en lugar de romper el release.
-              echo "::warning::${filename} no declara un ABI reconocible; se publica como universal."
-              abi="universal"
+              # El release ya no publica un APK universal: si AGP cambia el nombre o
+              # entrega un binario sin ABI, es preferible fallar a publicar un archivo
+              # que el usuario no sabría si le corresponde.
+              echo "::error::${filename} no declara un ABI permitido (armeabi-v7a, arm64-v8a o x86_64)."
+              exit 1
             fi
 
             dest="dist/DivTrack-${VERSION}-${abi}.apk"
@@ -314,6 +315,13 @@ jobs:
               exit 1
             fi
             echo "OK · ${dest}"
+          done
+
+          for expected_abi in armeabi-v7a arm64-v8a x86_64; do
+            if [ ! -f "dist/DivTrack-${VERSION}-${expected_abi}.apk" ]; then
+              echo "::error::Falta el APK de ${expected_abi}; el split debe producir las tres arquitecturas."
+              exit 1
+            fi
           done
 
           (cd dist && sha256sum ./*.apk > SHA256SUMS.txt)
@@ -365,9 +373,8 @@ jobs:
             echo ""
             echo "### Instalación"
             echo ""
-            echo "1. Descarga el APK de la arquitectura de tu teléfono (la mayoría son \`arm64-v8a\`)."
-            echo "2. Si dudas, usa \`universal\`."
-            echo "3. Abre el archivo y confirma la instalación; Android puede pedir permitir"
+            echo "1. Descarga el APK de la arquitectura de tu teléfono (la mayoría son \`arm64-v8a\`; los emuladores, \`x86_64\`)."
+            echo "2. Abre el archivo y confirma la instalación; Android puede pedir permitir"
             echo "   «instalar apps desconocidas» para el navegador o el explorador de archivos."
             echo ""
             echo "> La calculadora y las tasas funcionan sin conexión con el último dato guardado."

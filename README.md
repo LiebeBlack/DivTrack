@@ -2,7 +2,7 @@
 
 App Android nativa para rastrear en tiempo real las dos tasas que importan en Venezuela —
 **dólar oficial (BCV)** y **dólar paralelo** — y convertir montos entre bolívares y dólares
-en ambos sentidos, con el IGTF (3 %) opcional.
+en ambos sentidos, al instante y sin impuestos añadidos.
 
 - **Kotlin 100 %**, Jetpack Compose con Material 3, Clean Architecture modular, MVI estricto.
 - **Online-First**: Room es la única fuente de verdad de la UI; la red solo escribe.
@@ -38,6 +38,16 @@ Lo que sigue se comprobó **ejecutando** cosas, no asumiendo:
 > (88 casos, 0 fallos). Las pasadas anteriores se hicieron sin compilar, a petición explícita;
 > esta las recompiló y las pasó por tests. Lo único que sigue sin re-ejecutarse aquí es
 > `:app:lintDebug`, que en CI corre con `continue-on-error`.
+>
+> **Nota (2026-10-19).** Esa tabla es la última corrida completa, anterior a la migración a
+> Java 21 y al split de tres ABIs. Esos cambios están verificados solo de forma estática
+> (`actionlint` y revisión de los archivos); la primera ejecución de CI es la que los
+> convierte en verificados.
+>
+> **Cambio de producto (2026-10-19).** La calculadora quedó reducida a conversión directa:
+> se retiraron los cargos adicionales y las simulaciones de financiamiento. El botón para
+> invertir la dirección pasó a ser un botón sólido de ancho completo, con 56 dp mínimos y
+> contraste de `secondaryContainer`.
 
 ---
 
@@ -48,6 +58,7 @@ Lo que sigue se comprobó **ejecutando** cosas, no asumiendo:
 | Android Gradle Plugin | 9.4.0 | Kotlin integrado + DSL nuevo (`android.newDsl`) |
 | Gradle | 9.6.0 | wrapper incluido y verificado por checksum |
 | Kotlin | 2.4.20 | sin plugin `kotlin-android` (lo aporta AGP 9) |
+| Java / Kotlin JVM target | 21 | bytecode moderno, optimizado por R8 en release |
 | KSP | 2.3.12 | KSP2, ya desacoplado de la versión de Kotlin |
 | Compose BOM | 2026.09.00 | Material 3 |
 | Hilt | 2.60.1 | ≥ 2.59 es requisito para AGP 9 |
@@ -66,7 +77,7 @@ Lo que sigue se comprobó **ejecutando** cosas, no asumiendo:
 :core:common      Kotlin/JVM puro. Result<T>, DataError, formateo es-VE, parser de importes.
 :core:network     Retrofit cuádruple (DolarAPI + Yadio + ER-API + DolarVZLA), 4 interceptores, RateProvider + registro con circuit breaker y frescura.
 :core:database    Room: tasa vigente + cierre diario (base de la flecha de tendencia).
-:core:datastore   DataStore: tema, IGTF, fuente por defecto, frecuencia de sync.
+:core:datastore   DataStore: tema, fuente por defecto, frecuencia de sync.
 :domain           Kotlin/JVM puro. Modelos, contratos de repositorio y 9 casos de uso.
 :data             Implementaciones, orquestación multi-proveedor, WorkManager.
 :presentation     Compose + MVI por pantalla + tema M3 + Nav3.
@@ -118,8 +129,13 @@ verificados. Ninguna URL está escrita en el código Kotlin: entran por `BuildCo
 `.github/workflows/build.yml` es el único pipeline: en cada push a `main` (y en cada disparo
 manual) incrementa `versionCode` y `versionName` en `app/build.gradle.kts`, corre los tests
 JVM y compila release con R8 + `shrinkResources`. El resultado son **APKs independientes por
-ABI** (`armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64`) más un universal; `arm64-v8a` cubre
-también los dispositivos ARMv9, porque no existe un ABI `armv9` separado. El commit del
+ABI** (`armeabi-v7a`, `arm64-v8a` y `x86_64`), sin APK universal. `armeabi-v7a` es ARMv7
+de 32 bits; `arm64-v8a` es ARMv8/AArch64 de 64 bits y cubre también los dispositivos ARMv9
+(no existe un ABI `armv9` separado); `x86_64` cubre emuladores. No se usa
+`ndk.abiFilters`: AGP prohíbe combinarlo con `splits.abi`, así que `include` es el único
+filtro y cada APK sale con su arquitectura. El grafo actual no aporta `.so` propios, así que
+los tres comparten bytecode; el split sigue siendo la barrera para que una dependencia
+nativa futura no cuele ABIs ajenas en el APK de cada usuario. El commit del
 incremento se empuja con `[skip ci]` y el release se publica con etiqueta `v<versión>`,
 changelog generado desde la etiqueta anterior y todos los APKs adjuntos.
 
@@ -158,24 +174,27 @@ calculadora aplica la misma regla al volver a su pestaña.
 
 ### Calculadora bidireccional
 Se escribe el monto y el resultado aparece **en cada tecla**: no hay botón "Calcular".
-Selector segmentado Oficial/Paralelo, interruptor de IGTF (3 %) y botón para copiar el
-desglose con el formato del pliego:
+Selector segmentado Oficial/Paralelo, botón sólido para invertir la dirección y botón para
+copiar el desglose:
 
 ```
-DivTrack · Monto: $10 | Tasa Oficial (BCV): 36,50 Bs | IGTF: Sí | Total: 375,95 Bs
-Detalle — Oficial (BCV) | Neto: $10,00 | IGTF: 10,95 Bs | Total: $10,30
+DIVTRACK · CONVERSIÓN
+Dólares → bolívares
+Monto ingresado: $10
+Tasa aplicada: Oficial (BCV) · 36,50 Bs/USD
+TOTAL: $10,00 USD · 365,00 Bs
 Calculado con DivTrack
 ```
 
-Aritmética del IGTF (la parte fácil de equivocar, por eso está documentada y probada):
+Conversión directa, sin impuestos ni cargos añadidos:
 
-- **USD → Bs**: `netBs = usd × tasa`, `totalBs = netBs + netBs × 3 %`.
-- **Bs → USD**: el monto tecleado **es** el total; `netUsd = totalUsd / 1,03`.
+- **USD → Bs**: `bs = usd × tasa`.
+- **Bs → USD**: `usd = bs / tasa`.
 
 ### Ajustes
 Tema (Sistema / Claro / Oscuro, aplicado al instante), tasa por defecto de la calculadora,
 sincronización en segundo plano con su frecuencia (15/30/60/120/240 min), versión instalada
-y atribución de proveedores. El IGTF se activa desde la propia calculadora.
+y atribución de proveedores.
 
 ---
 
@@ -201,14 +220,12 @@ y atribución de proveedores. El IGTF se activa desde la propia calculadora.
 
 ## Tests
 
-93 casos JVM declarados en el repo (los 88 de la última corrida completa, más los 2 de la
-corrección tipográfica y los 3 de la última pasada, estos tres sin ejecutar), centrados en lo
-que puede romperse en silencio:
+Los tests JVM declarados en el repo están centrados en lo que puede romperse en silencio:
 
 | Módulo | Qué se prueba |
 |---|---|
 | `:core:common` | Parser de importes es-VE (`1.234,56` / `1,234.56` / `1.234`), formateo de moneda, `Result` y cancelación de corrutinas |
-| `:domain` | IGTF bidireccional (ejemplo del pliego: $10 a 36,5 → **375,95 Bs**) y brecha |
+| `:domain` | Conversión directa en ambos sentidos ($10 a 36,5 → **365,00 Bs**) y brecha |
 | `:data` | Online-First: la red escribe y no destruye caché, resolución **por tasa** entre proveedores, fallo inmediato sin conectividad, cierre diario para la tendencia |
 | `:presentation` | Cálculo automático al teclear, saneado al pegar, cambio de tasa/dirección, brecha del panel, eventos one-shot, reprogramación de WorkManager |
 
@@ -284,17 +301,15 @@ no solo habla de conexión).
 
 ---
 
-## Cuarta pasada (2026-10-03): base dañada, memoria y cuotas
+## Cuarta pasada (2026-10-03): base dañada y memoria
 
-Tres frentes pedidos explícitamente: que una base dañada se reconstruya, que el cálculo siga
-funcionando con lo último guardado («calcular con caché») y que la calculadora reparta un monto
-en cuotas de crédito.
+Dos frentes pedidos explícitamente: que una base dañada se reconstruya y que el cálculo siga
+funcionando con lo último guardado («calcular con caché»).
 
 | Qué | Antes | Ahora |
 |---|---|---|
 | **Base Room dañada** | La primera lectura lanzaba dentro del `Flow` y la app caía al abrir, sin forma de recuperarse | `RebuildingOpenHelperFactory`: verificación con `PRAGMA quick_check` antes de abrir, borrado de lo ilegible y aviso persistente en el panel (`msg_cache_rebuilt`); `allowDataLossOnRecovery` de AndroidX como segunda red para fallos de apertura |
 | **Cálculo sin Room** | Si la base fallaba en caliente, el colector de tasas moría y la calculadora se quedaba sin nada | `RateRepositoryImpl` reintenta la lectura dos veces y, si no hay arreglo, sirve la **última lectura de la sesión**; una emisión vacía tras la reconstrucción no borra esa memoria |
-| **Cuotas de crédito** | No existían | Tarjeta «Crédito en cuotas»: 3, 6, 12 o 24 cuotas, cuota mensual en bolívares y dólares sobre el total ya calculado (IGTF incluido), con la aclaratoria de que no modela intereses (ADR 32) |
 
 Nada de esta pasada se compiló ni se ejecutó (instrucción explícita). Se revisó leyendo el
 código, y las únicas APIs nuevas para el proyecto se verificaron contra el código fuente de
@@ -306,12 +321,10 @@ classpath de `:core:database`.
 | Comprobación | Resultado |
 |---|---|
 | Test nuevo del panel (la caché reconstruida se expone en el estado) | escrito, **no ejecutado** |
-| Tests nuevos de la calculadora (reparto en cuotas y mínimo de una cuota) | escritos, **no ejecutados** |
 | Reconstrucción probada en dispositivo (archivo dañado de verdad) | no ejecutada |
 | Compilación y resto de la suite | no ejecutados |
 
-Las decisiones y sus alternativas quedan en la ADR 31 (reconstrucción de la base) y la ADR 32
-(cuotas sin intereses).
+Las decisiones y sus alternativas quedan en la ADR 31 (reconstrucción de la base).
 
 ---
 

@@ -78,23 +78,27 @@ android {
     }
 
     /**
-     * Un APK por arquitectura, más el universal para instalaciones manuales.
+     * Un APK independiente por arquitectura, sin APK universal: el release publica
+     * exactamente las tres variantes que Android usa hoy.
      *
      * `arm64-v8a` es también el ABI de los dispositivos ARMv9: no existe un ABI `armv9`
      * separado, ARMv9 ejecuta binarios ARM64 y Android sirve esa variante. `armeabi-v7a`
-     * cubre ARM 32-bit y `x86`/`x86_64` los emuladores y Chromebooks.
+     * cubre ARM 32-bit y `x86_64` los emuladores actuales y Chromebooks. El `x86` de 32
+     * bits quedó fuera porque los emuladores modernos y ChromeOS son x86_64.
      *
      * Con R8 y `shrinkResources` el contenido útil cabe en poco más de 2 MB; separar por
-     * ABI evita arrastrar código nativo ajeno a la arquitectura del dispositivo. El APK
-     * universal se conserva porque GitHub Releases se descarga a mano y no todos los
-     * usuarios saben qué ABI tiene su teléfono.
+     * ABI evita arrastrar código nativo ajeno a la arquitectura del dispositivo. Sin el
+     * universal, cada usuario descarga únicamente el binario de su arquitectura.
      */
     splits {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            isUniversalApk = true
+            // Único filtro de ABIs. No se añade `defaultConfig.ndk.abiFilters`: AGP no
+            // permite combinar las dos configuraciones y `include` ya deja cada APK con
+            // exactamente su arquitectura (ARMv7, ARMv8 o x86_64 para emuladores).
+            include("armeabi-v7a", "arm64-v8a", "x86_64")
+            isUniversalApk = false
         }
     }
 
@@ -120,6 +124,10 @@ android {
             if (releaseSigningReady) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            // `proguard-android-optimize.txt` (no el `proguard-android.txt`) activa las
+            // optimizaciones de bytecode además de la ofuscación, y AGP 9 ejecuta R8 en
+            // full mode por defecto. El target Java 21 es lo que permite optimizar class
+            // files modernos sin quedarse en el bytecode de Java 8.
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -128,8 +136,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     packaging {
@@ -141,7 +149,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
 

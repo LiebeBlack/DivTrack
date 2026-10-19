@@ -20,8 +20,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     testOptions {
@@ -33,7 +33,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
     }
 }
 
@@ -59,9 +59,10 @@ dependencies {
     // aportar ni un componente, porque toda la UI es Compose.
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
-    // De todos los iconos de la app, solo dos son de `extended` (Calculate y TrendingUp, las
-    // pestañas); Refresh, Clear, Share, Warning, Info y Settings salen de `core`. R8 elimina en
-    // release todo lo que no se usa, así que el coste real en el APK final son dos vectores.
+    // De todos los iconos de la app, solo tres son de `extended` (Calculate y TrendingUp, las
+    // pestañas, y SwapHoriz, el inversor de dirección); Refresh, Clear, Share, Warning, Info y
+    // Settings salen de `core`. R8 elimina en release todo lo que no se usa, así que el coste
+    // real en el APK final son tres vectores.
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)

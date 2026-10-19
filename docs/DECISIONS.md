@@ -88,7 +88,10 @@ prioridad) que la publique, y no exige que un mismo proveedor responda todo.
 
 ---
 
-## 5. Semántica del IGTF documentada y probada
+## 5. (Retirada) Semántica del IGTF documentada y probada
+
+> Retirada por la ADR 42: la calculadora ya no aplica IGTF. Se conserva como registro
+> histórico de la decisión que estuvo vigente hasta 2026-10-19.
 
 **Decisión.** En `USD → Bs` el IGTF se **suma** al neto (`totalBs = netBs × 1,03`); en
 `Bs → USD` el monto tecleado **es** el total y el impuesto se **descuenta** para hallar el
@@ -195,8 +198,8 @@ y con ellos un `Flow` de Room que nadie consumía, un TTL de 24 h y una poda sep
 la caché HTTP; las preferencias sí se respaldan.
 
 **Motivo.** Restaurar en otro dispositivo una base de tasas vieja mostraría datos caducados
-como si fueran actuales. Las tasas se vuelven a descargar en segundos; el tema, el IGTF y
-la frecuencia de sincronización son del usuario y sí viajan.
+como si fueran actuales. Las tasas se vuelven a descargar en segundos; el tema y la
+frecuencia de sincronización son del usuario y sí viajan.
 
 ---
 
@@ -709,7 +712,10 @@ aviso explica la pérdida.
 
 ---
 
-## 32. La calculadora reparte en cuotas sin modelar intereses (todavía)
+## 32. (Retirada) La calculadora reparte en cuotas sin modelar intereses (todavía)
+
+> Retirada por la ADR 42: la calculadora ya no simula financiamiento. Se conserva como
+> registro histórico.
 
 **Contexto.** Pedido explícito: calcular el crédito en cuotas. Un crédito real se anuncia con
 plazo (3, 6, 12, 24 cuotas) y a veces con interés; modelar el interés exige una tasa, su
@@ -848,7 +854,7 @@ duplicarse:
 |---|---|---|
 | Indexación y gestión offline | Room como única fuente de verdad de la UI, caché HTTP de 10 MB, cierre diario podado, reconstrucción avisada de una base dañada | El módulo de actualizaciones funciona sin red (estado guardado) y no invade la caché |
 | Estados de «sin conexión» | Aviso persistente con la causa real, atajo a los ajustes de red, fallo rápido sin conectividad, resolución multi-proveedor | El mismo criterio, aplicado a la comprobación de versión |
-| Calculadora de alta precisión | Calculadora bidireccional en cada tecla, IGTF documentado y probado, cuotas sin interés | Nada en la aritmética: los importes son dinero y ya están redondeados a dos decimales en una sola capa |
+| Calculadora de alta precisión | Calculadora bidireccional en cada tecla, conversión directa sin cargos añadidos | Nada en la aritmética: los importes son dinero y ya están redondeados a dos decimales en una sola capa |
 | Módulo de utilidades extensible | `RateProvider` en `Set` de Hilt, sección modular en Ajustes | Ajustes gana una sección independiente sin tocar las existentes |
 | API reales y validadas | DolarAPI (oficial y paralelo), Yadio, ExchangeRate-API | API pública de GitHub, la única que publica el APK de esta app |
 
@@ -1123,3 +1129,81 @@ tiene upstream en Yadio) y para cualquier fuente normal cuando la referencia no 
 **Coste.** ~40 líneas en el registro, una propiedad en el contrato del proveedor, un
 parámetro en el fake de tests y cinco tests nuevos (autoridad, respaldo por fallo, corte de
 pasada y fecha futura). Sin llamadas de red nuevas.
+
+---
+
+## 41. Java 21, tres ABIs y la aritmética fuera del hilo principal
+
+**Decisión.** Todo el grafo compila a **Java 21**: `sourceCompatibility` y
+`targetCompatibility` en los módulos Android, y `jvmTarget = JVM_21` en los Android y en los
+JVM puros (`:domain` y `:core:common`). El release se parte en **tres APKs independientes**
+(`armeabi-v7a`, `arm64-v8a`, `x86_64`) y **no** se genera universal. La aritmética de la
+calculadora se ejecuta en `Dispatchers.Default` mediante `flowOn` sobre el `combine` que
+construye el estado; el dispatcher entra por constructor con el qualifier
+`@CalculatorDispatcher` y Hilt lo provee.
+
+**Por qué Java 21.** Es el JDK con el que ya corre CI y el que exige la generación actual de
+Android Studio. Fijar el bytecode en 21 evita que el build dependa del JDK del portátil y
+aprovecha las optimizaciones de R8 para class files modernos. `minSdk 31` no cambia: D8
+desugara lo necesario y el lenguaje que usa el proyecto sigue siendo Kotlin.
+
+**Por qué tres ABIs y sin universal.** `x86` de 32 bits ya no lo usa ningún emulador actual
+ni ChromeOS; mantenerlo solo añadía un artefacto y tiempo de build. El universal era una red
+de seguridad para instalaciones manuales, pero también el archivo que más se equivoca al
+descargar: con tres APKs nombrados por ABI, el usuario y el release hablan del mismo
+binario. El workflow verifica que los tres existan antes de publicar.
+
+**Por qué `Dispatchers.Default` y no el hilo principal.** La operación es O(1), pero el
+estado también formatea cifras en cada tecla. `flowOn` mueve todo ese
+trabajo fuera de Main y el hilo principal solo recibe el `CalculatorUiState` ya construido.
+El dispatcher inyectable no es ceremonia: con `Dispatchers.Default` fijo, los tests de
+`CalculatorViewModel` dependerían de un hilo real y `advanceUntilIdle()` no esperaría por el
+cálculo.
+
+**Bordes y ripple.** La app es Compose, no Views: el equivalente a `ShapeAppearanceOverlay`
+es `DivTrackShapes` en `presentation/theme/Shape.kt`, y los botones, chips e iconos ya usan
+el ripple de Material 3. Añadir un `ShapeAppearanceOverlay` XML sin una sola View que lo
+consuma sería código muerto.
+
+**Fugas de memoria.** No se introduce `WeakReference` para callbacks: el proyecto ya ata el
+trabajo a `viewModelScope` y a `collectAsStateWithLifecycle`. Un `WeakReference` no sustituye
+a un scope cancelado y, en Compose, escondería el problema en vez de resolverlo.
+
+**Coste.** Un salto de contexto por emisión del estado; despreciable frente al formateo que
+se ahorra en Main. Sin dependencias nuevas: Hilt y coroutines ya estaban en `:presentation`.
+
+**Verificación.** En este entorno no hay JDK ni Android SDK, así que la compilación y los
+tests quedan pendientes del primer `./gradlew` real. Lo comprobado aquí es estático: las 8
+configuraciones apuntan a 21, el split declara exactamente tres ABIs y el workflow rechaza
+cualquier APK que no sea una de ellas.
+
+---
+
+## 42. La calculadora solo convierte; el inversor es un botón sólido
+
+**Contexto.** El producto es una calculadora de conversión USD ↔ Bs. El recargo del 3 % y
+la simulación de financiamiento añadían estado, textos, tests y superficie de error que no
+pertenecen a ese alcance. Además, el inversor de dirección era un enlace de texto con poco
+contraste y un área táctil menor que la del resto de acciones.
+
+**Decisión.**
+
+- Se eliminan del dominio, contrato, ViewModel, UI, textos, copiado y tests: el recargo, su
+  interruptor, el selector de plazos y todos los campos derivados.
+- `Conversion` queda con `usdAmount` y `bsAmount`, sin duplicar `net*`/`total*`.
+- `CalculateConversionUseCase` recibe solo dirección, fuente, tasa y monto: multiplica o
+  divide, sin pasos intermedios.
+- El inversor es un `Button` de ancho completo, 56 dp mínimos, colores
+  `secondaryContainer`/`onSecondaryContainer`, borde y padding; el icono es decorativo y el
+  texto sigue siendo la etiqueta accesible. Un `TextButton` no daba el contraste ni el área
+  táctil que pide una acción secundaria tan frecuente.
+- Se mantiene el cálculo en `Dispatchers.Default` inyectado, ahora con menos trabajo por
+  tecla.
+- El split queda en tres APKs (`armeabi-v7a`, `arm64-v8a`, `x86_64`), sin universal; el
+  workflow verifica que los tres existan antes de publicar.
+
+**Por qué.** Menos estado es menos superficie de bug y una sola fórmula es auditable. El
+botón sólido resuelve contraste y área táctil sin añadir un componente nuevo.
+
+**Coste.** Se pierden dos funciones que existían; las ADR 5 y 32 quedan marcadas como
+retiradas. Sin dependencias nuevas ni cambios de esquema.
