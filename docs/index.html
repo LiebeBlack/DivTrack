@@ -17,8 +17,8 @@
 <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9IiMwNjEzMEUiLz48cGF0aCBkPSJNMTQgNDNMMzAgMjVMNDQgMzVMNTAgMjAiIHN0cm9rZT0iIzM5RjBBNSIgc3Ryb2tlLXdpZHRoPSI2IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4=">
 <!--
   Página autocontenida: sin JavaScript, sin CDN, sin fuentes externas, sin imágenes externas,
-  sin una sola petición de red (el favicon viaja como data URI). Se puede abrir desde el disco,
-  imprimir o publicar tal cual.
+  sin una sola petición de red al cargar (el favicon viaja como data URI; los enlaces a GitHub
+  solo piden red al pulsarlos). Se puede abrir desde el disco, imprimir o publicar tal cual.
 
   Todo lo «interactivo» es CSS puro: selector de tema Sistema/Claro/Oscuro con radios
   (el mismo trío que la pantalla Ajustes de la app), menú móvil con <details>, acordeón de
@@ -1172,7 +1172,7 @@
       <label for="th-light">Claro</label>
       <label for="th-dark">Oscuro</label>
     </div>
-    <a class="cta" href="#descarga">Descargar</a>
+    <a class="cta" href="https://github.com/LiebeBlack/DivTrack/releases/latest">Descargar</a>
 
     <!-- Menú móvil: <details> + <summary>, cero JavaScript -->
     <details class="burger">
@@ -1198,7 +1198,7 @@
           <label for="th-light">Claro</label>
           <label for="th-dark">Oscuro</label>
         </div>
-        <a class="menu-cta" href="#descarga">Descargar el APK</a>
+        <a class="menu-cta" href="https://github.com/LiebeBlack/DivTrack/releases/latest">Descargar el APK</a>
       </div>
     </details>
   </div>
@@ -1220,7 +1220,7 @@
       </p>
 
       <div class="actions">
-        <a class="button primary" href="#descarga">
+        <a class="button primary" href="https://github.com/LiebeBlack/DivTrack/releases/latest">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 21h14"/></svg>
           Descargar el APK
         </a>
@@ -2038,9 +2038,10 @@
       <span class="kicker"><span class="idx">10</span>Novedades</span>
       <h2>Qué cambió en la 4.7</h2>
       <p class="hint">
-        La versión vigente del release rodante es <strong>DivTrack 4.7 (latest)</strong>. Estos son
-        los cambios de la pasada reciente, cada uno con su ADR en lugar de una nota de versiones
-        marketing.
+        La versión vigente del release rodante es
+        <strong><a href="https://github.com/LiebeBlack/DivTrack/releases/tag/latest">DivTrack 4.7 (latest)</a></strong>.
+        Estos son los cambios de la pasada reciente, cada uno con su ADR en lugar de una nota de
+        versiones marketing.
       </p>
     </div>
 
@@ -2152,7 +2153,8 @@
       <details>
         <summary><span class="q">?</span>¿Cómo se instala y cómo se actualiza?<span class="plus" aria-hidden="true"></span></summary>
         <div class="answer">
-          El APK se publica en la etiqueta rodante <code>latest</code> de los Releases, en tres
+          El APK se publica en la etiqueta rodante <a href="https://github.com/LiebeBlack/DivTrack/releases/tag/latest"><code>latest</code></a>
+          de los <a href="https://github.com/LiebeBlack/DivTrack/releases/">Releases</a>, en tres
           variantes por ABI y con <code>SHA256SUMS.txt</code> para verificar la descarga; hay que
           permitir “orígenes desconocidos” y la firma debe ser la misma para actualizar encima
           (ADR 34). Dentro de la app, el módulo de actualizaciones consulta ese release con
@@ -2331,8 +2333,10 @@ sha256sum -c SHA256SUMS.txt</pre>
       <span class="ico" aria-hidden="true"><svg><use href="#ic-download"/></svg></span>
       <h3>Descarga e instalación</h3>
       <p style="margin-bottom:10px">
-        El APK se publica en <strong>Releases</strong> de este repositorio, en la etiqueta rodante
-        <code>latest</code>, que se reemplaza en cada push a <code>main</code> una vez compilado y
+        El APK se publica en <strong><a href="https://github.com/LiebeBlack/DivTrack/releases/">Releases</a></strong>
+        del repositorio <a href="https://github.com/LiebeBlack/DivTrack">LiebeBlack/DivTrack</a>, en la etiqueta
+        rodante <a href="https://github.com/LiebeBlack/DivTrack/releases/tag/latest"><code>latest</code></a>,
+        que se reemplaza en cada push a <code>main</code> una vez compilado y
         con los tests en verde:
       </p>
       <ul style="margin:0 0 12px; padding-left:20px; color:var(--muted); font-size:0.9rem">
@@ -2341,6 +2345,10 @@ sha256sum -c SHA256SUMS.txt</pre>
         <li><code>DivTrack-&lt;versión&gt;-x86_64.apk</code> — emuladores y Chromebooks.</li>
         <li><code>SHA256SUMS.txt</code> — hashes para verificar la descarga.</li>
       </ul>
+      <div class="actions" style="margin-top:2px">
+        <a class="button primary" href="https://github.com/LiebeBlack/DivTrack/releases/latest">Última versión (Latest)</a>
+        <a class="button ghost" href="https://github.com/LiebeBlack/DivTrack/releases/">Todos los releases</a>
+      </div>
       <div class="legend" aria-label="Cómo verificar">
         <span><i style="--sw:var(--mint)"></i>1 · Descarga el APK de tu ABI y el <code>SHA256SUMS.txt</code></span>
         <span><i style="--sw:var(--amber)"></i>2 · <code>sha256sum -c SHA256SUMS.txt</code></span>
@@ -2410,7 +2418,7 @@ sha256sum -c SHA256SUMS.txt</pre>
           App Android de tasas oficial y paralelo, con calculadora bidireccional instantánea.
           Kotlin, Compose, Clean Architecture modular y MVI por pantalla.
         </p>
-        <div class="nojs-note"><b>0 JS</b> · un solo archivo · sin peticiones de red</div>
+        <div class="nojs-note"><b>0 JS</b> · un solo archivo · 0 peticiones al cargar</div>
         <div class="themectl" role="group" aria-label="Tema de la página">
           <label for="th-auto">Sistema</label>
           <label for="th-light">Claro</label>
@@ -2448,6 +2456,15 @@ sha256sum -c SHA256SUMS.txt</pre>
           <li><a href="#lite">DivTrack Lite</a></li>
         </ul>
       </div>
+      <div>
+        <h4>GitHub</h4>
+        <ul>
+          <li><a href="https://github.com/LiebeBlack/DivTrack/releases/latest">Última versión (APK)</a></li>
+          <li><a href="https://github.com/LiebeBlack/DivTrack/releases/">Todos los releases</a></li>
+          <li><a href="https://github.com/LiebeBlack/DivTrack">Repositorio</a></li>
+          <li><a href="https://github.com/LiebeBlack/">Autor · LiebeBlack</a></li>
+        </ul>
+      </div>
     </div>
 
     <div class="foot-note">
@@ -2462,7 +2479,7 @@ sha256sum -c SHA256SUMS.txt</pre>
       </div>
       <div>
         Esta página es HTML + CSS puro: sin JavaScript, sin fuentes ni imágenes externas y sin una
-        sola petición de red. Se abre con doble clic, se imprime y se publica tal cual.
+        sola petición de red al cargar. Se abre con doble clic, se imprime y se publica tal cual.
       </div>
     </div>
   </div>
