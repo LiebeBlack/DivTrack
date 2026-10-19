@@ -108,6 +108,43 @@ class SettingsViewModelTest {
         assertEquals(null, settingsRepository.settings.value.defaultProviderId)
     }
 
+    @Test
+    fun `cambiar notificacion persistente persiste el valor`() = runTest {
+        val viewModel = createViewModel()
+        collectState(viewModel)
+
+        viewModel.onIntent(SettingsIntent.SetEnablePersistentNotification(true))
+        advanceUntilIdle()
+        assertEquals(true, settingsRepository.settings.value.enablePersistentNotification)
+        assertEquals(true, viewModel.state.value.enablePersistentNotification)
+    }
+
+    @Test
+    fun `cambiar ocultar tasa no oficial persiste el valor`() = runTest {
+        val viewModel = createViewModel()
+        collectState(viewModel)
+
+        viewModel.onIntent(SettingsIntent.SetHideUnofficialRate(true))
+        advanceUntilIdle()
+        assertEquals(true, settingsRepository.settings.value.hideUnofficialRate)
+        assertEquals(true, viewModel.state.value.hideUnofficialRate)
+    }
+
+    @Test
+    fun `cambiar tasas personalizadas persiste los valores`() = runTest {
+        val viewModel = createViewModel()
+        collectState(viewModel)
+
+        viewModel.onIntent(SettingsIntent.SetCustomOfficialRate(50.0))
+        viewModel.onIntent(SettingsIntent.SetCustomParallelRate(60.0))
+        advanceUntilIdle()
+
+        assertEquals(50.0, settingsRepository.settings.value.customOfficialRate, 0.0)
+        assertEquals(60.0, settingsRepository.settings.value.customParallelRate, 0.0)
+        assertEquals(50.0, viewModel.state.value.customOfficialRate, 0.0)
+        assertEquals(60.0, viewModel.state.value.customParallelRate, 0.0)
+    }
+
     private fun TestScope.createViewModel() = SettingsViewModel(
         observeSettings = ObserveSettingsUseCase(settingsRepository),
         updateSettings = UpdateSettingsUseCase(settingsRepository),

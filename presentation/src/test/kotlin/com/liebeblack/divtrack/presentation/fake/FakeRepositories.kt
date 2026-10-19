@@ -12,6 +12,7 @@ import com.liebeblack.divtrack.domain.repository.SettingsRepository
 import com.liebeblack.divtrack.domain.scheduler.SyncScheduler
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 
 /**
  * Repositorio de tasas simulado. Permite guionizar la respuesta de la red sin tocar el
@@ -51,6 +52,12 @@ class FakeRateRepository : RateRepository {
         testProvidersCalls++
         return diagnostics
     }
+
+    override suspend fun getCurrentRate(source: RateSource): ExchangeRate? =
+        rates.value.firstOrNull { it.source == source }
+
+    override fun observeCurrentRate(source: RateSource): Flow<ExchangeRate?> =
+        rates.map { list -> list.firstOrNull { it.source == source } }
 }
 
 /** Preferencias simuladas en memoria. */
@@ -92,6 +99,22 @@ class FakeSettingsRepository(
 
     override suspend fun setShowParallelRate(enabled: Boolean) {
         settings.value = settings.value.copy(showParallelRate = enabled)
+    }
+
+    override suspend fun setEnablePersistentNotification(enabled: Boolean) {
+        settings.value = settings.value.copy(enablePersistentNotification = enabled)
+    }
+
+    override suspend fun setHideUnofficialRate(enabled: Boolean) {
+        settings.value = settings.value.copy(hideUnofficialRate = enabled)
+    }
+
+    override suspend fun setCustomOfficialRate(rate: Double) {
+        settings.value = settings.value.copy(customOfficialRate = rate)
+    }
+
+    override suspend fun setCustomParallelRate(rate: Double) {
+        settings.value = settings.value.copy(customParallelRate = rate)
     }
 }
 
