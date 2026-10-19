@@ -3,6 +3,7 @@ package com.liebeblack.divtrack.core.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -42,6 +43,14 @@ interface UserPreferencesDataSource {
     suspend fun setWelcomeCompleted(completed: Boolean)
 
     suspend fun setShowParallelRate(enabled: Boolean)
+
+    suspend fun setEnablePersistentNotification(enabled: Boolean)
+
+    suspend fun setHideUnofficialRate(enabled: Boolean)
+
+    suspend fun setCustomOfficialRate(rate: Double)
+
+    suspend fun setCustomParallelRate(rate: Double)
 }
 
 @Singleton
@@ -93,6 +102,22 @@ class DataStoreUserPreferencesDataSource @Inject constructor(
         dataStore.edit { it[Keys.SHOW_PARALLEL_RATE] = enabled }
     }
 
+    override suspend fun setEnablePersistentNotification(enabled: Boolean) {
+        dataStore.edit { it[Keys.ENABLE_PERSISTENT_NOTIFICATION] = enabled }
+    }
+
+    override suspend fun setHideUnofficialRate(enabled: Boolean) {
+        dataStore.edit { it[Keys.HIDE_UNOFFICIAL_RATE] = enabled }
+    }
+
+    override suspend fun setCustomOfficialRate(rate: Double) {
+        dataStore.edit { it[Keys.CUSTOM_OFFICIAL_RATE] = rate }
+    }
+
+    override suspend fun setCustomParallelRate(rate: Double) {
+        dataStore.edit { it[Keys.CUSTOM_PARALLEL_RATE] = rate }
+    }
+
     private fun normaliseThemeMode(value: String): String = when (value.uppercase()) {
         UserPreferences.THEME_LIGHT -> UserPreferences.THEME_LIGHT
         UserPreferences.THEME_DARK -> UserPreferences.THEME_DARK
@@ -109,6 +134,10 @@ class DataStoreUserPreferencesDataSource @Inject constructor(
         syncOnWifiOnly = this[Keys.SYNC_ON_WIFI_ONLY] ?: false,
         welcomeCompleted = this[Keys.WELCOME_COMPLETED] ?: false,
         showParallelRate = this[Keys.SHOW_PARALLEL_RATE] ?: false,
+        enablePersistentNotification = this[Keys.ENABLE_PERSISTENT_NOTIFICATION] ?: false,
+        hideUnofficialRate = this[Keys.HIDE_UNOFFICIAL_RATE] ?: false,
+        customOfficialRate = this[Keys.CUSTOM_OFFICIAL_RATE] ?: 0.0,
+        customParallelRate = this[Keys.CUSTOM_PARALLEL_RATE] ?: 0.0,
     )
 
     private object Keys {
@@ -120,5 +149,9 @@ class DataStoreUserPreferencesDataSource @Inject constructor(
         val SYNC_ON_WIFI_ONLY = booleanPreferencesKey("sync_on_wifi_only")
         val WELCOME_COMPLETED = booleanPreferencesKey("welcome_completed")
         val SHOW_PARALLEL_RATE = booleanPreferencesKey("show_parallel_rate")
+        val ENABLE_PERSISTENT_NOTIFICATION = booleanPreferencesKey("enable_persistent_notification")
+        val HIDE_UNOFFICIAL_RATE = booleanPreferencesKey("hide_unofficial_rate")
+        val CUSTOM_OFFICIAL_RATE = doublePreferencesKey("custom_official_rate")
+        val CUSTOM_PARALLEL_RATE = doublePreferencesKey("custom_parallel_rate")
     }
 }

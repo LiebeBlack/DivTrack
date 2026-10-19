@@ -12,11 +12,11 @@ val ObsidianMuted = Color(0xFFB0C0B6)
 
 // --- Superficies (light) ---
 val CloudWhite = Color(0xFFFFFFFF)
-val CloudSurface = Color(0xFFFFFFFF)
-val CloudBorder = Color(0xFFD5CCBA)
-val CloudShade = Color(0xFFECE5D6)
-val CloudCanvas = Color(0xFFF3F0E8)
-val SlateText = Color(0xFF39443C)
+val CloudSurface = Color(0xFFFAF9F6)
+val CloudBorder = Color(0xFFC4BCA8)
+val CloudShade = Color(0xFFE5E0D4)
+val CloudCanvas = Color(0xFFF1EFE7)
+val SlateText = Color(0xFF1F2923)
 
 /** Borde de campos y separadores con contraste suficiente para localizar el control. */
 val OutlineLight = Color(0xFF7C7566)

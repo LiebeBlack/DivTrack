@@ -1,5 +1,6 @@
 package com.liebeblack.divtrack.presentation.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.liebeblack.divtrack.core.common.result.Result
@@ -10,7 +11,9 @@ import com.liebeblack.divtrack.domain.usecase.ObserveSettingsUseCase
 import com.liebeblack.divtrack.domain.usecase.UpdateSettingsUseCase
 import com.liebeblack.divtrack.presentation.R
 import com.liebeblack.divtrack.presentation.common.UiText
+import com.liebeblack.divtrack.service.RateNotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -42,6 +45,7 @@ class SettingsViewModel @Inject constructor(
     private val updateSettings: UpdateSettingsUseCase,
     private val ensureSyncScheduled: EnsureSyncScheduledUseCase,
     private val diagnoseProviders: DiagnoseProvidersUseCase,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     private val _effects = MutableSharedFlow<SettingsEffect>(
@@ -99,6 +103,27 @@ class SettingsViewModel @Inject constructor(
 
                         is SettingsIntent.SetShowParallelRate ->
                             updateSettings.setShowParallelRate(intent.enabled)
+
+                        is SettingsIntent.SetEnablePersistentNotification ->
+                            updateSettings.setEnablePersistentNotification(intent.enabled)
+
+                        is SettingsIntent.SetHideUnofficialRate ->
+                            updateSettings.setHideUnofficialRate(intent.enabled)
+
+                        is SettingsIntent.SetEnablePersistentNotification -> {
+                            updateSettings.setEnablePersistentNotification(intent.enabled)
+                            if (intent.enabled) {
+                                RateNotificationService.startService(context)
+                            } else {
+                                RateNotificationService.stopService(context)
+                            }
+                        }
+
+                        is SettingsIntent.SetCustomOfficialRate ->
+                            updateSettings.setCustomOfficialRate(intent.rate)
+
+                        is SettingsIntent.SetCustomParallelRate ->
+                            updateSettings.setCustomParallelRate(intent.rate)
                     }
 
                     _effects.emit(SettingsEffect.ShowMessage(UiText.Res(R.string.settings_saved)))

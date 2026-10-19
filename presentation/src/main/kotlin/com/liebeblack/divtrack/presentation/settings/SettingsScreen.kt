@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -21,6 +22,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -145,6 +148,63 @@ fun SettingsScreen(
                         onIntent(SettingsIntent.SetShowParallelRate(enabled))
                     },
                 )
+
+                SettingsSwitchRow(
+                    title = stringResource(R.string.settings_persistent_notification),
+                    helper = stringResource(R.string.settings_persistent_notification_helper),
+                    checked = state.enablePersistentNotification,
+                    onCheckedChange = { enabled ->
+                        onIntent(SettingsIntent.SetEnablePersistentNotification(enabled))
+                    },
+                )
+
+                SettingsSwitchRow(
+                    title = stringResource(R.string.settings_hide_unofficial_rate),
+                    helper = stringResource(R.string.settings_hide_unofficial_rate_helper),
+                    checked = state.hideUnofficialRate,
+                    onCheckedChange = { enabled ->
+                        onIntent(SettingsIntent.SetHideUnofficialRate(enabled))
+                    },
+                )
+
+                SettingsCard(
+                    title = stringResource(R.string.settings_custom_rates),
+                    helper = stringResource(R.string.settings_custom_rates_helper),
+                ) {
+                    OutlinedTextField(
+                        value = if (state.customOfficialRate > 0) {
+                            state.customOfficialRate.toString()
+                        } else {
+                            ""
+                        },
+                        onValueChange = { value ->
+                            val rate = value.toDoubleOrNull() ?: 0.0
+                            onIntent(SettingsIntent.SetCustomOfficialRate(rate))
+                        },
+                        label = { Text(stringResource(R.string.settings_custom_official_rate)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+
+                    OutlinedTextField(
+                        value = if (state.customParallelRate > 0) {
+                            state.customParallelRate.toString()
+                        } else {
+                            ""
+                        },
+                        onValueChange = { value ->
+                            val rate = value.toDoubleOrNull() ?: 0.0
+                            onIntent(SettingsIntent.SetCustomParallelRate(rate))
+                        },
+                        label = { Text(stringResource(R.string.settings_custom_parallel_rate)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    )
+                }
 
                 SettingsCard(
                     title = stringResource(R.string.settings_provider),

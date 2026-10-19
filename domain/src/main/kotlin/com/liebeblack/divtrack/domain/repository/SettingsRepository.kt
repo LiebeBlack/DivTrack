@@ -26,4 +26,12 @@ interface SettingsRepository {
     suspend fun setWelcomeCompleted(completed: Boolean)
 
     suspend fun setShowParallelRate(enabled: Boolean)
+
+    suspend fun setEnablePersistentNotification(enabled: Boolean)
+
+    suspend fun setHideUnofficialRate(enabled: Boolean)
+
+    suspend fun setCustomOfficialRate(rate: Double)
+
+    suspend fun setCustomParallelRate(rate: Double)
 }

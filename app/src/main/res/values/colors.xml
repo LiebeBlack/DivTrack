@@ -5,4 +5,10 @@
     <color name="window_background">#FFF7F9FC</color>
     <color name="splash_background">#FFF7F9FC</color>
     <color name="ic_launcher_background">#FF0A0E13</color>
+
+    <!-- Colores del widget (adaptados al tema de la app) -->
+    <color name="widget_background">#FFFAF9F6</color>
+    <color name="widget_text_primary">#FF1F2923</color>
+    <color name="widget_text_secondary">#FF5A6575</color>
+    <color name="widget_button_background">#FF006B46</color>
 </resources>

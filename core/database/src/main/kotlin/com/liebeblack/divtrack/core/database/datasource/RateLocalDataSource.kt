@@ -18,6 +18,8 @@ interface RateLocalDataSource {
 
     fun observeCurrentRates(): Flow<List<CurrentRateEntity>>
 
+    fun observeCurrentRate(source: String): Flow<CurrentRateEntity?>
+
     suspend fun currentRate(source: String): CurrentRateEntity?
 
     suspend fun previousClose(source: String, epochDay: Long): RateHistoryEntity?
@@ -44,6 +46,8 @@ class RoomRateLocalDataSource @Inject constructor(
     private val dao = database.rateDao()
 
     override fun observeCurrentRates(): Flow<List<CurrentRateEntity>> = dao.observeCurrentRates()
+
+    override fun observeCurrentRate(source: String): Flow<CurrentRateEntity?> = dao.observeCurrentRate(source)
 
     override suspend fun currentRate(source: String): CurrentRateEntity? = dao.currentRate(source)
 

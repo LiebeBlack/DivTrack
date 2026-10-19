@@ -21,4 +21,8 @@ data class UserSettings(
     val syncOnWifiOnly: Boolean = false,
     val welcomeCompleted: Boolean = false,
     val showParallelRate: Boolean = false,
+    val enablePersistentNotification: Boolean = false,
+    val hideUnofficialRate: Boolean = false,
+    val customOfficialRate: Double = 0.0,
+    val customParallelRate: Double = 0.0,
 )

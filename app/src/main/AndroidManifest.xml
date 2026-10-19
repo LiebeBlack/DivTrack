@@ -54,6 +54,11 @@
     -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Permiso para servicio en primer plano (notificación persistente de tasas). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Permiso para mostrar notificaciones (requerido para el servicio en primer plano). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:name=".DivTrackApplication"
         android:allowBackup="true"
@@ -107,7 +112,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.DivTrack.Starting"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustNothing">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -133,6 +138,25 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Servicio en primer plano para notificación persistente de tasas -->
+        <service
+            android:name=".service.RateNotificationService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- Widget de tasas de cambio -->
+        <receiver
+            android:name=".widget.RateWidgetProvider"
+            android:exported="false"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/rate_widget_info" />
+        </receiver>
 
     </application>
 

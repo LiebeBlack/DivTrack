@@ -21,4 +21,8 @@ internal fun UserPreferences.toDomain(): UserSettings = UserSettings(
     syncOnWifiOnly = syncOnWifiOnly,
     welcomeCompleted = welcomeCompleted,
     showParallelRate = showParallelRate,
+    enablePersistentNotification = enablePersistentNotification,
+    hideUnofficialRate = hideUnofficialRate,
+    customOfficialRate = customOfficialRate,
+    customParallelRate = customParallelRate,
 )

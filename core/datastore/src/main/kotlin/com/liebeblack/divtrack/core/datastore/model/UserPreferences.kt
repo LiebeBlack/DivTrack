@@ -32,6 +32,18 @@ data class UserPreferences(
 
     /** Muestra la tasa paralela junto a la oficial en el panel. */
     val showParallelRate: Boolean = false,
+
+    /** Activa la notificación persistente en primer plano con las tasas. */
+    val enablePersistentNotification: Boolean = false,
+
+    /** Oculta la tasa no oficial (paralelo) en la UI y en la notificación. */
+    val hideUnofficialRate: Boolean = false,
+
+    /** Valor personalizado para la tasa oficial (0 = usar valor automático). */
+    val customOfficialRate: Double = 0.0,
+
+    /** Valor personalizado para la tasa paralelo (0 = usar valor automático). */
+    val customParallelRate: Double = 0.0,
 ) {
     companion object {
         const val THEME_SYSTEM: String = "SYSTEM"

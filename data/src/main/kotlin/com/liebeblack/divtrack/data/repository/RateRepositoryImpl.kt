@@ -166,6 +166,30 @@ class RateRepositoryImpl @Inject constructor(
     }
 
     /**
+     * Obtiene la tasa actual de una fuente específica (para el widget).
+     * Lectura síncrona de Room: ultra-rápida, sin bloqueos de UI.
+     */
+    override suspend fun getCurrentRate(source: RateSource): ExchangeRate? = withContext(ioDispatcher) {
+        try {
+            localDataSource.currentRate(source.key)?.toDomain()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (exception: Exception) {
+            logger.warn(TAG, "No se pudo leer la tasa actual de ${source.key}", exception)
+            null
+        }
+    }
+
+    /**
+     * Observa la tasa actual de una fuente específica (para la notificación persistente).
+     * Flow ligero que solo emite cuando cambia esa tasa específica.
+     */
+    override fun observeCurrentRate(source: RateSource): Flow<ExchangeRate?> =
+        localDataSource.observeCurrentRate(source.key)
+            .map { entity -> entity?.toDomain() }
+            .flowOn(ioDispatcher)
+
+    /**
      * Preferencia persistida, normalizada: `null` = orden automático.
      *
      * Una preferencia ilegible degrada al orden automático en lugar de tumbar la pasada: es

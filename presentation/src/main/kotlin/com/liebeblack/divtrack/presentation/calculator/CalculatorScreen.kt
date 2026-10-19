@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
+
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -193,9 +193,6 @@ fun CalculatorScreen(
                     .align(Alignment.TopCenter)
                     .widthIn(max = 640.dp)
                     .fillMaxWidth()
-                    // Con edge-to-edge, adjustResize no basta: se consume el inset del IME
-                    // antes de medir la altura para que el contenido no quede bajo el teclado.
-                    .imePadding()
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState())
                     .padding(

@@ -44,6 +44,10 @@ data class SettingsUiState(
     val defaultProviderId: String? = null,
     val syncOnWifiOnly: Boolean = false,
     val showParallelRate: Boolean = false,
+    val enablePersistentNotification: Boolean = false,
+    val hideUnofficialRate: Boolean = false,
+    val customOfficialRate: Double = 0.0,
+    val customParallelRate: Double = 0.0,
     /** Diagnóstico de fuentes ya ejecutado en esta sesión; `null` = todavía no se comprobó. */
     val providerDiagnostics: ProviderDiagnostics? = null,
     val isCheckingProviders: Boolean = false,
@@ -58,6 +62,10 @@ internal fun UserSettings.toUiState(): SettingsUiState = SettingsUiState(
     defaultProviderId = defaultProviderId,
     syncOnWifiOnly = syncOnWifiOnly,
     showParallelRate = showParallelRate,
+    enablePersistentNotification = enablePersistentNotification,
+    hideUnofficialRate = hideUnofficialRate,
+    customOfficialRate = customOfficialRate,
+    customParallelRate = customParallelRate,
 )
 
 sealed interface SettingsIntent {
@@ -76,6 +84,14 @@ sealed interface SettingsIntent {
     data class SetWifiOnly(val enabled: Boolean) : SettingsIntent
 
     data class SetShowParallelRate(val enabled: Boolean) : SettingsIntent
+
+    data class SetEnablePersistentNotification(val enabled: Boolean) : SettingsIntent
+
+    data class SetHideUnofficialRate(val enabled: Boolean) : SettingsIntent
+
+    data class SetCustomOfficialRate(val rate: Double) : SettingsIntent
+
+    data class SetCustomParallelRate(val rate: Double) : SettingsIntent
 }
 
 sealed interface SettingsEffect {

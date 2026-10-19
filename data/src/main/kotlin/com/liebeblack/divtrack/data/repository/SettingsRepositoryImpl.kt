@@ -42,4 +42,16 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setShowParallelRate(enabled: Boolean) =
         preferencesDataSource.setShowParallelRate(enabled)
+
+    override suspend fun setEnablePersistentNotification(enabled: Boolean) =
+        preferencesDataSource.setEnablePersistentNotification(enabled)
+
+    override suspend fun setHideUnofficialRate(enabled: Boolean) =
+        preferencesDataSource.setHideUnofficialRate(enabled)
+
+    override suspend fun setCustomOfficialRate(rate: Double) =
+        preferencesDataSource.setCustomOfficialRate(rate)
+
+    override suspend fun setCustomParallelRate(rate: Double) =
+        preferencesDataSource.setCustomParallelRate(rate)
 }

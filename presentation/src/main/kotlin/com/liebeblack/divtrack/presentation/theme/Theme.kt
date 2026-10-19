@@ -75,11 +75,11 @@ private val LightColorScheme = lightColorScheme(
     // Lienzo crema cálido: conserva una separación visible con las superficies de tarjeta
     // sin el tinte azulado del esquema neutro.
     background = CloudCanvas,
-    onBackground = Obsidian,
+    onBackground = SlateText,
     surface = CloudSurface,
-    onSurface = Obsidian,
+    onSurface = SlateText,
     surfaceVariant = CloudShade,
-    onSurfaceVariant = SlateText,
+    onSurfaceVariant = Color(0xFF4A544C),
     surfaceContainer = CloudSurface,
     surfaceContainerHigh = CloudWhite,
     surfaceContainerLow = CloudShade,

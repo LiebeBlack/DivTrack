@@ -3,6 +3,7 @@ package com.liebeblack.divtrack.domain.repository
 import com.liebeblack.divtrack.core.common.result.Result
 import com.liebeblack.divtrack.domain.model.ExchangeRate
 import com.liebeblack.divtrack.domain.model.ProviderDiagnostics
+import com.liebeblack.divtrack.domain.model.RateSource
 import com.liebeblack.divtrack.domain.model.SyncSummary
 import kotlinx.coroutines.flow.Flow
 
@@ -32,4 +33,15 @@ interface RateRepository {
     suspend fun refreshRates(): Result<SyncSummary>
 
     suspend fun testProviders(): ProviderDiagnostics
+
+    /**
+     * Obtiene la tasa actual de una fuente específica (para el widget).
+     * Retorna null si no hay datos disponibles.
+     */
+    suspend fun getCurrentRate(source: RateSource): ExchangeRate?
+
+    /**
+     * Observa la tasa actual de una fuente específica (para la notificación persistente).
+     */
+    fun observeCurrentRate(source: RateSource): Flow<ExchangeRate?>
 }

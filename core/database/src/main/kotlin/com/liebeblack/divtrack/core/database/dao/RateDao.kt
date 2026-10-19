@@ -18,6 +18,10 @@ interface RateDao {
     @Query("SELECT * FROM ${CurrentRateEntity.TABLE_NAME}")
     fun observeCurrentRates(): Flow<List<CurrentRateEntity>>
 
+    /** Observa una sola tasa por fuente (para notificación persistente). */
+    @Query("SELECT * FROM ${CurrentRateEntity.TABLE_NAME} WHERE source = :source LIMIT 1")
+    fun observeCurrentRate(source: String): Flow<CurrentRateEntity?>
+
     /** Valor vigente puntual: se usa como "cierre anterior" en la primera sincronización. */
     @Query("SELECT * FROM ${CurrentRateEntity.TABLE_NAME} WHERE source = :source LIMIT 1")
     suspend fun currentRate(source: String): CurrentRateEntity?

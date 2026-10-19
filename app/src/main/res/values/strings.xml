@@ -13,4 +13,14 @@
     <string name="settings_update_apk_missing">El archivo descargado ya no está en el dispositivo</string>
     <string name="settings_update_no_installer">No hay un instalador disponible en este dispositivo</string>
     <string name="settings_update_allow_install">Activa «Permitir desde esta fuente» y vuelve a tocar «Instalar actualización»</string>
+
+    <!--
+      Textos del widget (viven en :app porque usa nonTransitiveRClass=true).
+    -->
+    <string name="widget_title">Dólar Oficial</string>
+    <string name="widget_description">Muestra la tasa del dólar oficial y su hora de actualización</string>
+    <string name="widget_loading">Cargando…</string>
+    <string name="widget_refresh">Actualizar</string>
+    <string name="widget_updated">Actualizado: %1$s</string>
+    <string name="widget_no_data">Sin datos</string>
 </resources>

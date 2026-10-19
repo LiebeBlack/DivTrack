@@ -72,6 +72,14 @@
     <string name="settings_default_source_helper">Se usa al abrir la calculadora.</string>
     <string name="settings_show_parallel_rate">Mostrar tasa paralela</string>
     <string name="settings_show_parallel_rate_helper">Añade la tasa paralela y la brecha al panel de tasas.</string>
+    <string name="settings_persistent_notification">Notificación persistente</string>
+    <string name="settings_persistent_notification_helper">Muestra las tasas actuales en una notificación permanente. La notificación puede consumir batería.</string>
+    <string name="settings_hide_unofficial_rate">Ocultar tasa no oficial</string>
+    <string name="settings_hide_unofficial_rate_helper">Oculta la tasa paralelo tanto en la interfaz como en la notificación persistente.</string>
+    <string name="settings_custom_rates">Tasas personalizadas</string>
+    <string name="settings_custom_rates_helper">Edita manualmente los valores de las tasas. Deja en 0 para usar valores automáticos.</string>
+    <string name="settings_custom_official_rate">Tasa oficial personalizada</string>
+    <string name="settings_custom_parallel_rate">Tasa paralelo personalizada</string>
     <string name="settings_provider">Fuente de datos preferida</string>
     <string name="settings_provider_helper">Se consulta primero al sincronizar; las demás fuentes actúan de respaldo.</string>
     <string name="provider_automatic">Auto</string>
@@ -158,6 +166,11 @@
     <string name="msg_cache_rebuilt">La base de datos local estaba dañada y se reconstruyó: las tasas guardadas volverán con la próxima sincronización</string>
     <string name="msg_providers_checked">Fuentes OK: %1$d de %2$d</string>
     <string name="settings_providers_check_failed">No se pudieron comprobar las fuentes. Intenta de nuevo</string>
+
+    <!-- ============================== Notificación persistente ============================== -->
+    <string name="notification_channel_name">Tasas de cambio</string>
+    <string name="notification_channel_description">Notificación persistente con las tasas actualizadas</string>
+    <string name="notification_title">DivTrack - Tasas</string>
 
     <!-- ============================== Errores de red ============================== -->
     <!--

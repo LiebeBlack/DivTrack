@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /** Copia texto al portapapeles del sistema (API de Android, sin deprecaciones de Compose). */
 fun Context.copyToClipboard(label: String, text: String) {
@@ -50,6 +53,16 @@ fun Context.openUrl(url: String) {
 
     val intent = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     runCatching { startActivity(intent) }
+}
+
+/**
+ * Formatea un timestamp en hora local (HH:mm).
+ * Usado por el widget para mostrar la hora de actualización.
+ */
+fun formatTime(timestampMillis: Long): String {
+    if (timestampMillis == 0L) return "--:--"
+    val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    return dateFormat.format(Date(timestampMillis))
 }
 
 private val ALLOWED_URL_SCHEMES = setOf("http", "https")
