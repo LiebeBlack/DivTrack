@@ -56,6 +56,8 @@
 
     <!-- Permiso para servicio en primer plano (notificación persistente de tasas). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Requerido por Android 14+ (targetSdk >= 34) para foregroundServiceType="dataSync". -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- Permiso para mostrar notificaciones (requerido para el servicio en primer plano). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
@@ -148,7 +150,7 @@
         <!-- Widget de tasas de cambio -->
         <receiver
             android:name=".widget.RateWidgetProvider"
-            android:exported="false"
+            android:exported="true"
             android:enabled="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
