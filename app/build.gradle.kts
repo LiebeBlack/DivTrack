@@ -56,8 +56,8 @@ android {
         applicationId = "com.liebeblack.divtrack"
         minSdk = 31
         targetSdk = 37
-        versionCode = 476
-        versionName = "4.7.6"
+        versionCode = 477
+        versionName = "4.7.7"
 
         vectorDrawables {
             useSupportLibrary = true
