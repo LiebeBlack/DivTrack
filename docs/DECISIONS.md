@@ -211,13 +211,16 @@ dejan de depender del día en que se ejecutan.
 
 ---
 
-## 14. `minSdk 26`
+## 14. `minSdk 31`
 
-**Decisión.** API 26 como mínimo.
+**Decisión.** API 31 (Android 12) como mínimo.
 
-**Motivo.** Es el primer nivel con `java.time` en la plataforma: evita el *desugaring* (menos
-build, menos sorpresas), cubre prácticamente todo el parque de dispositivos y permite usar
-iconos adaptativos e `ImageVector` sin ramas de compatibilidad.
+**Motivo.** El proyecto apunta a una experiencia moderna y sin ramas de compatibilidad:
+Android 12 es el primer nivel con el arranque y el theming del sistema ya unificados, incluye
+`java.time` sin *desugaring* y cubre el parque de dispositivos que puede ejecutar la app con
+las APIs de rendimiento que usa (splashes nativos, edge-to-edge, blur y animaciones del
+sistema). Subir el mínimo permite, además, reducir el APK al no arrastrar código de
+compatibilidad para versiones que ya no reciben soporte.
 
 ---
 

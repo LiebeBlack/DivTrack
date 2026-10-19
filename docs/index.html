@@ -632,7 +632,7 @@
         <span class="badge"><b>Hilt</b> · Room · Retrofit</span>
         <span class="badge"><b>8 módulos</b> · Clean Architecture</span>
         <span class="badge"><b>82 tests</b> JVM</span>
-        <span class="badge"><b>minSdk</b> 26 → target 37</span>
+        <span class="badge"><b>minSdk</b> 31 → target 37</span>
       </div>
 
       <div class="facts">
@@ -818,7 +818,6 @@
             <div class="chips" style="margin-top:6px"><span class="chip on">Oficial</span><span class="chip">Paralelo</span></div>
           </div>
           <div class="switchrow">Mostrar tasa paralela<span class="track" aria-hidden="true"></span></div>
-          <div class="switchrow">IGTF activado por defecto<span class="track" aria-hidden="true"></span></div>
           <div class="mini">
             <div class="t">Fuente de datos preferida</div>
             <div class="chips" style="margin-top:6px"><span class="chip on">Auto</span><span class="chip">DolarAPI</span><span class="chip">Yadio</span><span class="chip">ER-API</span></div>
@@ -1039,7 +1038,7 @@
           <tr><td>Retrofit / OkHttp</td><td class="v">3.0.0 / 5.5.0</td><td>conversor oficial de kotlinx.serialization</td></tr>
           <tr><td>Navigation 3</td><td class="v">1.2.0</td><td>+ <code>lifecycle-viewmodel-navigation3</code> para ViewModel por entrada</td></tr>
           <tr><td>WorkManager / DataStore</td><td class="v">2.12.0 / 1.2.0</td><td>sync en segundo plano y preferencias</td></tr>
-          <tr><td>SDK</td><td class="v">26 → 37</td><td>minSdk 26 por <code>java.time</code>: sin desugaring</td></tr>
+          <tr><td>SDK</td><td class="v">31 → 37</td><td>minSdk 31 (Android 12): sin desugaring y sin ramas de compatibilidad</td></tr>
         </tbody>
       </table>
     </div>
@@ -1173,7 +1172,7 @@
         Cada elección discutible está documentada con su alternativa descartada y su coste: AGP 9
         con Kotlin integrado, Navigation 3 frente a Navigation Compose, Room como única fuente de
         verdad, resolución de tasas por tasa y por frescura, la semántica exacta del IGTF,
-        <code>minSdk 26</code> para evitar el desugaring, la hora de Venezuela inyectada y el
+        <code>minSdk 31</code> (Android 12) para evitar el desugaring, la hora de Venezuela inyectada y el
         esquema de Room exportado sin migración destructiva.
       </p>
     </div>

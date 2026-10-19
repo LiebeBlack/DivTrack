@@ -66,8 +66,8 @@ private val LightColorScheme = lightColorScheme(
     onPrimaryContainer = Obsidian,
     secondary = MintContrast,
     onSecondary = CloudWhite,
-    secondaryContainer = Color(0xFFB8E8D3),
-    onSecondaryContainer = Obsidian,
+    secondaryContainer = Color(0xFFCDEBDD),
+    onSecondaryContainer = Color(0xFF0B2A1E),
     // Ámbar oscuro en terciario: es el color que pinta avisos de dato rancio como TEXTO
     // en modo claro, y el ámbar brillante sobre blanco no llegaba al contraste mínimo.
     tertiary = AmberDeep,
@@ -84,7 +84,9 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainerHigh = CloudWhite,
     surfaceContainerLow = CloudShade,
     surfaceContainerLowest = CloudWhite,
-    outline = CloudBorder,
+    // `outline` es el borde de los campos de texto: necesita 3:1 sobre el fondo para que
+    // el control se localice. `outlineVariant` queda para separadores decorativos.
+    outline = OutlineLight,
     outlineVariant = CloudBorder,
     error = TrendDownDeep,
     onError = CloudWhite,

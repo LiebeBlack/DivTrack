@@ -2,6 +2,7 @@ package com.liebeblack.divtrack.presentation.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,9 @@ fun <T> SegmentedSelector(
     ) {
         options.forEach { option ->
             FilterChip(
+                // 48 dp es el objetivo táctil mínimo recomendado; el chip por defecto es
+                // más bajo y con texto ampliado se vuelve difícil de pulsar.
+                modifier = Modifier.heightIn(min = 48.dp),
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 shape = MaterialTheme.shapes.small,

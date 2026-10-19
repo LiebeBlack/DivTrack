@@ -18,7 +18,7 @@ error de compilación.
 ```
 
 Además, `lite/` es un **subproyecto Gradle independiente** (Java + XML, API 14+) que publica la
-tasa BCV y que CI compila con `./gradlew -p lite :app:assembleRelease`. No forma parte de estos
+tasa BCV y que se compila aparte con `./gradlew -p lite :app:assembleRelease`. No forma parte de estos
 ocho módulos: tiene su propio `settings.gradle.kts` y no comparte código con el grafo principal
 (ADR 27).
 

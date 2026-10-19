@@ -1,0 +1,385 @@
+name: Build & Release
+
+# Un solo flujo para todo:
+#   · push a main  -> tests, APKs por ABI, incremento de versión y release nuevo.
+#   · pull_request -> solo tests y compilación (nunca publica ni toca main).
+#   · manual       -> mismo camino que un push a main.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+# Las ejecuciones de main se serializan: dos pushes seguidos no pueden leer el mismo
+# versionCode y pisarse el commit de versión. Las PRs sí se cancelan entre sí.
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  ANDROID_API: "37.0"
+  ANDROID_BUILD_TOOLS: "37.0.0"
+  GRADLE_VERSION: "9.6.0"
+
+jobs:
+  build:
+    name: Build · Test · APK por ABI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      # Necesario para empujar el commit que incrementa versionCode/versionName.
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_code: ${{ steps.version.outputs.code }}
+      commit_sha: ${{ steps.version.outputs.sha }}
+      signed: ${{ steps.signing.outputs.enabled }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # Historial completo: el changelog se genera contra la etiqueta anterior.
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: JDK 21 (Temurin)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Android SDK y licencias
+        run: |
+          set -euo pipefail
+          SDK="/usr/local/lib/android/sdk"
+          if [ -d "$SDK/cmdline-tools" ]; then
+            SDKMANAGER=$(find "$SDK/cmdline-tools" -maxdepth 3 -name sdkmanager -type f | tail -n 1)
+            if [ -n "${SDKMANAGER}" ]; then
+              yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+              "$SDKMANAGER" --install \
+                "platforms;android-${ANDROID_API}" \
+                "build-tools;${ANDROID_BUILD_TOOLS}" \
+                "platform-tools" >/dev/null 2>&1 || true
+            fi
+          fi
+
+      - name: Gradle y caché
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-read-only: false
+
+      - name: Verificar el wrapper
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --version
+
+      - name: Leer o incrementar la versión
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="app/build.gradle.kts"
+
+          CURRENT_CODE=$(sed -n 's/^[[:space:]]*versionCode = \([0-9][0-9]*\).*/\1/p' "$FILE" | head -n 1)
+          CURRENT_NAME=$(sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' "$FILE" | head -n 1)
+          if [ -z "${CURRENT_CODE}" ] || [ -z "${CURRENT_NAME}" ]; then
+            echo "::error::No se pudo leer versionCode/versionName de ${FILE}."
+            exit 1
+          fi
+
+          SHOULD_BUMP=false
+          # Solo se versiona en main. Un workflow_dispatch lanzado desde una rama de
+          # trabajo no puede empujar un commit de versión a main.
+          if [ "${{ github.ref }}" = "refs/heads/main" ] && \
+             { [ "${{ github.event_name }}" = "push" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; }; then
+            SHOULD_BUMP=true
+          fi
+
+          NEW_CODE="${CURRENT_CODE}"
+          NEW_NAME="${CURRENT_NAME}"
+          NEW_SHA="${GITHUB_SHA}"
+
+          if [ "${SHOULD_BUMP}" = "true" ]; then
+            NEW_CODE=$((CURRENT_CODE + 1))
+            if [[ "${CURRENT_NAME}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              NEW_NAME="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
+            elif [[ "${CURRENT_NAME}" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+              NEW_NAME="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.1"
+            else
+              NEW_NAME="${CURRENT_NAME}.${NEW_CODE}"
+            fi
+
+            sed -i -E "s/^([[:space:]]*)versionCode = [0-9]+/\1versionCode = ${NEW_CODE}/" "$FILE"
+            sed -i -E "s/^([[:space:]]*)versionName = \"[^\"]*\"/\1versionName = \"${NEW_NAME}\"/" "$FILE"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$FILE"
+            git commit -m "chore(release): v${NEW_NAME} [skip ci]"
+            NEW_SHA=$(git rev-parse HEAD)
+          fi
+
+          echo "version=${NEW_NAME}" >> "$GITHUB_OUTPUT"
+          echo "code=${NEW_CODE}" >> "$GITHUB_OUTPUT"
+          echo "sha=${NEW_SHA}" >> "$GITHUB_OUTPUT"
+          echo "bumped=${SHOULD_BUMP}" >> "$GITHUB_OUTPUT"
+          echo "Versión de este build: ${NEW_NAME} (${NEW_CODE})"
+
+      - name: Preparar firma release
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_B64}" ] && [ -z "${KEY_ALIAS}" ] && \
+             [ -z "${KEYSTORE_PASS}" ] && [ -z "${KEY_PASS}" ]; then
+            echo "::warning::Sin secretos de firma: se publicarán APKs debug firmados con la clave de desarrollo."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "${KEYSTORE_B64}" ] || [ -z "${KEY_ALIAS}" ] || \
+             [ -z "${KEYSTORE_PASS}" ] || [ -z "${KEY_PASS}" ]; then
+            echo "::error::La firma release está configurada parcialmente: hacen falta los cuatro secretos (ANDROID_KEYSTORE_BASE64, ANDROID_KEY_ALIAS, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD)."
+            exit 1
+          fi
+
+          KEYSTORE_FILE="${RUNNER_TEMP}/divtrack-release.jks"
+          printf '%s' "${KEYSTORE_B64}" | base64 -d > "${KEYSTORE_FILE}"
+          {
+            echo "ANDROID_KEYSTORE_FILE=${KEYSTORE_FILE}"
+            echo "ANDROID_KEYSTORE_PASSWORD=${KEYSTORE_PASS}"
+            echo "ANDROID_KEY_ALIAS=${KEY_ALIAS}"
+            echo "ANDROID_KEY_PASSWORD=${KEY_PASS}"
+          } >> "$GITHUB_ENV"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      # El daemon de Gradle se inició con `./gradlew --version` antes de que existieran
+      # las variables de firma. Se reinicia para que el build de release las vea.
+      - name: Reiniciar Gradle para cargar la firma
+        run: ./gradlew --stop
+
+      - name: Tests unitarios JVM
+        run: ./gradlew testDebugUnitTest :domain:test :core:common:test --stacktrace
+
+      - name: Release firmado (R8 + shrinkResources + splits por ABI)
+        if: steps.signing.outputs.enabled == 'true'
+        run: ./gradlew :app:assembleRelease -PcomposeMetrics=true --stacktrace
+
+      - name: Debug por ABI (fallback sin secretos de firma)
+        if: steps.signing.outputs.enabled != 'true'
+        run: ./gradlew :app:assembleDebug -PcomposeMetrics=true --stacktrace
+
+      - name: Lint (informativo, no bloquea el release)
+        continue-on-error: true
+        run: ./gradlew :app:lintDebug --stacktrace
+
+      - name: Publicar el commit de versión
+        if: steps.version.outputs.bumped == 'true'
+        run: |
+          set -euo pipefail
+          git push origin HEAD:main
+
+      - name: Publicar artefactos
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: divtrack-apks
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            app/build/outputs/apk/**/*.apk
+            app/build/reports/lint-results-*.html
+            **/build/reports/tests/**
+            **/build/compose-metrics/**
+            core/database/schemas/**
+
+  release:
+    name: Publicar GitHub Release
+    needs: build
+    if: >-
+      needs.build.result == 'success' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout (con etiquetas para el changelog)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: main
+
+      # apksigner es un wrapper de Java: sin JDK, la verificación de los APKs falla.
+      - name: JDK 21 (Temurin)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Android build-tools (para verificar los APKs)
+        run: |
+          set -euo pipefail
+          SDK="/usr/local/lib/android/sdk"
+          if [ -d "$SDK/cmdline-tools" ]; then
+            SDKMANAGER=$(find "$SDK/cmdline-tools" -maxdepth 3 -name sdkmanager -type f | tail -n 1)
+            if [ -n "${SDKMANAGER}" ]; then
+              yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+              "$SDKMANAGER" --install "build-tools;${ANDROID_BUILD_TOOLS}" "platform-tools" >/dev/null 2>&1 || true
+            fi
+          fi
+
+      - name: Descargar APKs del build
+        uses: actions/download-artifact@v5
+        with:
+          name: divtrack-apks
+          path: artifacts
+
+      - name: Verificar, renombrar y agrupar los APKs
+        id: apks
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          SIGNED: ${{ needs.build.outputs.signed }}
+          BUILD_TOOLS_PATH: /usr/local/lib/android/sdk/build-tools/${{ env.ANDROID_BUILD_TOOLS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          if [ ! -x "${BUILD_TOOLS_PATH}/apksigner" ]; then
+            echo "::error::No se encontró apksigner en ${BUILD_TOOLS_PATH}."
+            exit 1
+          fi
+
+          RELEASE_APKS=(artifacts/app/build/outputs/apk/release/*.apk)
+          DEBUG_APKS=(artifacts/app/build/outputs/apk/debug/*.apk)
+
+          if [ "${SIGNED}" = "true" ] && [ ${#RELEASE_APKS[@]} -eq 0 ]; then
+            echo "::error::La firma estaba configurada pero no se generó ningún APK release."
+            exit 1
+          fi
+
+          if [ ${#RELEASE_APKS[@]} -gt 0 ]; then
+            APKS=("${RELEASE_APKS[@]}")
+            EXPECTED_ID="com.liebeblack.divtrack"
+            CHANNEL="release firmado · R8 + shrinkResources"
+          elif [ ${#DEBUG_APKS[@]} -gt 0 ]; then
+            APKS=("${DEBUG_APKS[@]}")
+            EXPECTED_ID="com.liebeblack.divtrack.debug"
+            CHANNEL="debug firmado con clave de desarrollo (faltan secretos de release)"
+          else
+            echo "::error::El build no produjo ningún APK."
+            exit 1
+          fi
+
+          if [ "${SIGNED}" != "true" ] && [ ${#RELEASE_APKS[@]} -gt 0 ]; then
+            echo "::error::Se encontraron APKs release pero la firma no estaba configurada."
+            exit 1
+          fi
+
+          mkdir -p dist
+          for apk in "${APKS[@]}"; do
+            filename=$(basename "$apk")
+            abi=$(printf '%s' "$filename" | sed -E 's/^app-(arm64-v8a|armeabi-v7a|x86_64|x86|universal)-.*\.apk$/\1/')
+            if [ "$abi" = "$filename" ]; then
+              # Red de seguridad: si AGP entrega un único APK sin sufijo de ABI, se
+              # publica como universal en lugar de romper el release.
+              echo "::warning::${filename} no declara un ABI reconocible; se publica como universal."
+              abi="universal"
+            fi
+
+            dest="dist/DivTrack-${VERSION}-${abi}.apk"
+            cp "$apk" "$dest"
+
+            "${BUILD_TOOLS_PATH}/apksigner" verify --verbose "$dest" >/dev/null
+            BADGING=$("${BUILD_TOOLS_PATH}/aapt2" dump badging "$dest")
+            if ! printf '%s\n' "$BADGING" | grep -Fq "package: name='${EXPECTED_ID}' "; then
+              echo "::error::${dest} tiene un applicationId inesperado."
+              exit 1
+            fi
+            if ! printf '%s\n' "$BADGING" | grep -Fq "versionName='${VERSION}'"; then
+              echo "::error::${dest} no declara la versión ${VERSION}."
+              exit 1
+            fi
+            echo "OK · ${dest}"
+          done
+
+          (cd dist && sha256sum ./*.apk > SHA256SUMS.txt)
+          echo "channel=${CHANNEL}" >> "$GITHUB_OUTPUT"
+
+      - name: Generar changelog
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          SHA: ${{ needs.build.outputs.commit_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREV_TAG=$(git describe --tags --abbrev=0 --match 'v*' "${SHA}^" 2>/dev/null || true)
+          if [ -n "${PREV_TAG}" ]; then
+            RANGE="${PREV_TAG}..${SHA}"
+            echo "Cambios desde ${PREV_TAG}" > changelog.txt
+          else
+            RANGE="-n 20 ${SHA}"
+            echo "Primeras versiones publicadas" > changelog.txt
+          fi
+          echo "" >> changelog.txt
+          # shellcheck disable=SC2086
+          git log ${RANGE} --no-merges --pretty=format:'- %s (`%h`)' \
+            | grep -v 'chore(release)' >> changelog.txt || true
+
+      - name: Crear o reemplazar el release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          SHA: ${{ needs.build.outputs.commit_sha }}
+          CHANNEL: ${{ steps.apks.outputs.channel }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="v${VERSION}"
+
+          {
+            echo "## DivTrack ${VERSION}"
+            echo ""
+            echo "APKs optimizados con **R8** (código muerto fuera), **shrinkResources**"
+            echo "(recursos sin uso fuera) y **split por ABI**."
+            echo ""
+            echo "**Canal:** ${CHANNEL}"
+            echo "**Commit:** [\`${SHA:0:7}\`](https://github.com/${GITHUB_REPOSITORY}/commit/${SHA})"
+            echo ""
+            echo "### Cambios"
+            echo ""
+            cat changelog.txt
+            echo ""
+            echo "### Instalación"
+            echo ""
+            echo "1. Descarga el APK de la arquitectura de tu teléfono (la mayoría son \`arm64-v8a\`)."
+            echo "2. Si dudas, usa \`universal\`."
+            echo "3. Abre el archivo y confirma la instalación; Android puede pedir permitir"
+            echo "   «instalar apps desconocidas» para el navegador o el explorador de archivos."
+            echo ""
+            echo "> La calculadora y las tasas funcionan sin conexión con el último dato guardado."
+          } > release-notes.md
+
+          # Un release por versión. Si se relanza el mismo tag, se reemplaza entero.
+          gh release delete "${TAG}" --yes --cleanup-tag || true
+          # Si quedó un tag huérfano de un run anterior, se elimina para poder recrearlo.
+          git push origin ":refs/tags/${TAG}" || true
+          gh release create "${TAG}" \
+            --title "DivTrack ${VERSION}" \
+            --notes-file release-notes.md \
+            --target "${SHA}" \
+            dist/*.apk \
+            dist/SHA256SUMS.txt

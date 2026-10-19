@@ -56,7 +56,7 @@ Lo que sigue se comprobó **ejecutando** cosas, no asumiendo:
 | Navigation 3 | 1.2.0 | + `lifecycle-viewmodel-navigation3` para ViewModel por entrada |
 | WorkManager | 2.12.0 | sincronización silenciosa |
 | DataStore Preferences | 1.2.0 | preferencias |
-| compileSdk / targetSdk / minSdk | 37 / 37 / 26 | edge-to-edge nativo |
+| compileSdk / targetSdk / minSdk | 37 / 37 / 31 | edge-to-edge nativo · Android 12+ |
 
 ---
 
@@ -76,7 +76,7 @@ Lo que sigue se comprobó **ejecutando** cosas, no asumiendo:
 Fuera de ese grafo hay un **subproyecto Gradle independiente**, con su propio
 `settings.gradle.kts`: `lite/` (DivTrack Lite), una app Java + XML de una sola pantalla que
 publica la tasa BCV sin Compose ni librerías de terceros. Se compila desde la raíz con
-`./gradlew -p lite :app:assembleRelease` y CI la publica junto al APK principal.
+`./gradlew -p lite :app:assembleRelease`; el workflow principal ya no la incluye.
 
 Dirección de dependencias, **impuesta por Gradle** y no por convención:
 
@@ -105,7 +105,7 @@ Dirección de dependencias, **impuesta por Gradle** y no por convención:
 cp local.properties.example local.properties   # opcional: personaliza las URLs base
 ./gradlew :app:assembleDebug                   # APK de depuración
 ./gradlew testDebugUnitTest :domain:test :core:common:test   # tests JVM
-./gradlew :app:assembleRelease -PcomposeMetrics=true         # R8 + métricas de Compose
+./gradlew :app:assembleRelease -PcomposeMetrics=true         # R8 + shrinkResources + APKs por ABI
 ./gradlew -p lite :app:assembleRelease                       # DivTrack Lite (subproyecto aparte)
 ```
 
@@ -113,20 +113,28 @@ Sin `local.properties` **también compila**: las URLs base caen a los endpoints 
 verificados. Ninguna URL está escrita en el código Kotlin: entran por `BuildConfig` desde
 `local.properties` (`dolarapi.baseUrl`, `yadio.baseUrl`, `exchangerateapi.baseUrl`).
 
-### CI
+### CI y releases
 
-`.github/workflows/android-ci.yml` se ejecuta en cada push y en cada PR: JDK 21, plataforma
-`android-37.0` + `build-tools 37.0.0`, compila debug, corre los tests, compila release con R8,
-compila **DivTrack Lite** (`./gradlew -p lite :app:assembleRelease`) y publica APK, reportes,
-métricas del compilador de Compose y los dos APK (principal y Lite) como artefactos.
+`.github/workflows/build.yml` es el único pipeline: en cada push a `main` (y en cada disparo
+manual) incrementa `versionCode` y `versionName` en `app/build.gradle.kts`, corre los tests
+JVM y compila release con R8 + `shrinkResources`. El resultado son **APKs independientes por
+ABI** (`armeabi-v7a`, `arm64-v8a`, `x86` y `x86_64`) más un universal; `arm64-v8a` cubre
+también los dispositivos ARMv9, porque no existe un ABI `armv9` separado. El commit del
+incremento se empuja con `[skip ci]` y el release se publica con etiqueta `v<versión>`,
+changelog generado desde la etiqueta anterior y todos los APKs adjuntos.
 
-El APK para instalar se descarga desde **Releases**, no desde el artefacto de CI:
-`app-release-unsigned.apk` no está firmado. El flujo de publicación verifica la firma y el
-`applicationId` antes de subir el archivo. Sin secretos de firma configurados publica el APK
-debug (`com.liebeblack.divtrack.debug`), firmado con una clave temporal del runner; para
-actualizar ese canal puede ser necesario desinstalar la versión anterior. Las versiones
-release (`com.liebeblack.divtrack`) deben firmarse siempre con la misma clave para instalarse
-como actualización.
+Los APKs se firman dentro de Gradle con `ANDROID_KEYSTORE_FILE`,
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` y `ANDROID_KEY_PASSWORD`; el keystore se
+decodifica desde `ANDROID_KEYSTORE_BASE64` en el runner y nunca entra al repositorio. Sin
+esos secretos el flujo compila y publica APKs debug (`com.liebeblack.divtrack.debug`)
+firmados con la clave de desarrollo; para actualizar ese canal puede ser necesario
+desinstalar la versión anterior. Las versiones release (`com.liebeblack.divtrack`) deben
+firmarse siempre con la misma clave para instalarse como actualización.
+
+`pull_request` ejecuta tests y compilación, pero no incrementa la versión ni publica nada.
+
+Ojo con el nombre de la plataforma en CI: la de API 37 se publica como
+**`platforms;android-37.0`**. `platforms;android-37` **no existe**.
 
 Ojo con el nombre de la plataforma en CI: la de API 37 se publica como **`platforms;android-37.0`**
 (o `platforms/android-37.0` con el CLI nuevo). `platforms;android-37` **no existe**, y era el
@@ -166,8 +174,8 @@ Aritmética del IGTF (la parte fácil de equivocar, por eso está documentada y 
 
 ### Ajustes
 Tema (Sistema / Claro / Oscuro, aplicado al instante), tasa por defecto de la calculadora,
-IGTF por defecto, sincronización en segundo plano con su frecuencia (15/30/60/120/240 min),
-versión instalada y atribución de proveedores.
+sincronización en segundo plano con su frecuencia (15/30/60/120/240 min), versión instalada
+y atribución de proveedores. El IGTF se activa desde la propia calculadora.
 
 ---
 
@@ -543,9 +551,9 @@ código con el grafo principal y se compila con su propio `settings.gradle.kts`:
 ./gradlew -p lite :app:assembleRelease
 ```
 
-CI la construye y publica junto al APK principal, verificando antes la firma y el
-`applicationId` de cada uno (`com.liebeblack.divtrack` y `com.liebeblack.divtrack.lite`). El
-porqué de que sea un subproyecto y su coste están en la ADR 27 y en [lite/README.md](lite/README.md).
+El workflow principal publica únicamente la app Compose; Lite se compila aparte con el
+comando de arriba. El porqué de que sea un subproyecto y su coste están en la ADR 27 y en
+[lite/README.md](lite/README.md).
 
 ---
 

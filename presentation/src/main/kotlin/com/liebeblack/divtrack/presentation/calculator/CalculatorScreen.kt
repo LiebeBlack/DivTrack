@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,11 +38,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -116,6 +122,21 @@ fun CalculatorScreen(
 ) {
     val colors = DivTrackThemeTokens.colors
 
+    // Teclado numérico listo al entrar: la calculadora se abre para escribir un monto, así
+    // que pedir el foco aquí ahorra el toque inicial. El foco se pide después de que el
+    // campo exista en la composición (LaunchedEffect) y el IME se muestra solo si el
+    // sistema lo permite; en un preview o sin teclado no rompe nada.
+    val amountFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) {
+        // Se espera un frame para que el campo ya esté medido y el FocusRequester
+        // adjunto; pedirlo en el mismo instante de la composición puede fallar en
+        // transiciones rápidas de Navigation 3.
+        withFrameNanos { }
+        amountFocusRequester.requestFocus()
+        keyboardController?.show()
+    }
+
     // Solo las tasas que existen: sin el respaldo de `RateSource.ordered()` la pantalla no
     // puede ofrecer una opción que no está en Room y acabar en "sin tasas disponibles"
     // (el fallback reintroducía justo el bug que corrigió ADR 20).
@@ -174,6 +195,9 @@ fun CalculatorScreen(
                     .align(Alignment.TopCenter)
                     .widthIn(max = 640.dp)
                     .fillMaxWidth()
+                    // Con edge-to-edge, adjustResize no basta: se consume el inset del IME
+                    // antes de medir la altura para que el contenido no quede bajo el teclado.
+                    .imePadding()
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState())
                     .padding(
@@ -221,7 +245,32 @@ fun CalculatorScreen(
                     },
                     prefix = if (state.isUsdToBs) "$" else "Bs.",
                     accentColor = accentColor,
+                    focusRequester = amountFocusRequester,
                 )
+
+                // El IGTF estaba en el estado pero el cálculo lo ignoraba siempre. Ahora el
+                // usuario lo enciende aquí y el total, las cuotas y el desglose copiado
+                // reaccionan en la misma tecla.
+                FilterChip(
+                    selected = state.igtfEnabled,
+                    onClick = { onIntent(CalculatorIntent.ToggleIgtf) },
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .heightIn(min = 48.dp),
+                    label = {
+                        Text(text = stringResource(R.string.igtf_label, state.igtfRateText))
+                    },
+                )
+
+                if (state.igtfEnabled) {
+                    Text(
+                        text = stringResource(R.string.igtf_helper),
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
 
                 TextButton(
                     onClick = { onIntent(CalculatorIntent.SwapDirection) },

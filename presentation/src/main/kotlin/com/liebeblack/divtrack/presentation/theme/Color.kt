@@ -11,12 +11,15 @@ val ObsidianBorder = Color(0xFF1C3D2C)
 val ObsidianMuted = Color(0xFFB0C0B6)
 
 // --- Superficies (light) ---
-val CloudWhite = Color(0xFFFFFCF4)
-val CloudSurface = Color(0xFFFFFDF8)
-val CloudBorder = Color(0xFFE4D9C3)
-val CloudShade = Color(0xFFF1E8D5)
-val CloudCanvas = Color(0xFFF7F1E5)
-val SlateText = Color(0xFF454E46)
+val CloudWhite = Color(0xFFFFFFFF)
+val CloudSurface = Color(0xFFFFFFFF)
+val CloudBorder = Color(0xFFD5CCBA)
+val CloudShade = Color(0xFFECE5D6)
+val CloudCanvas = Color(0xFFF3F0E8)
+val SlateText = Color(0xFF39443C)
+
+/** Borde de campos y separadores con contraste suficiente para localizar el control. */
+val OutlineLight = Color(0xFF7C7566)
 
 // --- Acentos de marca ---
 val Mint = Color(0xFF39F0A5)
@@ -35,12 +38,12 @@ val Frost = Color(0xFFF5F8FB)
 val TrendUp = Color(0xFF16C784)
 val TrendDown = Color(0xFFEA3943)
 val TrendFlat = Color(0xFF8A94A6)
-val TrendUpDeep = Color(0xFF0E7C50)
+val TrendUpDeep = Color(0xFF0B6B45)
 val TrendDownDeep = Color(0xFFB3261E)
 val TrendFlatDeep = Color(0xFF5A6575)
 
 /** Ámbar legible sobre blanco: el [Amber] brillante solo sirve de acento, no de texto. */
-val AmberDeep = Color(0xFFB45309)
+val AmberDeep = Color(0xFF92400E)
 val OfficialAccent = Mint
 val ParallelAccent = Amber
 

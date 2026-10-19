@@ -41,6 +41,9 @@ data class CalculatorUiState(
 
     /** `true` mientras la pasada contra los proveedores está en vuelo. */
     val isSyncing: Boolean = false,
+
+    /** IGTF (3 %) aplicado al cálculo. Apagado por defecto. */
+    val igtfEnabled: Boolean = false,
     val igtfRateText: String = "",
     val igtfBsText: String = "—",
     val totalBsText: String = "—",
@@ -55,7 +58,8 @@ data class CalculatorUiState(
     /** Cuota mensual del monto actual en dólares, con la tasa aplicada. */
     val installmentUsdText: String = "—",
     val canCopy: Boolean = false,
-    val hasRate: Boolean = true,
+    // Hasta que Room no entregue una tasa, la pantalla no puede afirmar que hay una.
+    val hasRate: Boolean = false,
 ) {
     val isUsdToBs: Boolean get() = direction == ConversionDirection.USD_TO_BS
 
@@ -70,6 +74,9 @@ sealed interface CalculatorIntent {
 
     /** Cambia el número de cuotas de la simulación de crédito. */
     data class SelectInstallments(val count: Int) : CalculatorIntent
+
+    /** Enciende o apaga el IGTF (3 %) sin perder el monto ya escrito. */
+    data object ToggleIgtf : CalculatorIntent
 
     /** Fuerza la pasada contra los proveedores y recalcula con lo que llegue. */
     data object Refresh : CalculatorIntent
@@ -105,6 +112,7 @@ data class BreakdownSummary(
     val source: RateSource,
     val amountText: String,
     val rateText: String,
+    val igtfEnabled: Boolean,
     val igtfText: String,
     val totalBsText: String,
     val totalUsdText: String,

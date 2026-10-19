@@ -392,6 +392,15 @@ private fun AboutCard(appVersion: String, modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
+            // Atribución explícita del autor, visible en Ajustes → Acerca de.
+            Text(
+                text = stringResource(R.string.settings_developer),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+            )
+
             SectionTitle(text = stringResource(R.string.settings_providers))
             SectionBody(text = stringResource(R.string.settings_providers_value))
 

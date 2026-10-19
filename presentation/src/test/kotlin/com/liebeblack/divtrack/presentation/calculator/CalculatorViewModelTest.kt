@@ -116,6 +116,26 @@ class CalculatorViewModelTest {
     }
 
     @Test
+    fun `el IGTF solo se aplica cuando el usuario lo enciende`() = runTest {
+        val viewModel = createViewModel()
+        collectState(viewModel)
+
+        viewModel.onIntent(CalculatorIntent.AmountChanged("10"))
+        advanceUntilIdle()
+        assertEquals("365,00", viewModel.state.value.totalBsText)
+
+        viewModel.onIntent(CalculatorIntent.ToggleIgtf)
+        advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertTrue(state.igtfEnabled)
+        // Ejemplo del pliego: $10 a 36,5 Bs con IGTF del 3 % -> 375,95 Bs.
+        assertEquals("10,95", state.igtfBsText)
+        assertEquals("375,95", state.totalBsText)
+        assertEquals("10,30", state.totalUsdText)
+    }
+
+    @Test
     fun `la direccion inversa convierte bolivares a dolares`() = runTest {
         val viewModel = createViewModel()
         collectState(viewModel)

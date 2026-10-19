@@ -72,6 +72,7 @@ class CalculatorViewModel @Inject constructor(
     private val direction = MutableStateFlow(ConversionDirection.USD_TO_BS)
     private val selectedSource = MutableStateFlow<RateSource?>(null)
     private val installments = MutableStateFlow(DEFAULT_INSTALLMENTS)
+    private val igtfEnabled = MutableStateFlow(false)
     private val availableRates = MutableStateFlow(CalculatorRates())
     private val isSyncing = MutableStateFlow(false)
     private var syncJob: Job? = null
@@ -96,12 +97,14 @@ class CalculatorViewModel @Inject constructor(
         direction,
         selectedSource,
         availableRates,
-    ) { input, currentDirection, source, rates ->
+        igtfEnabled,
+    ) { input, currentDirection, source, rates, applyIgtf ->
         CalculatorInputs(
             input = input,
             direction = currentDirection,
             source = source,
             rates = rates,
+            igtfEnabled = applyIgtf,
         )
     }
 
@@ -117,11 +120,17 @@ class CalculatorViewModel @Inject constructor(
             rates = inputs.rates,
             isSyncing = syncing,
             installments = installmentCount,
+            applyIgtf = inputs.igtfEnabled,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-        initialValue = CalculatorUiState(igtfRateText = AppConstants.IGTF_LABEL),
+        // `hasRate = false` desde el primer fotograma: hasta que Room no entregue una tasa
+        // real, la pantalla no debe afirmar que hay una disponible.
+        initialValue = CalculatorUiState(
+            igtfRateText = AppConstants.IGTF_LABEL,
+            hasRate = false,
+        ),
     )
 
     init {
@@ -156,6 +165,8 @@ class CalculatorViewModel @Inject constructor(
             // depende de que la UI se porte bien.
             is CalculatorIntent.SelectInstallments ->
                 installments.value = intent.count.coerceAtLeast(1)
+
+            CalculatorIntent.ToggleIgtf -> igtfEnabled.value = !igtfEnabled.value
 
             CalculatorIntent.Refresh -> refresh(isUserInitiated = true)
 
@@ -235,6 +246,7 @@ class CalculatorViewModel @Inject constructor(
                         source = current.selectedSource,
                         amountText = current.inputText,
                         rateText = current.selectedRateText,
+                        igtfEnabled = current.igtfEnabled,
                         igtfText = current.igtfBsText,
                         totalBsText = current.totalBsText,
                         totalUsdText = current.totalUsdText,
@@ -251,6 +263,7 @@ class CalculatorViewModel @Inject constructor(
         rates: CalculatorRates,
         isSyncing: Boolean,
         installments: Int,
+        applyIgtf: Boolean,
     ): CalculatorUiState {
         val options = rates.options
 
@@ -269,7 +282,7 @@ class CalculatorViewModel @Inject constructor(
             source = source,
             rate = selectedRate,
             rawAmount = input,
-            igtfEnabled = false,
+            igtfEnabled = applyIgtf,
         )
 
         // La cuota sale del mismo total ya calculado (IGTF incluido, si está activo): dividir
@@ -290,6 +303,7 @@ class CalculatorViewModel @Inject constructor(
             selectedRateText = selectedRate?.let { rates.formattedValues[source] } ?: "—",
             selectedRateAgeText = rates.formattedUpdatedAt[source],
             isSyncing = isSyncing,
+            igtfEnabled = applyIgtf,
             igtfRateText = AppConstants.IGTF_LABEL,
             igtfBsText = conversion?.let { CurrencyFormatters.amount(it.igtfBs) } ?: "—",
             totalBsText = conversion?.let { CurrencyFormatters.amount(it.totalBs) } ?: "—",
@@ -327,6 +341,7 @@ class CalculatorViewModel @Inject constructor(
         val direction: ConversionDirection,
         val source: RateSource?,
         val rates: CalculatorRates,
+        val igtfEnabled: Boolean,
     )
 
     private data class CalculatorRates(

@@ -28,19 +28,73 @@ plugins {
  */
 val leakCanaryEnabled: Boolean = (findProperty("divtrack.leakcanary") as String?) == "true"
 
+/**
+ * Firma de release desde el entorno, nunca desde el repositorio.
+ *
+ * CI decodifica el keystore en un archivo temporal y exporta estas cuatro variables antes
+ * de invocar Gradle; AGP firma entonces cada APK por ABI durante `assembleRelease`. Así la
+ * clave privada no viaja en el código ni en los artefactos y el build local sigue
+ * produciendo APKs sin firmar si no hay secretos configurados.
+ */
+val releaseKeystoreFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE")
+    .orNull
+    ?.let { path -> file(path) }
+    ?.takeIf { it.isFile }
+val releaseStorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS")
+val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD")
+val releaseSigningReady = releaseKeystoreFile != null &&
+    !releaseStorePassword.orNull.isNullOrBlank() &&
+    !releaseKeyAlias.orNull.isNullOrBlank() &&
+    !releaseKeyPassword.orNull.isNullOrBlank()
+
 android {
     namespace = "com.liebeblack.divtrack"
     compileSdk = 37
 
     defaultConfig {
         applicationId = "com.liebeblack.divtrack"
-        minSdk = 26
+        minSdk = 31
         targetSdk = 37
         versionCode = 470
         versionName = "4.7"
 
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    signingConfigs {
+        releaseKeystoreFile?.let { keystore ->
+            if (releaseSigningReady) {
+                create("release") {
+                    storeFile = keystore
+                    storePassword = releaseStorePassword.get()
+                    keyAlias = releaseKeyAlias.get()
+                    keyPassword = releaseKeyPassword.get()
+                }
+            }
+        }
+    }
+
+    /**
+     * Un APK por arquitectura, más el universal para instalaciones manuales.
+     *
+     * `arm64-v8a` es también el ABI de los dispositivos ARMv9: no existe un ABI `armv9`
+     * separado, ARMv9 ejecuta binarios ARM64 y Android sirve esa variante. `armeabi-v7a`
+     * cubre ARM 32-bit y `x86`/`x86_64` los emuladores y Chromebooks.
+     *
+     * Con R8 y `shrinkResources` el contenido útil cabe en poco más de 2 MB; separar por
+     * ABI evita arrastrar código nativo ajeno a la arquitectura del dispositivo. El APK
+     * universal se conserva porque GitHub Releases se descarga a mano y no todos los
+     * usuarios saben qué ABI tiene su teléfono.
+     */
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
         }
     }
 
@@ -61,6 +115,11 @@ android {
             // compilando el release en cada push.
             isMinifyEnabled = true
             isShrinkResources = true
+            // Firma por ABI en el propio build; CI verifica cada archivo antes de publicarlo.
+            // Sin secretos, el bloque no se toca y AGP deja el APK sin firmar (build local).
+            if (releaseSigningReady) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

@@ -226,8 +226,11 @@ class DashboardViewModel @Inject constructor(
     /** Aplica las tasas de Room y deriva el spread una sola vez por emisión. */
     private fun DashboardUiState.withRates(rates: List<ExchangeRate>): DashboardUiState {
         val spread: Spread = calculateSpread(rates)
+        // Una sola lectura del reloj por emisión: antes se pedía una vez por tasa y todas
+        // las tarjetas debían compartir exactamente el mismo instante de referencia.
+        val nowMillis = timeProvider.nowMillis()
         return copy(
-            rates = rates.map { rate -> rate.toRateUiModel(timeProvider.nowMillis()) },
+            rates = rates.map { rate -> rate.toRateUiModel(nowMillis) },
             spreadPercentText = spread.percent?.let { percent -> CurrencyFormatters.percent(percent) },
             spreadAbsoluteText = spread.absolute?.let { absolute -> CurrencyFormatters.bolivars(absolute) },
         )

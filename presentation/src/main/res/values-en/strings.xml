@@ -83,8 +83,6 @@
     <string name="provider_yadio">Yadio</string>
     <string name="provider_exchangerateapi">ER-API</string>
     <string name="provider_dolarvzla">DolarVZLA</string>
-    <string name="settings_igtf_default">IGTF enabled by default</string>
-    <string name="settings_igtf_default_helper">The calculator starts with the tax applied.</string>
     <string name="settings_auto_sync">Background sync</string>
     <string name="settings_auto_sync_helper">Attempts to update rates while the app is closed. Android may delay background work to save battery.</string>
     <string name="settings_wifi_only">Wi-Fi only</string>
@@ -94,6 +92,7 @@
     <string name="settings_interval_hours">%1$d hr</string>
     <string name="settings_about">About</string>
     <string name="settings_version">Version %1$s</string>
+    <string name="settings_developer">Developed by LiebeBlack</string>
     <string name="settings_providers">Providers</string>
     <string name="settings_providers_value">dolarapi.com (official and parallel) · yadio.io (parallel fallback) · open.er-api.com (official fallback)</string>
     <string name="settings_providers_status_title">Data source status</string>

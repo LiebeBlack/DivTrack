@@ -32,7 +32,13 @@ internal fun buildBreakdownText(context: Context, summary: BreakdownSummary): St
         ConversionDirection.USD_TO_BS -> R.string.copy_direction_usd_to_bs
         ConversionDirection.BS_TO_USD -> R.string.copy_direction_bs_to_usd
     }
-    val taxLine = context.getString(R.string.copy_igtf_not_applied)
+    // El resumen trae el estado y el importe ya formateado. Se copia el IGTF real cuando
+    // está activo y "No aplicado" cuando está apagado: nada de adivinar por el texto.
+    val taxLine = if (summary.igtfEnabled) {
+        context.getString(R.string.copy_igtf_estimated, summary.igtfText)
+    } else {
+        context.getString(R.string.copy_igtf_not_applied)
+    }
 
     return listOf(
         context.getString(R.string.copy_title),

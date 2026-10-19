@@ -1,8 +1,0 @@
-# ---------------------------------------------------------------------------
-# DivTrack Lite — plantilla de configuración local
-#
-# 1. Copia este archivo como `local.properties` (está en .gitignore).
-# 2. Define sdk.dir con la ruta a tu Android SDK.
-# ---------------------------------------------------------------------------
-
-# sdk.dir=C:/Users/tu-usuario/AppData/Local/Android/Sdk

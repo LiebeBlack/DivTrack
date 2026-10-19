@@ -12,7 +12,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 31
     }
 
     buildFeatures {
@@ -54,6 +54,9 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
+    // MD3 nativo en Compose. `com.google.android.material:material` es la implementación
+    // para Views: añadirla aquí duplicaría el design system y el tamaño del APK sin
+    // aportar ni un componente, porque toda la UI es Compose.
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
     // De todos los iconos de la app, solo dos son de `extended` (Calculate y TrendingUp, las
