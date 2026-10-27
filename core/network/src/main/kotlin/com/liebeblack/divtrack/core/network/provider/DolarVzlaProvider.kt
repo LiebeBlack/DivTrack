@@ -47,7 +47,7 @@ class DolarVzlaProvider @Inject constructor(
                         // convención con la que DolarAPI fecha el oficial, de modo que la
                         // comparación por frescura es entre iguales. Una fecha ilegible da
                         // `null` (edad desconocida) en vez de descartar la tasa.
-                        updatedAtMillis = IsoParsers.instantMillisOrNull(current?.date),
+                        updatedAtMillis = IsoParsers.instantMillisOrNull(current.date),
                     ),
                 )
             }

@@ -18,6 +18,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -167,8 +168,9 @@ fun RateCard(
                         )
                     } else {
                         // ── Tasa paralela: escala secundaria ──
+                        val parallelBase = MaterialTheme.typography.displaySmall.tabular()
                         val parallelStyle = remember(valueText, emphasisColor) {
-                            MaterialTheme.typography.displaySmall.tabular().copy(
+                            parallelBase.copy(
                                 fontSize = 26.sp,
                                 lineHeight = 32.sp,
                                 fontWeight = FontWeight.Bold,

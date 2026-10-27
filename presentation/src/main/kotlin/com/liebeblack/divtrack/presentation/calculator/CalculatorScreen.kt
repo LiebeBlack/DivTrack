@@ -349,13 +349,12 @@ private fun ResultRow(
     emphasize: Boolean = false,
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
-    val valueStyle = remember(emphasize) {
-        if (emphasize) {
-            MaterialTheme.typography.headlineMedium.tabular()
-        } else {
-            MaterialTheme.typography.titleMedium.tabular()
-        }
+    val baseStyle = if (emphasize) {
+        MaterialTheme.typography.headlineMedium.tabular()
+    } else {
+        MaterialTheme.typography.titleMedium.tabular()
     }
+    val valueStyle = remember(emphasize) { baseStyle }
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
