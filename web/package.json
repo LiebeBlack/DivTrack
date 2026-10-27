@@ -1,0 +1,33 @@
+{
+  "name": "divtrack-web",
+  "version": "2.0.0",
+  "description": "Sitio web oficial multipágina de DivTrack - App Android para rastrear el dólar oficial y paralelo en Venezuela",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "echo \"Sitio estático listo para desplegar en GitHub Pages\"",
+    "lint": "echo \"Lint no requerido para sitio estático\""
+  },
+  "keywords": [
+    "divtrack",
+    "dolar",
+    "venezuela",
+    "bcv",
+    "dolar-paralelo",
+    "android",
+    "kotlin",
+    "compose"
+  ],
+  "author": "DivTrack",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4",
+    "helmet": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

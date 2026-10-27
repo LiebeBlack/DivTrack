@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contacto | DivTrack</title>
+  <meta name="description" content="Contacta con el equipo de DivTrack. Soporte, consultas y comentarios sobre la app de tasas del dólar en Venezuela.">
+  <meta name="theme-color" content="#02040a">
+  <link rel="preload" as="style" href="css/base.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2302040a'/%3E%3Cpath d='M10 10h12v12H10z' fill='%2322d3ee'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <div class="mesh-bg">
+    <div class="mesh-blob mesh-blob-1"></div>
+    <div class="mesh-blob mesh-blob-2"></div>
+    <div class="mesh-blob mesh-blob-3"></div>
+  </div>
+
+  <header class="site-header" id="cabecera">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="DivTrack - Inicio">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="#02040a"/>
+          <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+        </svg>
+        <span>DivTrack</span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html">Inicio</a>
+        <a href="tasas.html">Tasas en vivo</a>
+        <a href="calculadora.html">Calculadora</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="app.html">App</a>
+        <a href="stack.html">Stack</a>
+        <a href="api.html">API</a>
+        <a href="offline.html">Offline</a>
+        <a href="tests.html">Tests</a>
+        <a href="compilar.html">Compilar</a>
+        <a href="descarga.html">Descargar</a>
+        <a href="github.html">GitHub</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contacto.html" class="active">Contacto</a>
+      </nav>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">🌙</button>
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html">Inicio</a>
+    <a href="tasas.html">Tasas en vivo</a>
+    <a href="calculadora.html">Calculadora</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="app.html">App</a>
+    <a href="stack.html">Stack</a>
+    <a href="api.html">API</a>
+    <a href="offline.html">Offline</a>
+    <a href="tests.html">Tests</a>
+    <a href="compilar.html">Compilar</a>
+    <a href="descarga.html">Descargar</a>
+    <a href="github.html">GitHub</a>
+    <a href="faq.html">FAQ</a>
+    <a href="contacto.html" class="active">Contacto</a>
+  </div>
+
+  <main id="contenido">
+    <section class="section">
+      <div class="container">
+        <div class="section-title reveal reveal-delay-1">Contáctanos</div>
+        <div class="section-subtitle reveal reveal-delay-2">
+          ¿Tienes preguntas, sugerencias o necesitas soporte? Escríbenos y te responderemos a la brevedad.
+        </div>
+
+        <div class="contact-grid reveal reveal-delay-3">
+          <div class="card">
+            <div style="font-weight:900; font-size:1.3rem; margin-bottom:28px; color:var(--text); display:flex; align-items:center; gap:10px;">
+              <span style="font-size:1.5rem;">✉️</span> Envíanos un mensaje
+            </div>
+            <form id="form-contacto" novalidate>
+              <div class="form-group">
+                <label for="nombre">Nombre completo</label>
+                <input type="text" id="nombre" placeholder="Tu nombre" required>
+              </div>
+              <div class="form-group">
+                <label for="email">Correo electrónico</label>
+                <input type="email" id="email" placeholder="tu@correo.com" required>
+              </div>
+              <div class="form-group">
+                <label for="asunto">Asunto</label>
+                <select id="asunto" required>
+                  <option value="">Selecciona un asunto</option>
+                  <option value="soporte">Soporte técnico</option>
+                  <option value="consulta">Consulta general</option>
+                  <option value="feedback">Sugerencia o feedback</option>
+                  <option value="colaboracion">Colaboración</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="mensaje">Mensaje</label>
+                <textarea id="mensaje" required placeholder="Cuéntanos cómo podemos ayudarte..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width:100%;">Enviar mensaje</button>
+            </form>
+            <div id="form-mensaje" style="margin-top:20px; padding:16px; border-radius:var(--radius-sm); display:none; font-size:0.95rem; font-weight:600;"></div>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:900; font-size:1.3rem; margin-bottom:28px; color:var(--text); display:flex; align-items:center; gap:10px;">
+              <span style="font-size:1.5rem;">📍</span> Información
+            </div>
+            <div style="color:var(--text-dim); font-size:1rem; line-height:2; margin-bottom:34px;">
+              <p style="margin-bottom:18px;"><strong style="color:var(--text);">GitHub:</strong> LiebeBlack/DivTrack</p>
+              <p style="margin-bottom:18px;"><strong style="color:var(--text);">Reporta bugs:</strong> Abre un issue en el repositorio.</p>
+              <p style="margin-bottom:18px;"><strong style="color:var(--text);">Soporte:</strong> Consulta la sección FAQ primero.</p>
+              <p style="margin-bottom:18px;"><strong style="color:var(--text);">Versión actual:</strong> 4.7 (última)</p>
+            </div>
+            <div style="background:linear-gradient(180deg, var(--panel-hover), var(--panel)); border:1px solid var(--border); border-radius:var(--radius-sm); padding:28px;">
+              <div style="font-weight:800; font-size:0.9rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:14px;">Redes y enlaces</div>
+              <div style="display:flex; gap:16px;">
+                <a href="https://github.com/LiebeBlack/DivTrack" class="btn btn-ghost" target="_blank" rel="noopener" style="flex:1; justify-content:center; font-size:1.3rem;">GitHub</a>
+                <a href="https://github.com/LiebeBlack/DivTrack/releases" class="btn btn-ghost" target="_blank" rel="noopener" style="flex:1; justify-content:center; font-size:1.3rem;">Releases</a>
+                <a href="faq.html" class="btn btn-ghost" style="flex:1; justify-content:center; font-size:1.3rem;">FAQ</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="logo" style="margin-bottom:14px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect width="32" height="32" rx="8" fill="#02040a"/>
+            <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+          </svg>
+          <span>DivTrack</span>
+        </div>
+        <p style="font-size:0.9rem;">Soporte y contacto</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navegar</h4>
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+          <li><a href="github.html">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 DivTrack</div>
+  </footer>
+
+  <script src="js/common.js"></script>
+  <script src="js/contacto.js"></script>
+</body>
+</html>

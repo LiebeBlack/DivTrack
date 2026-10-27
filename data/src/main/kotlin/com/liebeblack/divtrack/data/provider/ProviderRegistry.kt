@@ -14,6 +14,8 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 /**
  * Una tasa ya resuelta junto al proveedor que la aportó.
@@ -89,20 +91,18 @@ class ProviderRegistry @Inject constructor(
      *
      * Una conexión "sana" que devuelve JSON sin pares utilizables cuenta como fallida.
      */
-    suspend fun testAll(preferredProviderId: String? = null): ProviderDiagnostics {
-        val order = orderFor(preferredProviderId)
-        val statuses = mutableListOf<ProviderStatus>()
+    suspend fun testAll(preferredProviderId: String? = null): ProviderDiagnostics =
+        coroutineScope {
+            val order = orderFor(preferredProviderId)
+            val statuses = order.map { provider ->
+                async { probe(provider) }
+            }.map { it.await() }
 
-        order.forEach { provider ->
-            val status = probe(provider)
-            // El diagnóstico no decide el breaker: medir no es usar. Pero si el sondeo
-            // responde con datos, el circuito se cierra de inmediato (recuperación).
-            if (status.isOk) markSuccess(provider.id)
-            statuses += status
+            // Cierra circuitos de los que respondieron bien (recuperación del breaker).
+            statuses.filter { it.isOk }.forEach { markSuccess(it.providerId) }
+
+            ProviderDiagnostics(statuses = statuses)
         }
-
-        return ProviderDiagnostics(statuses = statuses)
-    }
 
     /** Orden efectivo de consulta: preferido primero, resto por prioridad base. */
     private fun orderFor(preferredProviderId: String?): List<RateProvider> {
@@ -130,39 +130,31 @@ class ProviderRegistry @Inject constructor(
         return available.ifEmpty { order }
     }
 
-    private suspend fun fetchWithOrder(order: List<RateProvider>): ProviderFetchOutcome {
-        val resolved = LinkedHashMap<String, ResolvedRate>()
-        val providerIds = mutableListOf<String>()
-        val failures = mutableListOf<ProviderFailure>()
-        val fetchedAtMillis = mutableListOf<Long>()
-        // Una sola lectura del reloj por pasada: todas las comparaciones de frescura de
-        // esta pasada usan el mismo instante.
-        val nowMillis = timeProvider.nowMillis()
+    private suspend fun fetchWithOrder(order: List<RateProvider>): ProviderFetchOutcome =
+        coroutineScope {
+            val nowMillis = timeProvider.nowMillis()
+            // Todos los proveedores disponibles se consultan en paralelo; el tiempo total
+            // queda acotado por el callTimeout de OkHttp y por el withTimeoutOrNull del repositorio.
+            val results = order.map { provider ->
+                async { provider to fetchSafely { provider.fetchLatest() } }
+            }.map { it.await() }
 
-        for (provider in order) {
-            // Corte de pasada: solo se detiene cuando están las dos tasas resueltas Y
-            // frescas. Si una resuelta está rancia (banco sin publicar), se sigue
-            // consultando proveedores por si alguien trae algo más reciente.
-            if (!needsMoreData(resolved, nowMillis)) break
+            val resolved = LinkedHashMap<String, ResolvedRate>()
+            val providerIds = mutableListOf<String>()
+            val failures = mutableListOf<ProviderFailure>()
+            var fetchedAtMillis = 0L
 
-            fetchSafely { provider.fetchLatest() }
-                .onSuccess { remoteSet ->
-                    fetchedAtMillis += remoteSet.fetchedAtMillis
+            for ((provider, outcome) in results) {
+                outcome.onSuccess { remoteSet ->
+                    fetchedAtMillis = maxOf(fetchedAtMillis, remoteSet.fetchedAtMillis)
                     if (remoteSet.rates.isNotEmpty()) markSuccess(provider.id)
 
                     var contributed = false
                     remoteSet.rates.forEach { rate ->
                         if (rate.sourceKey !in SourceKeys.all) return@forEach
 
-                        // Una fecha en el futuro no es "más reciente": es un dato roto (alguien
-                        // sirvió una tasa fechada para un día que aún no llegó — en vivo, el
-                        // 2026-10-11, el CDN de DolarVZLA servía el cierre del día 13). Se
-                        // degrada a lectura sin hora y compite sin ventaja de frescura.
                         val candidate = rate.withTrustedTimestamp(nowMillis)
                         val current = resolved[candidate.sourceKey]
-                        // Gana el dato más fresco (igualando a quien publica primero y degradando
-                        // al que responde con el cierre de un día pasado), salvo que la tasa sea
-                        // autoritativa: entonces su dueño manda mientras responda (ADR 40).
                         val wins = when {
                             current == null -> true
                             isAuthoritativeSource(provider.id, candidate.sourceKey) &&
@@ -183,15 +175,15 @@ class ProviderRegistry @Inject constructor(
                     failures += ProviderFailure(providerId = provider.id, error = errorMapper.map(throwable))
                     logger.warn(TAG, "Proveedor ${provider.id} falló: ${throwable.message}", throwable)
                 }
-        }
+            }
 
-        return ProviderFetchOutcome(
-            rates = resolved.values.toList(),
-            providerIds = providerIds.toList(),
-            failures = failures.toList(),
-            fetchedAtMillis = fetchedAtMillis.maxOrNull() ?: 0L,
-        )
-    }
+            ProviderFetchOutcome(
+                rates = resolved.values.toList(),
+                providerIds = providerIds.toList(),
+                failures = failures.toList(),
+                fetchedAtMillis = fetchedAtMillis,
+            )
+        }
 
     /** Sondeo de un proveedor para el diagnóstico: cómo quedó, qué trajo y de cuándo. */
     private suspend fun probe(provider: RateProvider): ProviderStatus {

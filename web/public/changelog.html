@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog | DivTrack</title>
+  <meta name="description" content="Historial de cambios y versiones de DivTrack. Todas las actualizaciones de la app de tasas del dólar en Venezuela.">
+  <meta name="theme-color" content="#02040a">
+  <link rel="preload" as="style" href="css/base.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2302040a'/%3E%3Cpath d='M10 10h12v12H10z' fill='%2322d3ee'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <div class="mesh-bg">
+    <div class="mesh-blob mesh-blob-1"></div>
+    <div class="mesh-blob mesh-blob-2"></div>
+    <div class="mesh-blob mesh-blob-3"></div>
+  </div>
+
+  <header class="site-header" id="cabecera">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="DivTrack - Inicio">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="#02040a"/>
+          <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+        </svg>
+        <span>DivTrack</span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html">Inicio</a>
+        <a href="tasas.html">Tasas en vivo</a>
+        <a href="calculadora.html">Calculadora</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="app.html">App</a>
+        <a href="stack.html">Stack</a>
+        <a href="api.html">API</a>
+        <a href="offline.html">Offline</a>
+        <a href="tests.html">Tests</a>
+        <a href="compilar.html">Compilar</a>
+        <a href="descarga.html">Descargar</a>
+        <a href="github.html">GitHub</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contacto.html">Contacto</a>
+      </nav>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">🌙</button>
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html">Inicio</a>
+    <a href="tasas.html">Tasas en vivo</a>
+    <a href="calculadora.html">Calculadora</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="app.html">App</a>
+    <a href="stack.html">Stack</a>
+    <a href="api.html">API</a>
+    <a href="offline.html">Offline</a>
+    <a href="tests.html">Tests</a>
+    <a href="compilar.html">Compilar</a>
+    <a href="descarga.html">Descargar</a>
+    <a href="github.html">GitHub</a>
+    <a href="faq.html">FAQ</a>
+    <a href="contacto.html">Contacto</a>
+  </div>
+
+  <main id="contenido">
+    <section class="section">
+      <div class="container">
+        <div class="section-title reveal reveal-delay-1">Changelog</div>
+        <div class="section-subtitle reveal reveal-delay-2">
+          Historial de versiones y cambios de DivTrack. Todas las actualizaciones documentadas.
+        </div>
+
+        <div class="grid grid-2 reveal reveal-delay-3">
+          <div class="card">
+            <div style="font-size:2.4rem; margin-bottom:16px; color:var(--primary);">v4.7</div>
+            <div style="font-weight:900; font-size:1.2rem; margin-bottom:16px; color:var(--text);">Última versión</div>
+            <div style="color:var(--text-dim); font-size:1rem; line-height:2; margin-bottom:20px;">
+              Calculadora reducida a conversión directa. Botón de invertir sólido de ancho completo. Tema Manrope corregido con ejes variables.
+            </div>
+            <div style="font-size:0.9rem; color:var(--text-muted);">2026-10-19</div>
+          </div>
+          <div class="card">
+            <div style="font-size:2.4rem; margin-bottom:16px; color:var(--accent);">v4.6</div>
+            <div style="font-weight:900; font-size:1.2rem; margin-bottom:16px; color:var(--text);">Sistema de actualizaciones</div>
+            <div style="color:var(--text-dim); font-size:1rem; line-height:2; margin-bottom:20px;">
+              Comprobador de versión desde GitHub Releases. Descarga en segundo plano con DownloadManager. Instalación con FileProvider.
+            </div>
+            <div style="font-size:0.9rem; color:var(--text-muted);">2026-10-11</div>
+          </div>
+        </div>
+
+        <div class="timeline reveal reveal-delay-4">
+          <div class="timeline-item">
+            <div class="timeline-date">2026-10-03</div>
+            <div class="timeline-content">
+              <div class="timeline-title">Panel de tasas y fechas</div>
+              <div class="timeline-desc">El panel se refresca al volver a la app. Fecha ISO leída como medianoche de Venezuela. 88 tests, 0 fallos.</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-date">2026-10-03</div>
+            <div class="timeline-content">
+              <div class="timeline-title">Tipografía Manrope variable</div>
+              <div class="timeline-desc">Corregidos los pesos de fuente usando variationSettings. Cuerpo de texto a Medium (500).</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-date">2026-10-03</div>
+            <div class="timeline-content">
+              <div class="timeline-title">Almacenamiento incompleto</div>
+              <div class="timeline-desc">Aviso cuando la tasa paralela no tiene datos guardados. Reconstrucción de base Room dañada.</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-date">2026-10-11</div>
+            <div class="timeline-content">
+              <div class="timeline-title">Cuarta fuente: DolarVZLA</div>
+              <div class="timeline-desc">Proveedor oficial vía CDN estático sin clave de API. Prioridad 30 en el registro.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="logo" style="margin-bottom:14px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect width="32" height="32" rx="8" fill="#02040a"/>
+            <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+          </svg>
+          <span>DivTrack</span>
+        </div>
+        <p style="font-size:0.9rem;">Historial de versiones</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navegar</h4>
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a href="descarga.html">Descargar APK</a></li>
+          <li><a href="github.html">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 DivTrack</div>
+  </footer>
+
+  <script src="js/common.js"></script>
+</body>
+</html>

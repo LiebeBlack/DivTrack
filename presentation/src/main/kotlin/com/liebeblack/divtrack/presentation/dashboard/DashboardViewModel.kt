@@ -88,16 +88,26 @@ class DashboardViewModel @Inject constructor(
      */
     private fun refreshIfNeeded() {
         val current = _state.value
+        val now = timeProvider.nowMillis()
+
         val official = current.rates.firstOrNull { rate -> rate.source == RateSource.OFICIAL }
-        val isOld = official == null ||
-            timeProvider.nowMillis() - official.fetchedAtMillis >=
-            AppConstants.RATE_RESUME_REFRESH_AFTER_MILLIS
+        val isOfficialOld = official == null ||
+            now - official.fetchedAtMillis >= AppConstants.RATE_RESUME_REFRESH_AFTER_MILLIS
+
+        // Si el paralelo está activado, también hay que vigilar su frescura: no sirve de nada
+        // que el oficial esté reciente si la paralela que el usuario quiere ver lleva horas vieja.
+        var isParallelOld = false
+        if (current.showParallelRate) {
+            val parallel = current.rates.firstOrNull { rate -> rate.source == RateSource.PARALELO }
+            isParallelOld = parallel == null ||
+                now - parallel.fetchedAtMillis >= AppConstants.RATE_RESUME_REFRESH_AFTER_MILLIS
+        }
 
         // Dos motivos para salir a la red: el dato en pantalla ya no es fresco, o la última
         // pasada falló. El segundo pesa tanto como el primero: sin él, el aviso de "sin
         // conexión" se quedaba encendido hasta quince minutos después de que el usuario
         // recuperara la red, con la tasa guardada leyéndose como si fuera de ahora.
-        if (isOld || current.isOffline) refresh(isUserInitiated = false)
+        if (isOfficialOld || isParallelOld || current.isOffline) refresh(isUserInitiated = false)
     }
 
     private fun observeRatesFromCache() {

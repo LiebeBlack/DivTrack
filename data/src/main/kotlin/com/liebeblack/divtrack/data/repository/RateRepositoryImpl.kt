@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Implementación Online-First.
@@ -105,10 +106,10 @@ class RateRepositoryImpl @Inject constructor(
                 if (retriable) delay(RATE_FLOW_RETRY_DELAY_MILLIS)
                 retriable
             }
-            // Si la lectura se cae del todo, se sirve la última lectura real de la sesión y se
-            // deja rastro: este respaldo salva la pantalla, y precisamente por eso escondía el
-            // diagnóstico —sin este registro, una base que falla en bucle no aparecía en
-            // ningún log.
+            // Si la lectura se cae del todo, se sirve la última lectura real de la sesión:
+            // este respaldo salva la pantalla cuando Room no puede leerse (base dañada,
+            // disco lleno, reconstrucción en curso). El map de abajo se encarga de sustituir
+            // emisiones vacías por ese mismo respaldo.
             .catch { throwable ->
                 logger.warn(
                     TAG,
@@ -208,81 +209,82 @@ class RateRepositoryImpl @Inject constructor(
         null
     }
 
-    private suspend fun performRatesRefresh(): Result<SyncSummary> {
-        // Fallo rápido: sin conectividad no se espera al timeout para decir "sin conexión".
-        // El usuario ve el aviso al instante y se ahorra el trabajo de red. Es una pista,
-        // no un requisito: `ConnectivityObserver` solo responde "false" cuando de verdad no
-        // hay ninguna red activa, así que un falso negativo no puede dejar la app muda.
-        if (!connectivityObserver.isOnline()) {
-            logger.warn(TAG, "Sincronización omitida: el sistema no reporta ninguna red activa")
-            return Result.Error(DataError.Network(message = "Sin conexión a internet"))
-        }
+    private suspend fun performRatesRefresh(): Result<SyncSummary> =
+        withTimeoutOrNull(SYNC_TOTAL_TIMEOUT_MILLIS) {
+            // Fallo rápido: sin conectividad no se espera al timeout para decir "sin conexión".
+            // El usuario ve el aviso al instante y se ahorra el trabajo de red. Es una pista,
+            // no un requisito: `ConnectivityObserver` solo responde "false" cuando de verdad no
+            // hay ninguna red activa, así que un falso negativo no puede dejar la app muda.
+            if (!connectivityObserver.isOnline()) {
+                logger.warn(TAG, "Sincronización omitida: el sistema no reporta ninguna red activa")
+                return@withTimeoutOrNull Result.Error(DataError.Network(message = "Sin conexión a internet"))
+            }
 
-        val outcome = providerRegistry.fetchLatest(preferredProviderId())
+            val outcome = providerRegistry.fetchLatest(preferredProviderId())
 
-        if (outcome.rates.isEmpty()) {
-            val error = mostInformativeFailure(outcome.failures)
-            logger.warn(TAG, "Sincronización sin datos: ${error.message ?: error::class.simpleName}")
-            return Result.Error(error)
-        }
+            if (outcome.rates.isEmpty()) {
+                val error = mostInformativeFailure(outcome.failures)
+                logger.warn(TAG, "Sincronización sin datos: ${error.message ?: error::class.simpleName}")
+                return@withTimeoutOrNull Result.Error(error)
+            }
 
-        val epochDay = timeProvider.today().toEpochDay()
+            val epochDay = timeProvider.today().toEpochDay()
 
-        val entities = outcome.rates.mapNotNull { resolved ->
-            val source = RateSource.fromKey(resolved.rate.sourceKey) ?: return@mapNotNull null
-            resolved.rate.toEntity(
-                providerId = resolved.providerId,
-                previousClose = previousCloseOrNull(
-                    source = source,
-                    epochDay = epochDay,
-                    currentValue = resolved.rate.value,
+            val entities = outcome.rates.mapNotNull { resolved ->
+                val source = RateSource.fromKey(resolved.rate.sourceKey) ?: return@mapNotNull null
+                resolved.rate.toEntity(
+                    providerId = resolved.providerId,
+                    previousClose = previousCloseOrNull(
+                        source = source,
+                        epochDay = epochDay,
+                        currentValue = resolved.rate.value,
+                    ),
+                    fetchedAtMillis = outcome.fetchedAtMillis,
+                )
+            }
+
+            if (entities.isEmpty()) {
+                return@withTimeoutOrNull Result.Error(DataError.Parse(message = "Los proveedores no devolvieron tasas utilizables"))
+            }
+
+            // Commit atómico: tasas vigentes + cierres diarios en UNA transacción Room.
+            // Antes eran dos upserts separados: un kill del proceso en el medio dejaba tasas
+            // nuevas con cierres viejos y la tendencia corrupta hasta el día siguiente.
+            //
+            // La escritura va protegida a propósito: si Room la rechaza (archivo dañado, disco
+            // lleno, base cerrada a mitad), el error vuelve clasificado y la UI lo cuenta en vez
+            // de subir como excepción y matar al ViewModel que pidió el refresco.
+            try {
+                localDataSource.commitRateSync(
+                    rates = entities,
+                    closes = entities.map { entity -> entity.toDailyCloseEntity(epochDay) },
+                )
+            } catch (exception: SQLiteException) {
+                logger.error(TAG, "La base local rechazó la escritura de la sincronización", exception)
+                return@withTimeoutOrNull Result.Error(DataError.Storage(cause = exception))
+            }
+
+            // La caché volvió a tener datos: el aviso de reconstrucción deja de ser cierto.
+            databaseRebuildTracker.markRecovered()
+
+            // Retención del cierre diario: la tabla crece dos filas al día. La poda viaja con la
+            // sincronización (y no en un trabajo aparte) para que no exista ninguna ruta que
+            // escriba cierres sin aplicarle nunca el límite de antigüedad.
+            pruneOldDailyCloses()
+
+            if (outcome.failures.isNotEmpty()) {
+                logger.warn(TAG, "Sincronización parcial: ${entities.size} tasas, ${outcome.failures.size} fallos")
+            }
+
+            Result.Success(
+                SyncSummary(
+                    updatedSources = entities.mapNotNull { entity -> RateSource.fromKey(entity.source) },
+                    providerIds = outcome.providerIds,
+                    failures = outcome.failures,
+                    fetchedAtMillis = outcome.fetchedAtMillis,
                 ),
-                fetchedAtMillis = outcome.fetchedAtMillis,
             )
-        }
-
-        if (entities.isEmpty()) {
-            return Result.Error(DataError.Parse(message = "Los proveedores no devolvieron tasas utilizables"))
-        }
-
-        // Commit atómico: tasas vigentes + cierres diarios en UNA transacción Room.
-        // Antes eran dos upserts separados: un kill del proceso en el medio dejaba tasas
-        // nuevas con cierres viejos y la tendencia corrupta hasta el día siguiente.
-        //
-        // La escritura va protegida a propósito: si Room la rechaza (archivo dañado, disco
-        // lleno, base cerrada a mitad), el error vuelve clasificado y la UI lo cuenta en vez
-        // de subir como excepción y matar al ViewModel que pidió el refresco.
-        try {
-            localDataSource.commitRateSync(
-                rates = entities,
-                closes = entities.map { entity -> entity.toDailyCloseEntity(epochDay) },
-            )
-        } catch (exception: SQLiteException) {
-            logger.error(TAG, "La base local rechazó la escritura de la sincronización", exception)
-            return Result.Error(DataError.Storage(cause = exception))
-        }
-
-        // La caché volvió a tener datos: el aviso de reconstrucción deja de ser cierto.
-        databaseRebuildTracker.markRecovered()
-
-        // Retención del cierre diario: la tabla crece dos filas al día. La poda viaja con la
-        // sincronización (y no en un trabajo aparte) para que no exista ninguna ruta que
-        // escriba cierres sin aplicarle nunca el límite de antigüedad.
-        pruneOldDailyCloses()
-
-        if (outcome.failures.isNotEmpty()) {
-            logger.warn(TAG, "Sincronización parcial: ${entities.size} tasas, ${outcome.failures.size} fallos")
-        }
-
-        return Result.Success(
-            SyncSummary(
-                updatedSources = entities.mapNotNull { entity -> RateSource.fromKey(entity.source) },
-                providerIds = outcome.providerIds,
-                failures = outcome.failures,
-                fetchedAtMillis = outcome.fetchedAtMillis,
-            ),
-        )
-    }
+        } ?: Result.Error(DataError.Timeout(message = "La sincronización agotó el tiempo máximo"))
 
     /**
      * Cierre anterior en este orden:
@@ -354,5 +356,12 @@ class RateRepositoryImpl @Inject constructor(
 
         /** Un respiro entre reintentos: deja que Room termine de reconstruir la base. */
         const val RATE_FLOW_RETRY_DELAY_MILLIS = 250L
+
+        /**
+         * Tiempo máximo total de una sincronización (todos los proveedores + escritura local).
+         * Sin este techo, cuatro proveedores con 20 s de callTimeout cada uno podrían dejar
+         * la pantalla girando hasta 80 s. Con 30 s el error llega a tiempo para ser útil.
+         */
+        const val SYNC_TOTAL_TIMEOUT_MILLIS: Long = 30L * 1_000L
     }
 }

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacidad | DivTrack</title>
+  <meta name="description" content="Política de privacidad de DivTrack. Cómo manejamos los datos de la app de tasas del dólar en Venezuela.">
+  <meta name="theme-color" content="#02040a">
+  <link rel="preload" as="style" href="css/base.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2302040a'/%3E%3Cpath d='M10 10h12v12H10z' fill='%2322d3ee'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <div class="mesh-bg">
+    <div class="mesh-blob mesh-blob-1"></div>
+    <div class="mesh-blob mesh-blob-2"></div>
+    <div class="mesh-blob mesh-blob-3"></div>
+  </div>
+
+  <header class="site-header" id="cabecera">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="DivTrack - Inicio">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="#02040a"/>
+          <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+        </svg>
+        <span>DivTrack</span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html">Inicio</a>
+        <a href="tasas.html">Tasas en vivo</a>
+        <a href="calculadora.html">Calculadora</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="app.html">App</a>
+        <a href="stack.html">Stack</a>
+        <a href="api.html">API</a>
+        <a href="offline.html">Offline</a>
+        <a href="tests.html">Tests</a>
+        <a href="compilar.html">Compilar</a>
+        <a href="descarga.html">Descargar</a>
+        <a href="github.html">GitHub</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contacto.html">Contacto</a>
+      </nav>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">🌙</button>
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html">Inicio</a>
+    <a href="tasas.html">Tasas en vivo</a>
+    <a href="calculadora.html">Calculadora</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="app.html">App</a>
+    <a href="stack.html">Stack</a>
+    <a href="api.html">API</a>
+    <a href="offline.html">Offline</a>
+    <a href="tests.html">Tests</a>
+    <a href="compilar.html">Compilar</a>
+    <a href="descarga.html">Descargar</a>
+    <a href="github.html">GitHub</a>
+    <a href="faq.html">FAQ</a>
+    <a href="contacto.html">Contacto</a>
+  </div>
+
+  <main id="contenido">
+    <section class="section">
+      <div class="container">
+        <div class="section-title reveal reveal-delay-1">Política de privacidad</div>
+        <div class="section-subtitle reveal reveal-delay-2">
+          Cómo DivTrack maneja tu información y los datos de tasas.
+        </div>
+
+        <div class="card reveal reveal-delay-3">
+          <div style="font-weight:900; font-size:1.3rem; margin-bottom:24px; color:var(--text);">Resumen</div>
+          <p style="color:var(--text-dim); font-size:1.05rem; line-height:2; margin-bottom:28px;">
+            DivTrack no recopila datos personales ni los comparte con terceros. Las tasas se obtienen de fuentes públicas y se almacenan localmente en tu dispositivo.
+          </p>
+
+          <div style="font-weight:900; font-size:1.2rem; margin-bottom:16px; color:var(--text);">1. Datos que recopilamos</div>
+          <ul style="color:var(--text-dim); font-size:1rem; line-height:2; margin-left:26px; margin-bottom:28px;">
+            <li><strong>Datos locales:</strong> Las tasas y preferencias se guardan en Room y DataStore dentro de tu dispositivo. No salen del mismo.</li>
+            <li><strong>Sin cuenta:</strong> No es necesario crear cuenta ni proporcionar correo electrónico.</li>
+            <li><strong>Sin rastreo:</strong> No usamos analíticas, cookies ni identificadores publicitarios.</li>
+          </ul>
+
+          <div style="font-weight:900; font-size:1.2rem; margin-bottom:16px; color:var(--text);">2. Fuentes de tasas</div>
+          <p style="color:var(--text-dim); font-size:1.05rem; line-height:2; margin-bottom:28px;">
+            Las tasas se obtienen de APIs públicas: DolarAPI, Yadio, ExchangeRate-API y DolarVZLA. Cada consulta se realiza directamente desde tu dispositivo a esos servidores.
+          </p>
+
+          <div style="font-weight:900; font-size:1.2rem; margin-bottom:16px; color:var(--text);">3. Permisos</div>
+          <ul style="color:var(--text-dim); font-size:1rem; line-height:2; margin-left:26px; margin-bottom:28px;">
+            <li><strong>INTERNET:</strong> para consultar las APIs de tasas.</li>
+            <li><strong>ACCESS_NETWORK_STATE:</strong> para detectar conectividad antes de sincronizar.</li>
+            <li><strong>REQUEST_INSTALL_PACKAGES:</strong> solo para actualizar el APK desde la app (versión 4.6+).</li>
+          </ul>
+
+          <div style="font-weight:900; font-size:1.2rem; margin-bottom:16px; color:var(--text);">4. Contacto</div>
+          <p style="color:var(--text-dim); font-size:1.05rem; line-height:2;">
+            Si tienes dudas sobre esta política, escríbenos a través de la sección <a href="contacto.html" style="color:var(--primary);">Contacto</a> o abre un issue en <a href="github.html" style="color:var(--primary);">GitHub</a>.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="logo" style="margin-bottom:14px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect width="32" height="32" rx="8" fill="#02040a"/>
+            <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+          </svg>
+          <span>DivTrack</span>
+        </div>
+        <p style="font-size:0.9rem;">Política de privacidad</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navegar</h4>
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a href="terminos.html">Términos</a></li>
+          <li><a href="github.html">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 DivTrack</div>
+  </footer>
+
+  <script src="js/common.js"></script>
+</body>
+</html>

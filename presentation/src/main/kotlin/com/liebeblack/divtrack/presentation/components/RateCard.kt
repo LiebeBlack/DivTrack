@@ -135,19 +135,21 @@ fun RateCard(
                         )
                     } else if (isHero) {
                         // ── Cifra principal oficial: máxima jerarquía visual ──
-                        val preferredFontSize = when {
-                            fontScale >= 1.3f -> 40f
-                            maxWidth >= 340.dp -> 72f
-                            maxWidth >= 280.dp -> 60f
-                            else -> 48f
+                        val heroFontSize = remember(maxWidth, valueText, fontScale) {
+                            val preferredFontSize = when {
+                                fontScale >= 1.3f -> 40f
+                                maxWidth >= 340.dp -> 72f
+                                maxWidth >= 280.dp -> 60f
+                                else -> 48f
+                            }
+                            val widthLimitedFontSize = if (valueText.isNotEmpty()) {
+                                maxWidth.value * 0.94f / (valueText.length * 0.52f * fontScale)
+                            } else {
+                                preferredFontSize
+                            }
+                            minOf(preferredFontSize, widthLimitedFontSize)
+                                .coerceAtLeast(28f)
                         }
-                        val widthLimitedFontSize = if (valueText.isNotEmpty()) {
-                            maxWidth.value * 0.94f / (valueText.length * 0.52f * fontScale)
-                        } else {
-                            preferredFontSize
-                        }
-                        val heroFontSize = minOf(preferredFontSize, widthLimitedFontSize)
-                            .coerceAtLeast(28f)
 
                         Text(
                             text = valueText,
@@ -165,13 +167,16 @@ fun RateCard(
                         )
                     } else {
                         // ── Tasa paralela: escala secundaria ──
-                        Text(
-                            text = valueText,
-                            style = MaterialTheme.typography.displaySmall.tabular().copy(
+                        val parallelStyle = remember(valueText, emphasisColor) {
+                            MaterialTheme.typography.displaySmall.tabular().copy(
                                 fontSize = 26.sp,
                                 lineHeight = 32.sp,
                                 fontWeight = FontWeight.Bold,
-                            ),
+                            )
+                        }
+                        Text(
+                            text = valueText,
+                            style = parallelStyle,
                             color = emphasisColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora | DivTrack</title>
+  <meta name="description" content="Calculadora bidireccional de DivTrack: convierte bolívares a dólares y dólares a bolívares al instante, sin impuestos.">
+  <meta name="theme-color" content="#02040a">
+  <link rel="preload" as="style" href="css/base.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2302040a'/%3E%3Cpath d='M10 10h12v12H10z' fill='%2322d3ee'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <div class="mesh-bg">
+    <div class="mesh-blob mesh-blob-1"></div>
+    <div class="mesh-blob mesh-blob-2"></div>
+    <div class="mesh-blob mesh-blob-3"></div>
+  </div>
+
+  <header class="site-header" id="cabecera">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="DivTrack - Inicio">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="#02040a"/>
+          <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+        </svg>
+        <span>DivTrack</span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html">Inicio</a>
+        <a href="tasas.html">Tasas en vivo</a>
+        <a href="calculadora.html" class="active">Calculadora</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="app.html">App</a>
+        <a href="stack.html">Stack</a>
+        <a href="api.html">API</a>
+        <a href="offline.html">Offline</a>
+        <a href="tests.html">Tests</a>
+        <a href="compilar.html">Compilar</a>
+        <a href="descarga.html">Descargar</a>
+        <a href="github.html">GitHub</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contacto.html">Contacto</a>
+      </nav>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">🌙</button>
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html">Inicio</a>
+    <a href="tasas.html">Tasas en vivo</a>
+    <a href="calculadora.html" class="active">Calculadora</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="app.html">App</a>
+    <a href="stack.html">Stack</a>
+    <a href="api.html">API</a>
+    <a href="offline.html">Offline</a>
+    <a href="tests.html">Tests</a>
+    <a href="compilar.html">Compilar</a>
+    <a href="descarga.html">Descargar</a>
+    <a href="github.html">GitHub</a>
+    <a href="faq.html">FAQ</a>
+    <a href="contacto.html">Contacto</a>
+  </div>
+
+  <main id="contenido">
+    <section class="section">
+      <div class="container">
+        <div class="section-title reveal reveal-delay-1">Calculadora bidireccional</div>
+        <div class="section-subtitle reveal reveal-delay-2">
+          Convierte bolívares a dólares y dólares a bolívares al instante. Sin botón "Calcular", sin impuestos ni cargos.
+        </div>
+
+        <div class="grid reveal reveal-delay-3" style="grid-template-columns: 1fr 450px; gap:38px;">
+          <div class="card">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:30px;">
+              <div style="font-weight:900; font-size:1.2rem; color:var(--text); display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.5rem;">💱</span> Conversor USD ↔ Bs
+              </div>
+              <div class="badge" style="margin:0; font-size:0.72rem;">Resultado en cada tecla</div>
+            </div>
+
+            <div style="display:flex; gap:14px; margin-bottom:34px;">
+              <button class="calc-chip active" id="chip-usd2bs">USD → Bs</button>
+              <button class="calc-chip" id="chip-bs2usd">Bs → USD</button>
+            </div>
+
+            <div style="margin-bottom:32px;">
+              <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.12em; font-weight:800; margin-bottom:12px;">Monto</div>
+              <input type="number" id="monto" placeholder="0,00" step="0.01" min="0"
+                     style="width:100%; padding:22px; border-radius:var(--radius-sm); border:1px solid var(--border); background:rgba(2,4,10,0.3); color:var(--text); font-size:1.4rem; font-weight:800; outline:none; transition:border-color 0.2s;">
+            </div>
+
+            <div class="rate-row" style="background:rgba(2,4,10,0.3); padding:20px; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:34px;">
+              <span class="rate-label" style="color:var(--text-muted); font-size:0.85rem;">Tasa aplicada</span>
+              <span id="tasa-aplicada" style="font-weight:900; color:var(--primary); font-size:1rem;">876,80 Bs/USD</span>
+            </div>
+
+            <div style="background:linear-gradient(135deg, var(--panel-hover), var(--panel)); border:1px solid var(--border); border-radius:var(--radius); padding:34px;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline; gap:14px; margin-bottom:12px;">
+                <span style="font-size:0.9rem; color:var(--text-muted);">Resultado</span>
+                <span id="resultado" style="font-size:3.2rem; font-weight:900; font-variant-numeric:tabular-nums; color:var(--text);">0,00</span>
+                <span id="resultado-unidad" style="font-size:1.1rem; color:var(--text-muted);">Bs</span>
+              </div>
+              <div style="font-size:0.85rem; color:var(--text-muted); border-top:1px solid var(--border); margin-top:16px; padding-top:16px;">
+                Conversión directa: sin impuestos ni cargos añadidos.
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="btn-copiar" style="width:100%; margin-top:24px;">📋 Copiar resultado</button>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:900; font-size:1.2rem; margin-bottom:24px; color:var(--text); display:flex; align-items:center; gap:10px;">
+              <span style="font-size:1.5rem;">📄</span> Desglose
+            </div>
+            <div style="background:rgba(2,4,10,0.3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:26px;">
+              <div style="display:flex; justify-content:space-between; font-size:0.95rem; color:var(--text-muted); margin-bottom:10px;">
+                <span>Monto ingresado:</span> <span id="det-monto" style="color:var(--text); font-weight:800;">$0,00</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:0.95rem; color:var(--text-muted); margin-bottom:10px;">
+                <span>Tasa aplicada:</span> <span id="det-tasa" style="color:var(--text); font-weight:800;">876,80 Bs/USD</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:1.2rem; color:var(--primary); font-weight:900; margin-bottom:20px;">
+                <span>Total:</span> <span id="det-total" style="color:var(--primary);">0,00</span>
+              </div>
+              <div style="font-size:0.8rem; color:var(--text-muted); border-top:1px solid var(--border); margin-top:18px; padding-top:18px;">
+                Calculado con DivTrack · Tasas de referencia públicas
+              </div>
+            </div>
+
+            <div style="margin-top:34px;">
+              <div style="font-weight:900; font-size:1.1rem; margin-bottom:16px; color:var(--text); display:flex; align-items:center; gap:10px;">
+                <span style="font-size:1.4rem;">⚡</span> Ejemplos rápidos
+              </div>
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <button class="btn btn-ghost ejemplo" data-monto="10" data-dir="usd" style="text-align:left; padding:16px; border-radius:var(--radius-sm);">$10 USD</button>
+                <button class="btn btn-ghost ejemplo" data-monto="100" data-dir="usd" style="text-align:left; padding:16px; border-radius:var(--radius-sm);">$100 USD</button>
+                <button class="btn btn-ghost ejemplo" data-monto="1000" data-dir="bs" style="text-align:left; padding:16px; border-radius:var(--radius-sm);">1.000 Bs</button>
+                <button class="btn btn-ghost ejemplo" data-monto="5000" data-dir="bs" style="text-align:left; padding:16px; border-radius:var(--radius-sm);">5.000 Bs</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="logo" style="margin-bottom:14px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect width="32" height="32" rx="8" fill="#02040a"/>
+            <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+          </svg>
+          <span>DivTrack</span>
+        </div>
+        <p style="font-size:0.9rem;">Conversión directa, sin impuestos.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navegar</h4>
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a href="tasas.html">Tasas</a></li>
+          <li><a href="descarga.html">Descargar APK</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 DivTrack</div>
+  </footer>
+
+  <script src="js/common.js"></script>
+  <script src="js/calculadora.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# DivTrack Web
+# Archivos estáticos generados/servidos por Node.js
+
+node_modules/
+*.log
+.env
+.DS_Store
+dist/
+build/

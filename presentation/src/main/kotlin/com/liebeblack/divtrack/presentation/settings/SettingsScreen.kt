@@ -180,7 +180,9 @@ fun SettingsScreen(
                         },
                         onValueChange = { value ->
                             val rate = value.toDoubleOrNull() ?: 0.0
-                            onIntent(SettingsIntent.SetCustomOfficialRate(rate))
+                            if (rate != state.customOfficialRate) {
+                                onIntent(SettingsIntent.SetCustomOfficialRate(rate))
+                            }
                         },
                         label = { Text(stringResource(R.string.settings_custom_official_rate)) },
                         modifier = Modifier.fillMaxWidth(),
@@ -198,7 +200,9 @@ fun SettingsScreen(
                         },
                         onValueChange = { value ->
                             val rate = value.toDoubleOrNull() ?: 0.0
-                            onIntent(SettingsIntent.SetCustomParallelRate(rate))
+                            if (rate != state.customParallelRate) {
+                                onIntent(SettingsIntent.SetCustomParallelRate(rate))
+                            }
                         },
                         label = { Text(stringResource(R.string.settings_custom_parallel_rate)) },
                         modifier = Modifier.fillMaxWidth(),

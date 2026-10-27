@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App | DivTrack</title>
+  <meta name="description" content="Características de DivTrack: panel de tasas, calculadora bidireccional, ajustes, modo offline y arquitectura Clean.">
+  <meta name="theme-color" content="#02040a">
+  <link rel="preload" as="style" href="css/base.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2302040a'/%3E%3Cpath d='M10 10h12v12H10z' fill='%2322d3ee'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <div class="mesh-bg">
+    <div class="mesh-blob mesh-blob-1"></div>
+    <div class="mesh-blob mesh-blob-2"></div>
+    <div class="mesh-blob mesh-blob-3"></div>
+  </div>
+
+  <header class="site-header" id="cabecera">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="DivTrack - Inicio">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="#02040a"/>
+          <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+        </svg>
+        <span>DivTrack</span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html">Inicio</a>
+        <a href="tasas.html">Tasas en vivo</a>
+        <a href="calculadora.html">Calculadora</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="app.html" class="active">App</a>
+        <a href="stack.html">Stack</a>
+        <a href="api.html">API</a>
+        <a href="offline.html">Offline</a>
+        <a href="tests.html">Tests</a>
+        <a href="compilar.html">Compilar</a>
+        <a href="descarga.html">Descargar</a>
+        <a href="github.html">GitHub</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contacto.html">Contacto</a>
+      </nav>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">🌙</button>
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html">Inicio</a>
+    <a href="tasas.html">Tasas en vivo</a>
+    <a href="calculadora.html">Calculadora</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="app.html" class="active">App</a>
+    <a href="stack.html">Stack</a>
+    <a href="api.html">API</a>
+    <a href="offline.html">Offline</a>
+    <a href="tests.html">Tests</a>
+    <a href="compilar.html">Compilar</a>
+    <a href="descarga.html">Descargar</a>
+    <a href="github.html">GitHub</a>
+    <a href="faq.html">FAQ</a>
+    <a href="contacto.html">Contacto</a>
+  </div>
+
+  <main id="contenido">
+    <section class="section">
+      <div class="container">
+        <div class="section-title reveal reveal-delay-1">Qué hace DivTrack</div>
+        <div class="section-subtitle reveal reveal-delay-2">
+          Tres pantallas, un propósito: que sepas cuánto valen tus bolívares en dólares, sin complicaciones.
+        </div>
+
+        <div class="grid grid-3 reveal reveal-delay-3">
+          <div class="feature-card reveal reveal-delay-4">
+            <div class="feature-icon">📊</div>
+            <h3>Panel de tasas</h3>
+            <p>Valor en Bs. de cada tasa con acento de color por fuente, flecha de tendencia (sube/baja) comparada con el cierre anterior, brecha paralelo/oficial y pull-to-refresh.</p>
+          </div>
+          <div class="feature-card reveal reveal-delay-5">
+            <div class="feature-icon">🧮</div>
+            <h3>Calculadora bidireccional</h3>
+            <p>Resultado en cada tecla, sin botón "Calcular". Selector Oficial/Paralelo, botón para invertir la dirección y copia del desglose. Conversión directa, sin impuestos ni cargos.</p>
+          </div>
+          <div class="feature-card reveal reveal-delay-6">
+            <div class="feature-icon">⚙️</div>
+            <h3>Ajustes</h3>
+            <p>Tema (Sistema / Claro / Oscuro) aplicado al instante, tasa por defecto de la calculadora, sincronización en segundo plano (15/30/60/120/240 min), versión instalada y atribución de proveedores.</p>
+          </div>
+        </div>
+
+        <div class="card reveal reveal-delay-7" style="margin-top:60px;">
+          <div style="font-weight:900; font-size:1.3rem; margin-bottom:24px; color:var(--text); display:flex; align-items:center; gap:10px;">
+            <span style="font-size:1.5rem;">📱</span> Pensada para gama baja
+          </div>
+          <div class="grid grid-3" style="margin-top:20px;">
+            <div style="padding:20px;">
+              <div style="font-weight:800; color:var(--primary); margin-bottom:8px; font-size:0.95rem;">Superficies planas</div>
+              <div style="font-size:0.95rem; color:var(--text-dim); line-height:1.8;">Sin animaciones infinitas que agoten la batería.</div>
+            </div>
+            <div style="padding:20px;">
+              <div style="font-weight:800; color:var(--primary); margin-bottom:8px; font-size:0.95rem;">derivedStateOf</div>
+              <div style="font-size:0.95rem; color:var(--text-dim); line-height:1.8;">Recomposición solo donde de verdad importa.</div>
+            </div>
+            <div style="padding:20px;">
+              <div style="font-weight:800; color:var(--primary); margin-bottom:8px; font-size:0.95rem;">ViewModels acotados</div>
+              <div style="font-size:0.95rem; color:var(--text-dim); line-height:1.8;">Por pantalla, memoria eficiente.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card reveal reveal-delay-8" style="margin-top:34px;">
+          <div style="font-weight:900; font-size:1.3rem; margin-bottom:20px; color:var(--text); display:flex; align-items:center; gap:10px;">
+            <span style="font-size:1.4rem;">🔄</span> Online-First
+          </div>
+          <ol style="margin-left:30px; color:var(--text-dim); font-size:1rem; line-height:2;">
+            <li>Al abrir, la UI pinta al instante lo que hay en Room.</li>
+            <li>En paralelo se lanza la sincronización silenciosa.</li>
+            <li>Si la red responde, Room se actualiza y las pantallas se repintan solas.</li>
+            <li>Si falla, los datos locales no se tocan y se muestra la causa real.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="logo" style="margin-bottom:14px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect width="32" height="32" rx="8" fill="#02040a"/>
+            <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+          </svg>
+          <span>DivTrack</span>
+        </div>
+        <p style="font-size:0.9rem;">App Android nativa · Kotlin 100 %</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navegar</h4>
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a href="tasas.html">Tasas</a></li>
+          <li><a href="calculadora.html">Calculadora</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Más</h4>
+        <ul>
+          <li><a href="stack.html">Stack técnico</a></li>
+          <li><a href="descarga.html">Descargar APK</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 DivTrack</div>
+  </footer>
+
+  <script src="js/common.js"></script>
+</body>
+</html>

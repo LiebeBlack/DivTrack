@@ -39,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -127,10 +126,6 @@ fun CalculatorScreen(
     val amountFocusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {
-        // Se espera un frame para que el campo ya esté medido y el FocusRequester
-        // adjunto; pedirlo en el mismo instante de la composición puede fallar en
-        // transiciones rápidas de Navigation 3.
-        withFrameNanos { }
         amountFocusRequester.requestFocus()
         keyboardController?.show()
     }
@@ -354,10 +349,12 @@ private fun ResultRow(
     emphasize: Boolean = false,
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
-    val valueStyle = if (emphasize) {
-        MaterialTheme.typography.headlineMedium.tabular()
-    } else {
-        MaterialTheme.typography.titleMedium.tabular()
+    val valueStyle = remember(emphasize) {
+        if (emphasize) {
+            MaterialTheme.typography.headlineMedium.tabular()
+        } else {
+            MaterialTheme.typography.titleMedium.tabular()
+        }
     }
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -373,26 +370,28 @@ private fun ResultRow(
         )
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val fontScale = LocalDensity.current.fontScale
-            val baseFontSize = if (emphasize) {
-                when {
-                    maxWidth < 280.dp -> 24f
-                    maxWidth < 360.dp -> 26f
-                    else -> 28f
+            val resultFontSize = remember(maxWidth, value, fontScale, emphasize) {
+                val baseFontSize = if (emphasize) {
+                    when {
+                        maxWidth < 280.dp -> 24f
+                        maxWidth < 360.dp -> 26f
+                        else -> 28f
+                    }
+                } else {
+                    when {
+                        maxWidth < 280.dp -> 18f
+                        maxWidth < 360.dp -> 20f
+                        else -> 22f
+                    }
                 }
-            } else {
-                when {
-                    maxWidth < 280.dp -> 18f
-                    maxWidth < 360.dp -> 20f
-                    else -> 22f
+                val widthLimitedFontSize = if (value.isNotEmpty()) {
+                    maxWidth.value * 0.92f / (value.length * 0.52f * fontScale)
+                } else {
+                    baseFontSize
                 }
+                minOf(baseFontSize, widthLimitedFontSize)
+                    .coerceAtLeast(16f)
             }
-            val widthLimitedFontSize = if (value.isNotEmpty()) {
-                maxWidth.value * 0.92f / (value.length * 0.52f * fontScale)
-            } else {
-                baseFontSize
-            }
-            val resultFontSize = minOf(baseFontSize, widthLimitedFontSize)
-                .coerceAtLeast(16f)
 
             Text(
                 text = value,

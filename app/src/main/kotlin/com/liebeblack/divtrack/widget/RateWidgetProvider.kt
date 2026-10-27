@@ -11,8 +11,6 @@ import android.widget.RemoteViews
 import com.liebeblack.divtrack.MainActivity
 import com.liebeblack.divtrack.R
 import java.text.DecimalFormat
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**
@@ -86,7 +84,7 @@ class RateWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(
             R.id.widget_rate,
             if (data.rate > 0) {
-                "${DecimalFormat("#,##0.00").format(data.rate)} Bs/USD"
+                "${RATE_FORMAT(data.rate)} Bs/USD"
             } else {
                 context.getString(R.string.widget_no_data)
             },
@@ -96,7 +94,7 @@ class RateWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(
             R.id.widget_updated,
             if (data.timestamp > 0) {
-                context.getString(R.string.widget_updated, formatTime(data.timestamp))
+                context.getString(R.string.widget_updated, TIME_FORMAT(java.time.Instant.ofEpochMilli(data.timestamp)))
             } else {
                 context.getString(R.string.widget_loading)
             },
@@ -136,14 +134,22 @@ class RateWidgetProvider : AppWidgetProvider() {
         private const val ACTION_UPDATE_COMPLETE = "com.liebeblack.divtrack.widget.UPDATE_COMPLETE"
         private const val EXTRA_WIDGET_ID = "widget_id"
 
-        /**
-         * Formatea un timestamp en hora local (HH:mm).
-         */
-        private fun formatTime(timestampMillis: Long): String {
-            if (timestampMillis == 0L) return "--:--"
-            val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-            return dateFormat.format(Date(timestampMillis))
+        /** Formateador de moneda cacheado (DecimalFormat no es thread-safe; se accede con sincronización). */
+        private val rateFormat = DecimalFormat("#,##0.00", DecimalFormatSymbols.getDefault(Locale.getDefault()))
+
+        /** Formateador de hora: DateTimeFormatter es inmutable y thread-safe. */
+        private val timeFormat = java.time.format.DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+
+        private val rateFormatLock = Any()
+
+        /** Devuelve el formateador de tasa de forma segura para subprocesos. */
+        private fun RATE_FORMAT(value: Double): String = synchronized(rateFormatLock) {
+            rateFormat.format(value)
         }
+
+        /** Devuelve el timestamp formateado (DateTimeFormatter es thread-safe, sin sincronización). */
+        private fun TIME_FORMAT(instant: java.time.Instant): String =
+            timeFormat.format(instant.atZone(java.time.ZoneId.systemDefault()))
 
         /**
          * Notifica que un widget específico debe actualizarse (llamado por WorkManager).

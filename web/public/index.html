@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DivTrack | Dólar oficial y paralelo en Venezuela</title>
+  <meta name="description" content="DivTrack es la app Android nativa para rastrear en tiempo real el dólar oficial (BCV) y el dólar paralelo en Venezuela, convertir bolívares y dólares al instante, sin impuestos añadidos.">
+  <meta name="theme-color" content="#02040a">
+  <link rel="preload" as="style" href="css/base.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2302040a'/%3E%3Cpath d='M10 10h12v12H10z' fill='%2322d3ee'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip-link" href="#inicio">Saltar al contenido</a>
+
+  <div class="mesh-bg">
+    <div class="mesh-blob mesh-blob-1"></div>
+    <div class="mesh-blob mesh-blob-2"></div>
+    <div class="mesh-blob mesh-blob-3"></div>
+  </div>
+
+  <header class="site-header" id="cabecera">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="DivTrack - Inicio">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="#02040a"/>
+          <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+        </svg>
+        <span>DivTrack</span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html" class="active">Inicio</a>
+        <a href="tasas.html">Tasas en vivo</a>
+        <a href="calculadora.html">Calculadora</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="app.html">App</a>
+        <a href="stack.html">Stack</a>
+        <a href="api.html">API</a>
+        <a href="offline.html">Offline</a>
+        <a href="tests.html">Tests</a>
+        <a href="compilar.html">Compilar</a>
+        <a href="descarga.html">Descargar</a>
+        <a href="github.html">GitHub</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contacto.html">Contacto</a>
+      </nav>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">🌙</button>
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html" class="active">Inicio</a>
+    <a href="tasas.html">Tasas en vivo</a>
+    <a href="calculadora.html">Calculadora</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="app.html">App</a>
+    <a href="stack.html">Stack</a>
+    <a href="api.html">API</a>
+    <a href="offline.html">Offline</a>
+    <a href="tests.html">Tests</a>
+    <a href="compilar.html">Compilar</a>
+    <a href="descarga.html">Descargar</a>
+    <a href="github.html">GitHub</a>
+    <a href="faq.html">FAQ</a>
+    <a href="contacto.html">Contacto</a>
+  </div>
+
+  <main id="inicio">
+    <section class="hero">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="hero-content">
+            <span class="badge">App Android · Kotlin + Jetpack Compose + Material 3</span>
+            <h1>El dólar oficial y paralelo de Venezuela,<br><span class="grad">al instante en tu móvil.</span></h1>
+            <p>Rastrea en tiempo real la tasa del BCV y el dólar paralelo, convierte bolívares y dólares en ambos sentidos sin impuestos ni cargos añadidos, y funciona sin conexión gracias a su arquitectura online-first.</p>
+            <div class="hero-cta">
+              <a href="tasas.html" class="btn btn-primary">Ver tasas en vivo</a>
+              <a href="calculadora.html" class="btn btn-outline">Probar calculadora</a>
+              <a href="descarga.html" class="btn btn-outline">Descargar APK</a>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <div class="screen-body">
+                  <div class="screen-title">Tasas en vivo</div>
+                  <div class="rate-row">
+                    <span class="rate-label">Oficial (BCV)</span>
+                    <span class="rate-value" id="rate-oficial">876,80</span>
+                    <span class="rate-unit">Bs/USD</span>
+                  </div>
+                  <div class="rate-row">
+                    <span class="rate-label">Paralelo</span>
+                    <span class="rate-value" id="rate-paralelo">974,34</span>
+                    <span class="rate-unit">Bs/USD</span>
+                  </div>
+                  <div class="brecha-bar">
+                    <span>Brecha paralelo/oficial</span>
+                    <span class="brecha-val" id="brecha">11,1%</span>
+                  </div>
+                  <div class="calc-phone">
+                    <div class="calc-display" id="calc-demo">$10,00 USD = 8.768,00 Bs</div>
+                    <div class="calc-row">
+                      <button class="calc-chip active">Oficial</button>
+                      <button class="calc-chip">Paralelo</button>
+                      <button class="calc-invert">Invertir</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:10px; font-size:0.85rem; color:var(--text-muted); text-align:center;">
+                Vista previa interactiva · Tasas y calculadora
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-sm">
+      <div class="container">
+        <div class="section-title reveal reveal-delay-1">Estadísticas del proyecto</div>
+        <div class="section-subtitle reveal reveal-delay-2">
+          Todo lo que se envió a producción, comprobado con ejecución real.
+        </div>
+        <div class="grid grid-4 reveal reveal-delay-3">
+          <div class="stat card">
+            <div class="val">88</div>
+            <div class="lbl">Tests JVM, 0 fallos</div>
+          </div>
+          <div class="stat card">
+            <div class="val">2,40 MB</div>
+            <div class="lbl">APK release con R8</div>
+          </div>
+          <div class="stat card">
+            <div class="val">4</div>
+            <div class="lbl">Proveedores de tasas</div>
+          </div>
+          <div class="stat card">
+            <div class="val">100 %</div>
+            <div class="lbl">Kotlin, Clean Architecture</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-title reveal reveal-delay-4">Qué hace DivTrack</div>
+        <div class="section-subtitle reveal reveal-delay-5">
+          Tres pantallas, un propósito: que sepas cuánto valen tus bolívares en dólares, sin complicaciones.
+        </div>
+        <div class="grid grid-3 reveal reveal-delay-6">
+          <div class="feature-card reveal reveal-delay-7">
+            <div class="feature-icon">📊</div>
+            <h3>Panel de tasas</h3>
+            <p>Valor en Bs. de cada tasa, flecha de tendencia, brecha paralelo/oficial y pull-to-refresh.</p>
+          </div>
+          <div class="feature-card reveal reveal-delay-8">
+            <div class="feature-icon">🧮</div>
+            <h3>Calculadora bidireccional</h3>
+            <p>Resultado en cada tecla, sin botón "Calcular". Conversión directa, sin impuestos.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📴</div>
+            <h3>Sin conexión</h3>
+            <p>UI instantánea desde Room, sync silencioso en segundo plano y errores con causa real.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-sm">
+      <div class="container" style="text-align:center;">
+        <div class="section-title reveal reveal-delay-1">Listo para usar</div>
+        <div class="section-subtitle reveal reveal-delay-2">
+          Descarga la última versión, explora el dashboard o lee la documentación de la API.
+        </div>
+        <div class="hero-cta reveal reveal-delay-3" style="justify-content:center;">
+          <a href="descarga.html" class="btn btn-primary">Descargar DivTrack</a>
+          <a href="dashboard.html" class="btn btn-outline">Ver Dashboard</a>
+          <a href="github.html" class="btn btn-outline">Ver en GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="logo" style="margin-bottom:18px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect width="32" height="32" rx="8" fill="#02040a"/>
+            <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+          </svg>
+          <span>DivTrack</span>
+        </div>
+        <p style="font-size:1rem;">Tasas de referencia de fuentes públicas. No es una casa de cambio ni ente oficial.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Web</h4>
+        <ul>
+          <li><a href="tasas.html">Tasas en vivo</a></li>
+          <li><a href="calculadora.html">Calculadora</a></li>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="app.html">Características</a></li>
+          <li><a href="stack.html">Stack técnico</a></li>
+          <li><a href="api.html">Documentación API</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Más</h4>
+        <ul>
+          <li><a href="descarga.html">Descargar APK</a></li>
+          <li><a href="github.html">GitHub</a></li>
+          <li><a href="faq.html">Preguntas frecuentes</a></li>
+          <li><a href="contacto.html">Contacto</a></li>
+          <li><a href="roadmap.html">Hoja de ruta</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="privacidad.html">Privacidad</a></li>
+          <li><a href="terminos.html">Términos</a></li>
+          <li><a href="changelog.html">Changelog</a></li>
+          <li><a href="historia.html">Historia</a></li>
+          <li><a href="equipo.html">Equipo</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 DivTrack · Tasas del dólar en Venezuela</div>
+  </footer>
+
+  <script src="js/common.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>

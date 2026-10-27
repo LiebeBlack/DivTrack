@@ -2,6 +2,7 @@ package com.liebeblack.divtrack.presentation.calculator
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.liebeblack.divtrack.core.common.error.DataError
 import com.liebeblack.divtrack.core.common.result.Result
 import com.liebeblack.divtrack.core.common.time.TimeProvider
 import com.liebeblack.divtrack.core.common.utils.AppConstants
@@ -32,10 +33,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Calculadora bidireccional.
@@ -86,6 +87,9 @@ class CalculatorViewModel @Inject constructor(
     /** Si esa última pasada falló: el próximo regreso a la pantalla reintenta sin esperar. */
     private var lastAttemptFailed: Boolean = false
 
+    /** Última lista de tasas entregada por Room, para evitar re-formatear cuando no cambia. */
+    private var lastRates: List<ExchangeRate> = emptyList()
+
     private val _effects = MutableSharedFlow<CalculatorEffect>(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
@@ -130,8 +134,14 @@ class CalculatorViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             observeRates()
-                .distinctUntilChanged()
-                .collect { rates -> availableRates.value = rates.toCalculatorRates() }
+                .collect { rates ->
+                    // Solo re-formatear cuando el contenido de las tasas cambie (source/value),
+                    // no cuando solo cambie fetchedAtMillis de cada emisión de Room.
+                    if (rates.map { it.source to it.value } != lastRates.map { it.source to it.value }) {
+                        lastRates = rates.toList()
+                        availableRates.value = rates.toCalculatorRates()
+                    }
+                }
         }
 
         viewModelScope.launch {
@@ -202,7 +212,13 @@ class CalculatorViewModel @Inject constructor(
         isSyncing.value = true
         syncJob = viewModelScope.launch {
             try {
-                val result = syncRates()
+                val result = withTimeoutOrNull(SYNC_TOTAL_TIMEOUT_MILLIS) {
+                    syncRates()
+                } ?: Result.Error(
+                    DataError.Timeout(
+                        message = "La sincronización agotó el tiempo máximo",
+                    ),
+                )
 
                 // El resultado se recuerda para el próximo regreso a la pantalla: un fallo
                 // reciente obliga a reintentar aunque la ventana de frescura no haya vencido.
@@ -319,5 +335,11 @@ class CalculatorViewModel @Inject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
+
+        /**
+         * Tiempo máximo total de una sincronización desde la calculadora. Protege contra
+         * proveedores que cuelguen y dejarían `isSyncing = true` para siempre.
+         */
+        const val SYNC_TOTAL_TIMEOUT_MILLIS: Long = 30L * 1_000L
     }
 }

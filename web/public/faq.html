@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preguntas frecuentes | DivTrack</title>
+  <meta name="description" content="Preguntas frecuentes sobre DivTrack: tasas del dólar, calculadora, modo offline, instalación y más.">
+  <meta name="theme-color" content="#02040a">
+  <link rel="preload" as="style" href="css/base.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2302040a'/%3E%3Cpath d='M10 10h12v12H10z' fill='%2322d3ee'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+  <div class="mesh-bg">
+    <div class="mesh-blob mesh-blob-1"></div>
+    <div class="mesh-blob mesh-blob-2"></div>
+    <div class="mesh-blob mesh-blob-3"></div>
+  </div>
+
+  <header class="site-header" id="cabecera">
+    <div class="container header-inner">
+      <a href="index.html" class="logo" aria-label="DivTrack - Inicio">
+        <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <rect width="32" height="32" rx="8" fill="#02040a"/>
+          <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+        </svg>
+        <span>DivTrack</span>
+      </a>
+      <nav class="nav-links" id="nav-links">
+        <a href="index.html">Inicio</a>
+        <a href="tasas.html">Tasas en vivo</a>
+        <a href="calculadora.html">Calculadora</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="app.html">App</a>
+        <a href="stack.html">Stack</a>
+        <a href="api.html">API</a>
+        <a href="offline.html">Offline</a>
+        <a href="tests.html">Tests</a>
+        <a href="compilar.html">Compilar</a>
+        <a href="descarga.html">Descargar</a>
+        <a href="github.html">GitHub</a>
+        <a href="faq.html" class="active">FAQ</a>
+        <a href="contacto.html">Contacto</a>
+      </nav>
+      <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">🌙</button>
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="index.html">Inicio</a>
+    <a href="tasas.html">Tasas en vivo</a>
+    <a href="calculadora.html">Calculadora</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="app.html">App</a>
+    <a href="stack.html">Stack</a>
+    <a href="api.html">API</a>
+    <a href="offline.html">Offline</a>
+    <a href="tests.html">Tests</a>
+    <a href="compilar.html">Compilar</a>
+    <a href="descarga.html">Descargar</a>
+    <a href="github.html">GitHub</a>
+    <a href="faq.html" class="active">FAQ</a>
+    <a href="contacto.html">Contacto</a>
+  </div>
+
+  <main id="contenido">
+    <section class="section">
+      <div class="container">
+        <div class="section-title reveal reveal-delay-1">Preguntas frecuentes</div>
+        <div class="section-subtitle reveal reveal-delay-2">
+          Todo lo que necesitas saber sobre DivTrack, las tasas del dólar y el uso de la app.
+        </div>
+
+        <div class="faq-grid reveal reveal-delay-3">
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Qué es DivTrack?</span>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">
+              DivTrack es una app Android nativa para rastrear en tiempo real el dólar oficial (BCV) y el dólar paralelo en Venezuela, y convertir bolívares y dólares en ambos sentidos sin impuestos añadidos.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿De dónde sacan las tasas?</span>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">
+              Usamos cuatro proveedores: DolarAPI, Yadio, ExchangeRate-API y DolarVZLA. La app consulta varios y se queda con el dato más fresco y válido.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Funciona sin internet?</span>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">
+              Sí. DivTrack usa arquitectura online-first: Room es la fuente de verdad local. Al abrir, ves el último dato guardado mientras se sincroniza en segundo plano.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Cómo instalo el APK?</span>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">
+              Descarga el APK desde GitHub Releases. Desde Android 8 necesitas activar "Instalar apps desconocidas" para el navegador o gestor de archivos.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Hay versión para iOS?</span>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">
+              Actualmente DivTrack solo está disponible para Android (Kotlin + Jetpack Compose). No hay versión para iOS en este momento.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿La calculadora cobra impuestos?</span>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">
+              No. La conversión es directa: dólares a bolívares y viceversa, sin impuestos ni cargos añadidos.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Con qué frecuencia se actualizan las tasas?</span>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">
+              La sincronización silenciosa se puede configurar cada 15, 30, 60, 120 o 240 minutos desde Ajustes. También puedes hacer pull-to-refresh manual.
+            </div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Es código abierto?</span>
+              <span class="faq-toggle">▼</span>
+            </div>
+            <div class="faq-answer">
+              El código está disponible en GitHub para revisión. La licencia de código aún no está definida; la tipografía Manrope usa SIL OFL 1.1.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="logo" style="margin-bottom:14px;">
+          <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+            <rect width="32" height="32" rx="8" fill="#02040a"/>
+            <path d="M10 10h12v12H10z" fill="#22d3ee"/>
+          </svg>
+          <span>DivTrack</span>
+        </div>
+        <p style="font-size:0.9rem;">Preguntas frecuentes</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navegar</h4>
+        <ul>
+          <li><a href="index.html">Inicio</a></li>
+          <li><a href="contacto.html">Contacto</a></li>
+          <li><a href="github.html">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 DivTrack</div>
+  </footer>
+
+  <script src="js/common.js"></script>
+  <script src="js/faq.js"></script>
+</body>
+</html>
