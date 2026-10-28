@@ -47,6 +47,7 @@ class ProviderRegistryOrderTest {
     fun `sin preferencia respeta el orden por prioridad`() = runTest {
         val outcome = registry(dolarApi, yadio, exchangeRateApi).fetchLatest()
 
+        assertEquals(2, outcome.rates.size)
         assertEquals(ProviderIds.DOLARAPI, outcome.providerIds.first())
     }
 
@@ -55,6 +56,7 @@ class ProviderRegistryOrderTest {
         val outcome = registry(dolarApi, yadio, exchangeRateApi)
             .fetchLatest(preferredProviderId = ProviderIds.EXCHANGERATEAPI)
 
+        assertEquals(2, outcome.rates.size)
         assertEquals(ProviderIds.EXCHANGERATEAPI, outcome.providerIds.first())
     }
 
@@ -70,8 +72,9 @@ class ProviderRegistryOrderTest {
             ),
         )
 
-        registry(completa, dolarApi, yadio).fetchLatest(preferredProviderId = ProviderIds.EXCHANGERATEAPI)
+        val outcome = registry(completa, dolarApi, yadio).fetchLatest(preferredProviderId = ProviderIds.EXCHANGERATEAPI)
 
+        assertEquals(2, outcome.rates.size)
         assertEquals(0, dolarApi.fetchLatestCalls)
         assertEquals(0, yadio.fetchLatestCalls)
     }
@@ -81,6 +84,7 @@ class ProviderRegistryOrderTest {
         val outcome = registry(dolarApi, yadio, exchangeRateApi)
             .fetchLatest(preferredProviderId = "ProveedorFantasma")
 
+        assertEquals(2, outcome.rates.size)
         assertEquals(ProviderIds.DOLARAPI, outcome.providerIds.first())
     }
 
@@ -88,6 +92,7 @@ class ProviderRegistryOrderTest {
     fun `una preferencia nula es orden automatico`() = runTest {
         val outcome = registry(dolarApi, yadio, exchangeRateApi).fetchLatest(preferredProviderId = null)
 
+        assertEquals(2, outcome.rates.size)
         assertEquals(ProviderIds.DOLARAPI, outcome.providerIds.first())
     }
 

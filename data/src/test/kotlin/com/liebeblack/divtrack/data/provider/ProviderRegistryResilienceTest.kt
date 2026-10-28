@@ -51,9 +51,10 @@ class ProviderRegistryResilienceTest {
         assertEquals(1, caido.fetchLatestCalls)
 
         // Segunda pasada dentro del cooldown: el circuito abierto no recibe llamadas.
-        registry.fetchLatest()
+        val outcome2 = registry.fetchLatest()
         assertEquals(1, caido.fetchLatestCalls)
         assertEquals(2, relevo.fetchLatestCalls)
+        assertEquals(1, outcome2.rates.size)
     }
 
     @Test
@@ -75,8 +76,9 @@ class ProviderRegistryResilienceTest {
 
         // ...y cumplido el periodo vuelve a intentarse sin intervención.
         clock.nowMillis += COOLDOWN_MILLIS + 1
-        registry.fetchLatest()
+        val outcome3 = registry.fetchLatest()
         assertEquals(2, caido.fetchLatestCalls)
+        assertEquals(1, outcome3.rates.size)
     }
 
     @Test
@@ -92,12 +94,14 @@ class ProviderRegistryResilienceTest {
         assertEquals(2, intermitente.attempts)
 
         clock.nowMillis += COOLDOWN_MILLIS + 1
-        registry.fetchLatest() // Cumplió los fallos: responde y cierra el circuito.
+        val outcome3 = registry.fetchLatest() // Cumplió los fallos: responde y cierra el circuito.
         assertEquals(3, intermitente.attempts)
+        assertEquals(1, outcome3.rates.size)
 
         clock.nowMillis += COOLDOWN_MILLIS + 1
-        registry.fetchLatest() // Circuito cerrado: se consulta sin esperar cooldown.
+        val outcome4 = registry.fetchLatest() // Circuito cerrado: se consulta sin esperar cooldown.
         assertEquals(4, intermitente.attempts)
+        assertEquals(1, outcome4.rates.size)
     }
 
     @Test
@@ -111,9 +115,10 @@ class ProviderRegistryResilienceTest {
         assertEquals(1, caidoB.fetchLatestCalls)
 
         // Ambos en cooldown, pero la app no puede quedarse sin pasada: reintenta todo.
-        registry.fetchLatest()
+        val outcome2 = registry.fetchLatest()
         assertEquals(2, caidoA.fetchLatestCalls)
         assertEquals(2, caidoB.fetchLatestCalls)
+        assertTrue(outcome2.rates.isEmpty())
     }
 
     @Test
@@ -140,6 +145,7 @@ class ProviderRegistryResilienceTest {
 
         val outcome = registry(conDatoRancio, conDatoFresco).fetchLatest()
 
+        assertEquals(1, outcome.rates.size)
         val oficial = outcome.rates.single { it.rate.sourceKey == SourceKeys.OFICIAL }
         // La frescura manda: el valor mostrado es el de hoy, no el cierre repetido de ayer.
         assertEquals(861.02, oficial.rate.value, DELTA)
@@ -171,6 +177,7 @@ class ProviderRegistryResilienceTest {
 
         val outcome = registry(conParaleloRancio, enVivo).fetchLatest()
 
+        assertEquals(2, outcome.rates.size)
         // El cierre rancio se descarta: sin esta regla, la pasada preguntaba a Yadio porque el
         // dato estaba viejo y después tiraba su respuesta, dejando el valor de ayer en pantalla.
         val paralelo = outcome.rates.single { it.rate.sourceKey == SourceKeys.PARALELO }
@@ -199,10 +206,11 @@ class ProviderRegistryResilienceTest {
             rates = listOf(rate(SourceKeys.OFICIAL, 861.02, updatedAtMillis = HOY_MILLIS)),
         )
 
-        registry(conDatoRancio, nuncaConsultado).fetchLatest()
+        val outcome = registry(conDatoRancio, nuncaConsultado).fetchLatest()
 
         // El oficial llegó rancio: la pasada NO se corta y pregunta al tercero.
         assertEquals(1, nuncaConsultado.fetchLatestCalls)
+        assertEquals(2, outcome.rates.size)
     }
 
     @Test
@@ -220,6 +228,7 @@ class ProviderRegistryResilienceTest {
 
         val diagnostics = registry(conDatoRancio, sinMarca).testAll()
 
+        assertEquals(2, diagnostics.total)
         val dolarApiStatus = diagnostics.statuses.single { it.providerId == "DolarAPI" }
         assertTrue(dolarApiStatus.isOk)
         assertEquals(AYER_MILLIS, dolarApiStatus.lastUpdatedAtMillis)
@@ -248,6 +257,7 @@ class ProviderRegistryResilienceTest {
 
         val outcome = registry(referencia, deCola).fetchLatest()
 
+        assertEquals(1, outcome.rates.size)
         val oficial = outcome.rates.single { it.rate.sourceKey == SourceKeys.OFICIAL }
         assertEquals(875.6505, oficial.rate.value, DELTA)
         assertEquals("DolarAPI", oficial.providerId)
@@ -269,6 +279,7 @@ class ProviderRegistryResilienceTest {
 
         val outcome = registry(caida, relevo).fetchLatest()
 
+        assertEquals(1, outcome.rates.size)
         // La autoridad se gana respondiendo: sin respuesta de la referencia, manda el fresco.
         val oficial = outcome.rates.single { it.rate.sourceKey == SourceKeys.OFICIAL }
         assertEquals(861.02, oficial.rate.value, DELTA)
@@ -295,8 +306,9 @@ class ProviderRegistryResilienceTest {
             rates = listOf(rate(SourceKeys.OFICIAL, 861.02, updatedAtMillis = HOY_MILLIS)),
         )
 
-        registry(referencia, nuncaConsultado).fetchLatest()
+        val outcome = registry(referencia, nuncaConsultado).fetchLatest()
 
+        assertEquals(2, outcome.rates.size)
         assertEquals(0, nuncaConsultado.fetchLatestCalls)
     }
 
@@ -319,6 +331,7 @@ class ProviderRegistryResilienceTest {
 
         val outcome = registry(delDia, delFuturo).fetchLatest()
 
+        assertEquals(1, outcome.rates.size)
         val paralelo = outcome.rates.single { it.rate.sourceKey == SourceKeys.PARALELO }
         assertEquals(940.0, paralelo.rate.value, DELTA)
         assertEquals("DolarAPI", paralelo.providerId)
