@@ -11,6 +11,7 @@ import android.widget.RemoteViews
 import com.liebeblack.divtrack.MainActivity
 import com.liebeblack.divtrack.R
 import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 /**

@@ -359,9 +359,9 @@ class RateRepositoryImpl @Inject constructor(
 
         /**
          * Tiempo máximo total de una sincronización (todos los proveedores + escritura local).
-         * Sin este techo, cuatro proveedores con 20 s de callTimeout cada uno podrían dejar
-         * la pantalla girando hasta 80 s. Con 30 s el error llega a tiempo para ser útil.
+         * Optimizado para velocidad con timeouts más agresivos: 15s es suficiente para
+         * proveedores en paralelo con timeouts de 10s.
          */
-        const val SYNC_TOTAL_TIMEOUT_MILLIS: Long = 30L * 1_000L
+        const val SYNC_TOTAL_TIMEOUT_MILLIS: Long = 15L * 1_000L
     }
 }

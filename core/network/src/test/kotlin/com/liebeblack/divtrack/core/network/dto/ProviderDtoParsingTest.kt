@@ -159,7 +159,7 @@ class ProviderDtoParsingTest {
         assertEquals(876.7976, dto.current?.usd!!, 0.000001)
         // La fecha llega como texto corto (`YYYY-MM-DD`): el proveedor la convierte a
         // medianoche de Venezuela antes de meterla en la comparación por frescura.
-        assertEquals("2026-10-13", dto.current?.date)
+        assertEquals("2026-10-13", dto.current.date)
     }
 
     @Test

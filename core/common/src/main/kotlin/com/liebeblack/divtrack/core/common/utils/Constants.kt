@@ -5,7 +5,7 @@ object AppConstants {
 
     /** WorkManager no permite periodicidad menor a 15 minutos. */
     const val SYNC_MIN_INTERVAL_MINUTES: Int = 15
-    const val SYNC_DEFAULT_INTERVAL_MINUTES: Int = 240
+    const val SYNC_DEFAULT_INTERVAL_MINUTES: Int = 30
 
     /**
      * Retención del cierre diario en Room (años).
@@ -32,15 +32,14 @@ object AppConstants {
     /**
      * Tiempo máximo **total** de una petición (conexión + reintentos incluidos).
      *
-     * Sin este techo, un proveedor que acepta la conexión y luego no responde encadenaba
-     * tres intentos de 10 s de conexión + 15 s de lectura y dejaba la pantalla girando casi
-     * un minuto. Con él, el peor caso está acotado y el error llega a tiempo para ser útil.
+     * Optimizado para velocidad: 10s es suficiente para APIs rápidas y permite
+     * múltiples intentos en paralelo sin bloquear.
      */
-    const val HTTP_CALL_TIMEOUT_SECONDS: Long = 20
+    const val HTTP_CALL_TIMEOUT_SECONDS: Long = 10
 
-    const val HTTP_CONNECT_TIMEOUT_SECONDS: Long = 8
-    const val HTTP_READ_TIMEOUT_SECONDS: Long = 12
-    const val HTTP_WRITE_TIMEOUT_SECONDS: Long = 8
+    const val HTTP_CONNECT_TIMEOUT_SECONDS: Long = 5
+    const val HTTP_READ_TIMEOUT_SECONDS: Long = 8
+    const val HTTP_WRITE_TIMEOUT_SECONDS: Long = 5
 
     /**
      * Frescura esperada del dato de una fuente.
@@ -51,18 +50,14 @@ object AppConstants {
      * publicó algo más reciente.
      *
      * - [STALE_RATE_HOURS]: el oficial lo publica el BCV **en días bancarios** (~1 vez/día de
-     *   lunes a viernes). Cuatro días de margen es lo que hace falta para no dar la alarma en
-     *   un fin de semana normal: el cierre del viernes cumple 72 h el lunes a medianoche, así
-     *   que un umbral de 24 h marcaba "la fuente dejó de publicar" todos los sábados y
-     *   domingos —una falsa alarma en casi un tercio de los días— y además obligaba al
-     *   registro a seguir consultando proveedores de cola cuando no había nada mejor que
-     *   traer. Con 96 h el aviso solo aparece cuando el oficial lleva cuatro días sin
-     *   moverse, que sí es un banco caído o una caché rancia, no un domingo.
-     * - [STALE_PARALLEL_HOURS]: umbral más estricto solo para el paralelo, que se mueve
-     *   varias veces al día.
+     *   lunes a viernes). 48h de margen cubre fin de semana normal: el cierre del viernes
+     *   cumple 72h el lunes a medianoche, así que 48h permite una ventana razonable sin
+     *   falsas alarmas frecuentes.
+     * - [STALE_PARALLEL_HOURS]: umbral más estricto para el paralelo, que se mueve
+     *   continuamente durante el día. 4h permite actualizar en tiempo casi real.
      */
-    const val STALE_RATE_HOURS: Long = 96
-    const val STALE_PARALLEL_HOURS: Long = 12
+    const val STALE_RATE_HOURS: Long = 48
+    const val STALE_PARALLEL_HOURS: Long = 4
 
     /**
      * Tiempo desde el último intento a partir del cual volver a una pantalla dispara una

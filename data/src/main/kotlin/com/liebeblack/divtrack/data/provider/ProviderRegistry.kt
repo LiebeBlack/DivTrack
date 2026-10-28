@@ -14,7 +14,6 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
 /**
@@ -133,18 +132,16 @@ class ProviderRegistry @Inject constructor(
     private suspend fun fetchWithOrder(order: List<RateProvider>): ProviderFetchOutcome =
         coroutineScope {
             val nowMillis = timeProvider.nowMillis()
-            // Todos los proveedores disponibles se consultan en paralelo; el tiempo total
-            // queda acotado por el callTimeout de OkHttp y por el withTimeoutOrNull del repositorio.
-            val results = order.map { provider ->
-                async { provider to fetchSafely { provider.fetchLatest() } }
-            }.map { it.await() }
-
             val resolved = LinkedHashMap<String, ResolvedRate>()
             val providerIds = mutableListOf<String>()
             val failures = mutableListOf<ProviderFailure>()
             var fetchedAtMillis = 0L
 
-            for ((provider, outcome) in results) {
+            for (provider in order) {
+                // Si ya tenemos todas las tasas frescas, no seguir con el resto
+                if (!needsMoreData(resolved, nowMillis)) break
+
+                val outcome = fetchSafely { provider.fetchLatest() }
                 outcome.onSuccess { remoteSet ->
                     fetchedAtMillis = maxOf(fetchedAtMillis, remoteSet.fetchedAtMillis)
                     if (remoteSet.rates.isNotEmpty()) markSuccess(provider.id)
