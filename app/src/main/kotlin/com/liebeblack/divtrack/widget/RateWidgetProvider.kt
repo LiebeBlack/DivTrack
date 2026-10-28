@@ -136,7 +136,7 @@ class RateWidgetProvider : AppWidgetProvider() {
         private const val EXTRA_WIDGET_ID = "widget_id"
 
         /** Formateador de moneda cacheado (DecimalFormat no es thread-safe; se accede con sincronización). */
-        private val rateFormat = DecimalFormat("#,##0.00", DecimalFormatSymbols.getDefault(Locale.getDefault()))
+        private val rateFormat = DecimalFormat("#,##0.00", DecimalFormatSymbols.getInstance(Locale.getDefault()))
 
         /** Formateador de hora: DateTimeFormatter es inmutable y thread-safe. */
         private val timeFormat = java.time.format.DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
