@@ -21,6 +21,7 @@ import com.liebeblack.divtrack.domain.model.SyncSummary
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -48,7 +49,15 @@ class RateRepositoryImplTest {
     private val connectivity = FakeConnectivityObserver()
     private val rebuildTracker = DatabaseRebuildTracker()
 
-    private fun repository(vararg providers: FakeRateProvider) = RateRepositoryImpl(
+    /**
+     * Se declara sobre [TestScope] para poder compartir el scheduler de `runTest`.
+     *
+     * Un [UnconfinedTestDispatcher] creado sin scheduler propio monta la corrutina de la
+     * sincronización en un [kotlinx.coroutines.test.TestCoroutineScheduler] distinto al que
+     * `runTest` procesa: nadie bombea ese scheduler, la reanudación queda encolada para siempre
+     * y ni siquiera el timeout de `runTest` puede rescatar la prueba (se cuelga sin límite).
+     */
+    private fun TestScope.repository(vararg providers: FakeRateProvider) = RateRepositoryImpl(
         providerRegistry = ProviderRegistry(
             providers = providers.toSet(),
             errorMapper = NetworkErrorMapper(),
@@ -62,7 +71,7 @@ class RateRepositoryImplTest {
         timeProvider = clock,
         logger = NoOpLogger,
         connectivityObserver = connectivity,
-        ioDispatcher = UnconfinedTestDispatcher(),
+        ioDispatcher = UnconfinedTestDispatcher(testScheduler),
     )
 
     @Test
